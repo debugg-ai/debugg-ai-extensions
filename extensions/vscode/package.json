@@ -324,6 +324,24 @@
         "category": "Continue",
         "title": "Focus Continue Chat",
         "group": "Continue"
+      },
+      {
+        "command": "continue.highlightErrors",
+        "category": "Continue",
+        "title": "Highlight Logged Errors",
+        "group": "Continue"
+      },
+      {
+        "command": "continue.applyFix",
+        "category": "Continue",
+        "title": "Apply Fix",
+        "group": "Continue"
+      },
+      {
+        "command": "continue.showSnippetPreview",
+        "category": "Continue",
+        "title": "Show Snippet Panel",
+        "group": "Continue"
       }
     ],
     "keybindings": [
@@ -675,6 +693,7 @@
     "ncp": "^2.0.0",
     "node-fetch": "^3.3.2",
     "node-machine-id": "^1.1.12",
+    "pkce-challenge": "^2.2.0",
     "posthog-node": "^3.6.3",
     "react-markdown": "^8.0.7",
     "react-redux": "^8.0.5",

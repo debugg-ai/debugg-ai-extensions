@@ -39,6 +39,9 @@ import { VsCodeIde } from "./VsCodeIde";
 import { LOCAL_DEV_DATA_VERSION } from "core/data/log";
 import { isModelInstaller } from "core/llm";
 import { startLocalOllama } from "core/util/ollamaHelper";
+import { SuggestionCodeLensProvider } from "./debug/codeLens/suggestionsLensProvider";
+import { pullErrorsAndHighlight } from "./debug/pullErrors";
+import { showSnippetWebview } from "./debug/webviews/snippetWebview";
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
 
 let fullScreenPanel: vscode.WebviewPanel | undefined;
@@ -1044,6 +1047,105 @@ const getCommandsMap: (
           `Failed to install '${modelName}': ${message}`,
         );
       }
+    },
+    "continue.highlightErrors": async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor) {
+        await pullErrorsAndHighlight(editor);
+      }
+    },
+    "continue.applyFix": async (documentUri: vscode.Uri, range: vscode.Range, newCode: string)=> {
+      try {
+        // 1. Open the document
+        const doc = await vscode.workspace.openTextDocument(documentUri);
+        const editor = await vscode.window.showTextDocument(doc);
+
+        // 2. Replace the text in the given range with `newCode`
+        await editor.edit(editBuilder => {
+          editBuilder.replace(range, newCode);
+        });
+
+        // 3. Clear suggestions for this file since we've applied one
+        const codeLensProvider = SuggestionCodeLensProvider.getInstance();
+        codeLensProvider.setSuggestionsForFile(documentUri.fsPath, []);
+
+        vscode.window.showInformationMessage('Applied the suggested fix successfully!');
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to apply fix: ${error}`);
+      }
+    },
+
+    // ----------------------------------------------------------
+    // New "buttons" or "inline commands" for Overview, Fix, Coverage
+    // ----------------------------------------------------------
+    /**
+     * Show an overview of the line (e.g. show info in a popup or side panel)
+     */
+    "continue.showOverview": async (uri?: vscode.Uri, line?: number) => {
+      captureCommandTelemetry("continue.showOverview");
+
+      // Example: we just show a popup with info
+      vscode.window.showInformationMessage(
+        `Showing Overview for line ${line != null ? line + 1 : "??"} in ${uri?.fsPath ?? ""}`
+      );
+      // Possibly open a webview or do more advanced logic
+    },
+
+    /**
+     * Apply a suggested fix (e.g. replace code in the editor).
+     */
+    "continue.applySuggestedFix": async (uri?: vscode.Uri, line?: number, newCode?: string) => {
+      captureCommandTelemetry("continue.applySuggestedFix");
+
+      if (!uri || line == null || newCode == null) {
+        vscode.window.showWarningMessage("Not enough info to apply fix!");
+        return;
+      }
+
+      // Open the document, show it, replace the text on the given line with newCode
+      const doc = await vscode.workspace.openTextDocument(uri);
+      const editor = await vscode.window.showTextDocument(doc);
+
+      await editor.edit(editBuilder => {
+        const range = doc.lineAt(line).range;
+        editBuilder.replace(range, newCode);
+      });
+
+      // Clear suggestions for this file since we've applied one
+      const codeLensProvider = SuggestionCodeLensProvider.getInstance();
+      codeLensProvider.setSuggestionsForFile(uri.fsPath, []);
+
+      vscode.window.showInformationMessage(`Applied fix for line ${line + 1}`);
+    },
+
+    /**
+     * Show test coverage for the given line (e.g. open a coverage report).
+     */
+    "continue.showTestCoverage": async (uri?: vscode.Uri, line?: number) => {
+      captureCommandTelemetry("continue.showTestCoverage");
+
+      vscode.window.showInformationMessage(
+        `Showing test coverage for line ${line != null ? line + 1 : "??"} in ${uri?.fsPath ?? ""}`
+      );
+      // Possibly open a coverage file, or show an inline coverage annotation, etc.
+    },
+    /**
+     * Display the snippet preview webview.
+     */
+    "continue.showSnippetPreview": async (snippet?: string) => {
+      captureCommandTelemetry("continue.showSnippetPreview");
+
+      if (!snippet) {
+        vscode.window.showWarningMessage("No snippet provided for preview.");
+        return;
+      }
+      
+      if (!extensionContext) {
+        vscode.window.showWarningMessage("Failed to get extension context.");
+        return;
+      }
+      const snip = 'console.log("Hello from snippet!")';
+      showSnippetWebview(extensionContext, snip);
     },
   };
 };
