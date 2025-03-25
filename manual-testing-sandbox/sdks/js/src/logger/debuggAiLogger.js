@@ -1,23 +1,28 @@
 // debuggAiLogger.js
 import pino from 'pino';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { interceptConsole } from './consoleInterceptor.js';
-import debuggAiTransport from '../transports/debuggAiTransport.js';
-// Helper to get an absolute path to your transport file
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const __parentDir = path.dirname(__dirname);
+import createBrowserTransmit from '../transports/browserTransmit.js';
+import { browserInterceptor } from './browserInterceptor.js';
 
-console.log('__filename', __filename);
-console.log('__dirname', __dirname);
-console.log('__parentDir', __parentDir);
+// Simple dirname implementation that works in browser
+const getDirname = (url) => {
+  const parts = url.split('/');
+  parts.pop(); // Remove the file name
+  return parts.join('/');
+};
+
+const __filename = import.meta.url.replace('file://', '');
+const __dirname = getDirname(__filename);
+const __parentDir = getDirname(__dirname);
+
+// console.log('__filename', __filename);
+// console.log('__dirname', __dirname);
+// console.log('__parentDir', __parentDir);
 
 let loggerInstance = null;
 
-
-const DebuggAiLogger = {
-  init(options = {}) {
+class DebuggAiLogger {
+  static async init(options = {}) {
     // If already initialized, just return the same logger
     if (loggerInstance) {
       return loggerInstance;
@@ -27,38 +32,69 @@ const DebuggAiLogger = {
     const {
       level = 'info',
       endpoint,
-      // concurrency, etc. if you want them
       includeConsole = true,
       pinoOptions = {}, // user can pass extra pino config
     } = options;
 
-    // Pino transport config
-    // `target` is the path to our custom transport file
-    // `options` are passed to the default export from HttpTransport
-    const transport = pino.transport({
-      target: path.join(__parentDir, 'transports/debuggAiTransport.js'),
-    //   target: debuggAiTransport,
-      options: { endpoint, level }
-      // If concurrency is needed, you might do:
-      // options: { endpoint, concurrency: 5, ...etc }
-    });
+    // Check if we're in a browser environment
+    const isBrowser = typeof window !== 'undefined';
 
-    // Create pino instance
-    // Merged user-provided pinoOptions with our forced-level config
-    loggerInstance = pino(
-      {
+    // Create pino instance with different configurations for browser and Node.js
+    if (isBrowser) {
+      // Use the helper to create our "transmit" config
+      const transmit = createBrowserTransmit(endpoint, level);
+
+      // Browser configuration - simpler setup without transport
+      loggerInstance = pino({
         ...pinoOptions,
         level,
-      },
-      transport
-    );
+        browser: {
+          transmit,
+          write: (o) => {
+            // You might want to implement custom handling here
+            // For now, we'll just use console methods
+            const level = o.level;
+            const msg = o.msg;
 
-    if (includeConsole) {
-      interceptConsole(loggerInstance);
+            if (o._fromPino) {
+              return;
+            }
+
+            switch (level) {
+              case 30: console.info({ ...o, _fromPino: true }, msg); break;  // info
+              case 40: console.warn({ ...o, _fromPino: true }, msg); break;  // warn
+              case 50: console.error({ ...o, _fromPino: true }, msg); break; // error
+              default: console.log({ ...o, _fromPino: true }, msg);          // debug/trace
+            }
+          }
+        }
+      });
+
+      if (includeConsole) {
+        browserInterceptor(loggerInstance);
+      }
+    } else {
+      // Node.js configuration - use transport
+      const transport = pino.transport({
+        target: `${__parentDir}/transports/debuggAiTransport.js`,
+        options: { endpoint, level }
+      });
+
+      loggerInstance = pino(
+        {
+          ...pinoOptions,
+          level,
+        },
+        transport
+      );
+      if (includeConsole) {
+        interceptConsole(loggerInstance);
+      }
+
     }
 
     return loggerInstance;
-  },
+  }
 
   // Provide a getter if the user wants direct pino access
   getLogger() {
@@ -66,21 +102,21 @@ const DebuggAiLogger = {
       throw new Error('DebuggAiLogger not initialized. Call DebuggAiLogger.init(...) first.');
     }
     return loggerInstance;
-  },
+  }
 
   // Or add convenience methods if you like:
   info(...args) {
     this.getLogger().info(...args);
-  },
+  }
   error(...args) {
     this.getLogger().error(...args);
-  },
+  }
   warn(...args) {
     this.getLogger().warn(...args);
-  },
+  }
   debug(...args) {
     this.getLogger().debug(...args);
-  },
-};
+  }
+}
 
 export default DebuggAiLogger;

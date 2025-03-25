@@ -1,8 +1,6 @@
 // transports/debuggAiTransport.js
-import build from 'pino-abstract-transport'
-import { once } from 'events';
-import { post } from '../utils/axiosNaming.js';
-import { stackParser } from '../parsers/stackParser.js';
+import build from 'pino-abstract-transport';
+import { post } from '../utils/axiosNaming.ts';
 
 // Optional: map numeric Pino levels to string levels
 const PINO_TO_STRING_LEVELS = {

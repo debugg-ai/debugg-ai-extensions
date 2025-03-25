@@ -1,5 +1,5 @@
-import { destroy as destroyAxios, get as getAxios, post as postAxios, put as putAxios } from './axios.js';
-import { objToCamelCase, objToSnakeCase } from './objectNaming.js';
+import { destroy as destroyAxios, get as getAxios, post as postAxios, put as putAxios } from './axiosConfig.ts';
+import { objToCamelCase, objToSnakeCase } from './objectNaming.ts';
 
 interface AxiosResponse<T = any> {
   data: T;

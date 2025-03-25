@@ -1,43 +1,54 @@
-async function getZipcodeInfo(zipcode) {
-    try {
-        // Google Maps Geocoding API endpoint
-        const endpoint = `https://maps.googleapis.com/maps/api/geocode/json?address=${zipcode}&key=YOUR_API_KEY`;
+// Using import
+import * as dotenv from 'dotenv';
+import DebuggAiLogger from './logger/debuggAiLogger.js';
 
-        const response = await fetch(endpoint);
-        const data = await response.json();
+dotenv.config()
 
-        if (data.status !== 'OK') {
-            throw new Error(`Geocoding API error: ${data.status}`);
-        }
+console.info(process.env.DEBUGG_AI_HOST)
 
-        const result = data.results[0];
-        
-        // Extract relevant information
-        const info = {
-            formattedAddress: result.formatted_address,
-            latitude: result.geometry.location.lat,
-            longitude: result.geometry.location.lng,
-            placeId: result.place_id,
-            types: result.types,
-            components: {}
-        };
+// 1) Initialize
+// DebuggLogger.init({
+//   endpoint: 'http://localhost:81/api/v1/ingest/59be6716-a478-4834-b7e0-754f975f4368/',
+//   level: 'error',
+//   handleExceptions: true, // if you want to catch node exceptions
+//   console: false,
+//   host: process.env.DEBUGG_AI_HOST,
+//   otherTransports: [
+//     // e.g. new transports.File({ filename: 'combined.log' })
+//   ]
+// });
 
-        // Parse address components
-        for (const component of result.address_components) {
-            for (const type of component.types) {
-                info.components[type] = {
-                    shortName: component.short_name,
-                    longName: component.long_name
-                };
-            }
-        }
+const ENDPOINT = 'http://localhost:81/api/v1/ingest/b3e51bab-a37b-49d9-b07c-af9b8c7c9146/aa1c72c7-45ed-48e6-be1b-83e81cbefb55/'
 
-        return info;
+// 1) Simple initialization
+// This starts up pino with our custom transport in a worker thread
+DebuggAiLogger.init({
+  endpoint: ENDPOINT,
+  level: 'debug', 
+  includeConsole: true,
+  pinoOptions: {
+    base: { serviceName: 'debuggai-sandbox' }, // Pino's standard config
+  }
+  // concurrency: 5, etc.
+});
 
-    } catch (error) {
-        console.error('Error getting zipcode information:', error);
-        throw error;
-    }
+// 2) Start logging
+// Or get direct pino instance:
+// const logger = DebuggAiLogger.getLogger();
+console.error('Oops, something went wrong!', { some: 'metadata' });
+
+const newFunction = () => {
+  console.debug({ userId: 123 }, 'User fetched data');
 }
 
-getZipcodeInfo('10001');
+const nestedFunction = () => {
+  newFunction();
+}
+
+nestedFunction();
+
+
+// wait for 10 seconds
+setTimeout(() => {
+  // do nothing
+}, 10000);

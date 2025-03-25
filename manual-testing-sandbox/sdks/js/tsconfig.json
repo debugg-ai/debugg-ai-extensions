@@ -1,11 +1,27 @@
 {
     "compilerOptions": {
       "outDir": "dist",
-      "target": "ES2020",
-      "module": "ESNext",
+      "target": "es6",
+      "module": "esnext",
       "moduleResolution": "node",
-      "esModuleInterop": true
+      "baseUrl": "./src",
+      "paths": {
+        "@/*": [
+          "./*"
+        ]
+      },
+      "esModuleInterop": true,
+      "allowJs": true,
+      "allowImportingTsExtensions": true,
+      "noEmit": true
     },
-    "include": ["src"]
+    "include": [
+      "src",
+      "index.js",
+      "src/**/*"
+    ],
+    "exclude": [
+      "node_modules"
+    ]
   }
   
