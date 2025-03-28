@@ -1,49 +1,38 @@
 import * as vscode from 'vscode';
 import { get } from '../../util/axiosNaming';
-
-export type Level = 'debug' | 'info' | 'warning' | 'error';
-
-export interface LogOverview {
-    args: unknown[];                       // e.g. ['foo', 'bar']
-    kwargs: Record<string, unknown>;       // e.g. { baz: 'qux' }
-
-    exceptionType?: string | null;        // e.g. "AttributeError"
-    handled?: string | null;               // e.g. "no"
-    mechanism?: string | null;             // e.g. "celery"
-    environment?: string | null;           // e.g. "production"
-    traceId?: string | null;              // e.g. "6318bd31dbf843b48380bbfe3979233b"
-    celeryTaskId?: string | null;        // e.g. "396bf247-f397-4ef3-a0b7-b9d77a803ed2"
-    runtimeVersion?: string | null;       // e.g. "3.11.5"
-    serverName?: string | null;           // e.g. "ip-10-0-1-25.us-east-2.compute.internal"
-    eventId?: string | null;             // e.g. "fda64423"
-    timestamp?: string | null;             // e.g. "2023-03-10T06:20:21.000Z"
-    level?: Level | null;                 // e.g. "error", "warning"
-    filePath?: string | null;             // e.g. "backend/transactions/tasks.py"
-    messagePreview?: string | null;       // e.g. "AttributeError: 'NoneType' object..."
-}
-
-
-export interface FileResult {
-    id: number;
-    company: number;
-    level: Level | null;
-    suggestions: Array<{
-        lineNumber: number;
-        message: string;
-        filePath: string;
-        errorCount: number;
-    }>;
-    overview: LogOverview;
-}
-
+import { FileResult } from '../backend/types';
 
 export async function getFileResults(params: {
     filePath: string;
 }): Promise<FileResult[]> {
     try {
-        const serverUrl = 'api/v1/suggestions/59be6716-a478-4834-b7e0-754f975f4368/suggestions/';
-        console.log('Pulling errors for file: ', params.filePath);
+        const serverUrl = 'api/v1/suggestions/a9179c1c-94fc-4c9b-9bcf-3a442407426e/90c435f3-cea6-4ada-8816-f0f3e0ae4163/';
+        // Get relative path to git repo root
+        const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || 'git';
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            throw new Error('No workspace folder found');
+        }
+    
+        const gitProcess = await new Promise<string>((resolve, reject) => {
+            const cp = require('child_process');
+            cp.exec(`"${gitPath}" rev-parse --show-toplevel`, {
+                cwd: workspaceFolder.uri.fsPath
+            }, (err: any, stdout: string) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(stdout.trim());
+            });
+        });
+        // Convert absolute path to relative path
+        const relativePath = params.filePath.replace(gitProcess + '/', '');
+        console.log('Relative path: ', relativePath);
+        params.filePath = relativePath;
         // Example request that passes file_path as a query param
+
+        console.log('Pulling inlays for file: ', params.filePath);
         const response = await get(serverUrl, {
             params: params
         });

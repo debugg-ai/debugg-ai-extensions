@@ -1,6 +1,7 @@
 // pullErrors.ts
 import * as vscode from 'vscode';
 import { get } from '../util/axiosNaming';
+import { gitProcessTool } from '../util/gitUtils';
 import { highlightErrors } from './highlight';
 
 interface LogOverview {
@@ -44,12 +45,16 @@ interface ApiRecord {
  */
 export async function pullErrorsAndHighlight(editor: vscode.TextEditor) {
   try {
-    const filePath = editor.document.uri.fsPath;
+    const fullPath = editor.document.uri.fsPath;
 
     // Replace with your actual server URL
-    const serverUrl = 'api/v1/suggestions/59be6716-a478-4834-b7e0-754f975f4368/suggestions/';
+    const serverUrl = 'api/v1/suggestions/a9179c1c-94fc-4c9b-9bcf-3a442407426e/90c435f3-cea6-4ada-8816-f0f3e0ae4163/';
 
-    console.log('Pulling errors for file: ', filePath);
+    // Convert absolute path to relative path
+    const gitProcess = await gitProcessTool();
+    const filePath = fullPath.replace(gitProcess + '/', '');
+
+    console.log('Pulling errors and highlights for file: ', filePath);
     // Example request that passes file_path as a query param
     const response = await get(serverUrl, {
       params: { filePath: filePath }

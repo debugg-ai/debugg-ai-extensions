@@ -42,6 +42,9 @@ import { startLocalOllama } from "core/util/ollamaHelper";
 import { SuggestionCodeLensProvider } from "./debug/codeLens/suggestionsLensProvider";
 import { pullErrorsAndHighlight } from "./debug/pullErrors";
 import { showSnippetWebview } from "./debug/webviews/snippetWebview";
+import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
+import { FilesService } from "./services/backend/files";
+import { post } from "./util/axiosNaming";
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
 
 let fullScreenPanel: vscode.WebviewPanel | undefined;
@@ -323,6 +326,7 @@ const getCommandsMap: (
   quickEdit: QuickEdit,
   core: Core,
   editDecorationManager: EditDecorationManager,
+  errorFileDecorationProvider: ErrorFileDecorationProvider, 
 ) => { [command: string]: (...args: any) => any } = (
   ide,
   extensionContext,
@@ -334,6 +338,7 @@ const getCommandsMap: (
   quickEdit,
   core,
   editDecorationManager,
+  errorFileDecorationProvider,
 ) => {
   /**
    * Streams an inline edit to the vertical diff manager.
@@ -1119,6 +1124,23 @@ const getCommandsMap: (
     },
 
     /**
+     * Mark the issue as resolved.
+     */
+    "continue.markResolved": async (uri?: vscode.Uri, line?: number, issueId?: string) => {
+      captureCommandTelemetry("continue.markResolved");
+
+      if (!issueId) {
+        // vscode.window.showWarningMessage("No issue ID provided.");
+        return;
+      }
+
+      // Call the API to mark the issue as resolved
+      const response = await post(`/api/v1/issues/${issueId}/resolve/`);
+      console.log(response);
+      vscode.window.showInformationMessage("Issue marked as resolved!");
+    },
+
+    /**
      * Show test coverage for the given line (e.g. open a coverage report).
      */
     "continue.showTestCoverage": async (uri?: vscode.Uri, line?: number) => {
@@ -1146,6 +1168,14 @@ const getCommandsMap: (
       }
       const snip = 'console.log("Hello from snippet!")';
       showSnippetWebview(extensionContext, snip);
+    },
+    /**
+     * Highlight files with errors on the sidebar
+     */
+    "continue.showFilesWithErrors": async () => {
+      captureCommandTelemetry("continue.showFilesWithErrors");
+      const errorFiles = await FilesService.getFilesWithRecentErrors();
+      errorFileDecorationProvider.updateErrorFiles(errorFiles.map(f => f.filePath));
     },
   };
 };
@@ -1239,6 +1269,7 @@ export function registerAllCommands(
   quickEdit: QuickEdit,
   core: Core,
   editDecorationManager: EditDecorationManager,
+  errorFileDecorationProvider: ErrorFileDecorationProvider,
 ) {
   registerCopyBufferSpy(context, core);
 
@@ -1254,6 +1285,7 @@ export function registerAllCommands(
       quickEdit,
       core,
       editDecorationManager,
+      errorFileDecorationProvider,
     ),
   )) {
     context.subscriptions.push(

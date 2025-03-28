@@ -1,6 +1,9 @@
-import { LogOverview } from "../../services/debugg-ai/inlays";
+import { LogOverview } from "../../services/backend/types";
 
-export function getMarkdownStructure({
+export function getMarkdownStructure(
+    title: string,
+    message: string,
+    {
     eventId,
     timestamp,
     level,
@@ -19,13 +22,13 @@ export function getMarkdownStructure({
   }: LogOverview): string {
 
 const struct = `
-# Error Overview
+# ${title}
 
-**Event ID:** ${eventId}
-
-**Timestamp:** ${timestamp}
+${message}
 
 **Level:** ${level}
+
+**Timestamp:** ${timestamp}
 
 
 ---
@@ -33,9 +36,14 @@ const struct = `
 
 ### Description
 
+**Event ID:** ${eventId}   
+
 **Exception Type:** ${exceptionType}  
+
 **Message Preview:** ${messagePreview}  
+
 **File Path:** ${filePath}  
+
 **Handled:** ${handled}
 
 

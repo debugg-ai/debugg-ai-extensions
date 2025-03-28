@@ -342,6 +342,12 @@
         "category": "Continue",
         "title": "Show Snippet Panel",
         "group": "Continue"
+      },
+      {
+        "command": "continue.showFilesWithErrors",
+        "category": "Continue",
+        "title": "Show Files with Errors",
+        "group": "Continue"
       }
     ],
     "keybindings": [

@@ -39,6 +39,9 @@ import { VsCodeIde } from "../VsCodeIde";
 
 import { VsCodeMessenger } from "./VsCodeMessenger";
 
+// Extended classes
+import { ErrorFileDecorationProvider } from "../errorTracking/fileDecorations/ErrorFileDecoration";
+
 import type { VsCodeWebviewProtocol } from "../webviewProtocol";
 
 export class VsCodeExtension {
@@ -50,6 +53,7 @@ export class VsCodeExtension {
   private sidebar: ContinueGUIWebviewViewProvider;
   private windowId: string;
   private editDecorationManager: EditDecorationManager;
+  private errorFileDecorationProvider: ErrorFileDecorationProvider;
   private verticalDiffManager: VerticalDiffManager;
   webviewProtocolPromise: Promise<VsCodeWebviewProtocol>;
   private core: Core;
@@ -104,6 +108,13 @@ export class VsCodeExtension {
       ),
     );
     resolveWebviewProtocol(this.sidebar.webviewProtocol);
+
+    // Error file decoration provider
+    // This is used to highlight files with errors in the sidebar
+    this.errorFileDecorationProvider = new ErrorFileDecorationProvider();
+    context.subscriptions.push(
+      vscode.window.registerFileDecorationProvider(this.errorFileDecorationProvider)
+    );
 
     // Config Handler with output channel
     const outputChannel = vscode.window.createOutputChannel(
@@ -265,6 +276,7 @@ export class VsCodeExtension {
       quickEdit,
       this.core,
       this.editDecorationManager,
+      this.errorFileDecorationProvider,
     );
 
     // Disabled due to performance issues

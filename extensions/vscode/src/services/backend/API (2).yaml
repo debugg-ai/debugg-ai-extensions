@@ -1,0 +1,3404 @@
+openapi: 3.0.3
+info:
+  title: API
+  version: 1.0.0
+  description: Documentation of API endpoints.
+paths:
+  /api/v1/auth-token/:
+    post:
+      operationId: auth_token_create
+      tags:
+      - auth-token
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AuthToken'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AuthToken'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthToken'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthToken'
+          description: ''
+  /api/v1/contact/:
+    post:
+      operationId: contact_create
+      tags:
+      - contact
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Contact'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+  /api/v1/hosts/:
+    get:
+      operationId: hosts_list
+      description: A simple ViewSet for viewing and editing Host instances.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - hosts
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedHostList'
+          description: ''
+    post:
+      operationId: hosts_create
+      description: A simple ViewSet for viewing and editing Host instances.
+      tags:
+      - hosts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Host'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Host'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Host'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Host'
+          description: ''
+  /api/v1/hosts/{id}/:
+    get:
+      operationId: hosts_retrieve
+      description: A simple ViewSet for viewing and editing Host instances.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this host.
+        required: true
+      tags:
+      - hosts
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Host'
+          description: ''
+    put:
+      operationId: hosts_update
+      description: A simple ViewSet for viewing and editing Host instances.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this host.
+        required: true
+      tags:
+      - hosts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Host'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Host'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Host'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Host'
+          description: ''
+    patch:
+      operationId: hosts_partial_update
+      description: A simple ViewSet for viewing and editing Host instances.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this host.
+        required: true
+      tags:
+      - hosts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedHost'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedHost'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedHost'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Host'
+          description: ''
+  /api/v1/ingest/{company_key}/{project_key}/:
+    get:
+      operationId: ingest_list
+      description: Retrieve a paginated list of all log entries.
+      summary: List Log Entries
+      parameters:
+      - in: path
+        name: company_key
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: level
+        schema:
+          type: string
+          enum:
+          - CRITICAL
+          - DEBUG
+          - ERROR
+          - INFO
+          - WARNING
+        description: |-
+          * `DEBUG` - Debug
+          * `INFO` - Info
+          * `WARNING` - Warning
+          * `ERROR` - Error
+          * `CRITICAL` - Critical
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: path
+        name: project_key
+        schema:
+          type: string
+        required: true
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: timestamp
+        schema:
+          type: string
+          format: date-time
+      tags:
+      - ingest
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLogEntryList'
+          description: ''
+    post:
+      operationId: ingest_create
+      description: Create a new Log Entry instance.
+      summary: Create a Log Entry
+      parameters:
+      - in: path
+        name: company_key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: project_key
+        schema:
+          type: string
+        required: true
+      tags:
+      - ingest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogEntry'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEntry'
+          description: ''
+  /api/v1/ingest/{company_key}/{project_key}/{id}/:
+    get:
+      operationId: ingest_retrieve
+      description: Get detailed information of a specific Log Entry by ID.
+      summary: Retrieve a Log Entry
+      parameters:
+      - in: path
+        name: company_key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this log entry.
+        required: true
+      - in: path
+        name: project_key
+        schema:
+          type: string
+        required: true
+      tags:
+      - ingest
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEntry'
+          description: ''
+    put:
+      operationId: ingest_update
+      description: Full update of a Log Entry object by ID.
+      summary: Update a Log Entry
+      parameters:
+      - in: path
+        name: company_key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this log entry.
+        required: true
+      - in: path
+        name: project_key
+        schema:
+          type: string
+        required: true
+      tags:
+      - ingest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogEntry'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEntry'
+          description: ''
+    patch:
+      operationId: ingest_partial_update
+      description: Partially update a Log Entry instance (only specified fields).
+      summary: Partial update of a Log Entry
+      parameters:
+      - in: path
+        name: company_key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this log entry.
+        required: true
+      - in: path
+        name: project_key
+        schema:
+          type: string
+        required: true
+      tags:
+      - ingest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLogEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLogEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLogEntry'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEntry'
+          description: ''
+    delete:
+      operationId: ingest_destroy
+      description: Removes a specific Log Entry by ID.
+      summary: Delete a Log Entry
+      parameters:
+      - in: path
+        name: company_key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this log entry.
+        required: true
+      - in: path
+        name: project_key
+        schema:
+          type: string
+        required: true
+      tags:
+      - ingest
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/issues/:
+    get:
+      operationId: issues_list
+      description: |-
+        Optionally customize the list response, such as filtering
+        or adding additional data.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - issues
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedIssueList'
+          description: ''
+    post:
+      operationId: issues_create
+      description: |-
+        A simple ViewSet for listing, creating, retrieving, updating,
+        and deleting Issue instances.
+      tags:
+      - issues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Issue'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Issue'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Issue'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+          description: ''
+  /api/v1/issues/{uuid}/:
+    get:
+      operationId: issues_retrieve
+      description: |-
+        A simple ViewSet for listing, creating, retrieving, updating,
+        and deleting Issue instances.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - issues
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+          description: ''
+    put:
+      operationId: issues_update
+      description: |-
+        A simple ViewSet for listing, creating, retrieving, updating,
+        and deleting Issue instances.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - issues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Issue'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Issue'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Issue'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+          description: ''
+    patch:
+      operationId: issues_partial_update
+      description: |-
+        A simple ViewSet for listing, creating, retrieving, updating,
+        and deleting Issue instances.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - issues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedIssue'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedIssue'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedIssue'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+          description: ''
+  /api/v1/issues/{uuid}/logs/:
+    get:
+      operationId: issues_logs_retrieve
+      description: Get logs for an issue.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - issues
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+          description: ''
+  /api/v1/issues/{uuid}/resolve/:
+    post:
+      operationId: issues_resolve_create
+      description: Resolve an issue.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - issues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Issue'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Issue'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Issue'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+          description: ''
+  /api/v1/logs/:
+    get:
+      operationId: logs_list
+      description: Retrieve a paginated list of all log entries.
+      summary: List Logs
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - logs
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLogEntryList'
+          description: ''
+  /api/v1/logs/{id}/:
+    get:
+      operationId: logs_retrieve
+      description: Get detailed information of a specific Log by ID.
+      summary: Retrieve a Log
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this log entry.
+        required: true
+      tags:
+      - logs
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEntry'
+          description: ''
+    put:
+      operationId: logs_update
+      description: Full update of a Log object by ID.
+      summary: Update a Log
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this log entry.
+        required: true
+      tags:
+      - logs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogEntry'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEntry'
+          description: ''
+    patch:
+      operationId: logs_partial_update
+      description: Partially update a Log instance (only specified fields).
+      summary: Partial update of a Log
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this log entry.
+        required: true
+      tags:
+      - logs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLogEntry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLogEntry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLogEntry'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEntry'
+          description: ''
+    delete:
+      operationId: logs_destroy
+      description: Removes a specific Log by ID.
+      summary: Delete a Log
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this log entry.
+        required: true
+      tags:
+      - logs
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/projects/:
+    get:
+      operationId: projects_list
+      description: A simple ViewSet for viewing and editing Project instances.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectList'
+          description: ''
+    post:
+      operationId: projects_create
+      description: A simple ViewSet for viewing and editing Project instances.
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Project'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Project'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Project'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/v1/projects/{id}/:
+    get:
+      operationId: projects_retrieve
+      description: A simple ViewSet for viewing and editing Project instances.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this project.
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    put:
+      operationId: projects_update
+      description: A simple ViewSet for viewing and editing Project instances.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this project.
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Project'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Project'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Project'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    patch:
+      operationId: projects_partial_update
+      description: A simple ViewSet for viewing and editing Project instances.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this project.
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProject'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProject'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProject'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/v1/projects/{id}/hosts/:
+    get:
+      operationId: projects_hosts_retrieve
+      description: |-
+        A custom action to retrieve all hosts for a given project.
+        Example usage: GET /projects/<pk>/hosts/
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this project.
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/v1/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/suggestions/{company_key}/{project_key}/:
+    get:
+      operationId: suggestions_list
+      description: Get suggestions for log entries.
+      parameters:
+      - in: path
+        name: company_key
+        schema:
+          type: string
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: path
+        name: project_key
+        schema:
+          type: string
+        required: true
+      tags:
+      - suggestions
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedIssueSuggestionList'
+          description: ''
+  /api/v1/suggestions/{company_key}/{project_key}/{id}/:
+    get:
+      operationId: suggestions_retrieve
+      description: A ViewSet for managing suggestions for issues.
+      parameters:
+      - in: path
+        name: company_key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this issue.
+        required: true
+      - in: path
+        name: project_key
+        schema:
+          type: string
+        required: true
+      tags:
+      - suggestions
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueSuggestion'
+          description: ''
+  /api/v1/team-settings/:
+    get:
+      operationId: team_settings_retrieve
+      description: API endpoint for managing team settings
+      tags:
+      - team-settings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: team_settings_create
+      description: API endpoint for managing team settings
+      tags:
+      - team-settings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          description: No response body
+  /api/v1/team-settings/{id}/:
+    get:
+      operationId: team_settings_retrieve_2
+      description: API endpoint for managing team settings
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - team-settings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    put:
+      operationId: team_settings_update
+      description: API endpoint for managing team settings
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - team-settings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: team_settings_partial_update
+      description: API endpoint for managing team settings
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - team-settings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/team-settings/current/:
+    get:
+      operationId: team_settings_current_retrieve
+      description: Get the current team settings
+      tags:
+      - team-settings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/team-settings/delete_team/:
+    post:
+      operationId: team_settings_delete_team_create
+      description: Delete the team
+      tags:
+      - team-settings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/team-settings/update_settings/:
+    put:
+      operationId: team_settings_update_settings_update
+      description: Update team settings
+      tags:
+      - team-settings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    patch:
+      operationId: team_settings_update_settings_partial_update
+      description: Update team settings
+      tags:
+      - team-settings
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/teams/:
+    get:
+      operationId: teams_list
+      description: API endpoint for managing teams
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - teams
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTeamList'
+          description: ''
+    post:
+      operationId: teams_create
+      description: API endpoint for managing teams
+      tags:
+      - teams
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Team'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Team'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Team'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/teams/{id}/:
+    get:
+      operationId: teams_retrieve
+      description: API endpoint for managing teams
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - teams
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+    put:
+      operationId: teams_update
+      description: API endpoint for managing teams
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - teams
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Team'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Team'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Team'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+    patch:
+      operationId: teams_partial_update
+      description: API endpoint for managing teams
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - teams
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTeam'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTeam'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTeam'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/teams/{id}/invite_member/:
+    post:
+      operationId: teams_invite_member_create
+      description: Invite a new member to the team
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - teams
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Team'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Team'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Team'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/teams/{id}/members/:
+    get:
+      operationId: teams_members_retrieve
+      description: Get all members of a team
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - teams
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/teams/{id}/remove_member/:
+    post:
+      operationId: teams_remove_member_create
+      description: Remove a member from the team
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - teams
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Team'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Team'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Team'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/teams/{id}/update_member/:
+    post:
+      operationId: teams_update_member_create
+      description: Update a team member's role
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this team.
+        required: true
+      tags:
+      - teams
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Team'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Team'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Team'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/token/:
+    post:
+      operationId: token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserAndTokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserAndTokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserAndTokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAndTokenObtainPair'
+          description: ''
+  /api/v1/token/refresh/:
+    post:
+      operationId: token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/token/verify/:
+    post:
+      operationId: token_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVerify'
+          description: ''
+  /api/v1/users/:
+    get:
+      operationId: users_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+    post:
+      operationId: users_create
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateUser'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateUser'
+          description: ''
+  /api/v1/users/{id}/:
+    get:
+      operationId: users_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: users_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: users_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/{id}/reinvite/:
+    post:
+      operationId: users_reinvite_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/{id}/update_password/:
+    post:
+      operationId: users_update_password_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePassword'
+          description: ''
+  /api/v1/users/invite/:
+    post:
+      operationId: users_invite_create
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/me/:
+    get:
+      operationId: users_me_retrieve
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/new_subscribe_session/:
+    post:
+      operationId: users_new_subscribe_session_create
+      description: |-
+        Generate a stripe based subscribe session
+        :param request:
+        :return:
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/update_stripe_subscription/:
+    post:
+      operationId: users_update_stripe_subscription_create
+      description: |-
+        POST /api/subscription/update_stripe_subscription/
+
+        Body JSON:
+        {
+          "subscription_tier": "basic" or "pro",
+          "type": "monthly" or "annual"
+        }
+
+        This updates the user's existing Stripe subscription to the specified new plan.
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/users/update_subscription/:
+    post:
+      operationId: users_update_subscription_create
+      description: Update the subscription for the user
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/webhooks/:
+    post:
+      operationId: webhooks_create
+      tags:
+      - webhooks
+      security:
+      - tokenAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '201':
+          description: No response body
+components:
+  schemas:
+    AuthToken:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        token:
+          type: string
+          readOnly: true
+      required:
+      - password
+      - token
+      - username
+    ChangePassword:
+      type: object
+      description: Serializer for password change endpoint.
+      properties:
+        old_password:
+          type: string
+        new_password:
+          type: string
+      required:
+      - new_password
+      - old_password
+    Contact:
+      type: object
+      properties:
+        name:
+          type: string
+        company_name:
+          type: string
+        email:
+          type: string
+          format: email
+        emailsafe:
+          type: string
+          format: email
+        phone:
+          type: string
+        website:
+          type: string
+        message:
+          type: string
+      required:
+      - emailsafe
+      - name
+      - phone
+    CreateUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        company:
+          type: string
+          readOnly: true
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+        subscription_tier:
+          type: string
+        url:
+          type: string
+          format: uri
+          readOnly: true
+      required:
+      - company
+      - email
+      - id
+      - password
+      - url
+    Host:
+      type: object
+      description: |-
+        Serializer for the Host model.
+        Demonstrates how to reference related objects (project, user) by primary key.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        project:
+          type: integer
+        user:
+          type: integer
+          nullable: true
+        user_email:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          description: Name of the host, e.g. 'My MacBook Pro'.
+          maxLength: 255
+        slug:
+          type: string
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        last_mod:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - last_mod
+      - name
+      - project
+      - slug
+      - timestamp
+      - user_email
+    Issue:
+      type: object
+      description: |-
+        Serializer for the Issue model, including all fields.
+        Handles many-to-many participants via IDs by default.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        project:
+          type: integer
+          description: The project to which this issue belongs.
+        title:
+          type: string
+          nullable: true
+          description: Short title or summary of the issue.
+          maxLength: 255
+        message:
+          type: string
+          nullable: true
+          description: Detailed message or error excerpt that describes this issue.
+        environment:
+          type: string
+          description: Which environment (production, staging, etc.) this issue occurred
+            in.
+          maxLength: 50
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusB13Enum'
+          description: |-
+            The current status of the issue.
+
+            * `open` - Open
+            * `ongoing` - Ongoing
+            * `resolved` - Resolved
+            * `archived` - Archived
+        level:
+          allOf:
+          - $ref: '#/components/schemas/Level28eEnum'
+          description: |-
+            Severity level of the issue (e.g., error, warning, info).
+
+            * `debug` - Debug
+            * `info` - Info
+            * `warning` - Warning
+            * `error` - Error
+            * `fatal` - Fatal
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          description: |-
+            Priority for resolution (e.g., high, medium, low).
+
+            * `low` - Low
+            * `medium` - Medium
+            * `high` - High
+        events_count:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: How many times this issue has been recorded.
+        first_seen:
+          type: string
+          format: date-time
+          description: Timestamp when this issue was first observed.
+        last_seen:
+          type: string
+          format: date-time
+          description: Timestamp when this issue was most recently observed.
+        tags:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description: Optional field for tags or contextual info (key/value pairs).
+        participants:
+          type: array
+          items:
+            type: integer
+          description: Users participating or subscribed to updates for this issue.
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        last_mod:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - last_mod
+      - project
+      - timestamp
+    IssueSuggestion:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: integer
+          description: The project to which this issue belongs.
+        title:
+          type: string
+          nullable: true
+          description: Short title or summary of the issue.
+          maxLength: 255
+        message:
+          type: string
+          nullable: true
+          description: Detailed message or error excerpt that describes this issue.
+        environment:
+          type: string
+          description: Which environment (production, staging, etc.) this issue occurred
+            in.
+          maxLength: 50
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusB13Enum'
+          description: |-
+            The current status of the issue.
+
+            * `open` - Open
+            * `ongoing` - Ongoing
+            * `resolved` - Resolved
+            * `archived` - Archived
+        level:
+          allOf:
+          - $ref: '#/components/schemas/Level28eEnum'
+          description: |-
+            Severity level of the issue (e.g., error, warning, info).
+
+            * `debug` - Debug
+            * `info` - Info
+            * `warning` - Warning
+            * `error` - Error
+            * `fatal` - Fatal
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          description: |-
+            Priority for resolution (e.g., high, medium, low).
+
+            * `low` - Low
+            * `medium` - Medium
+            * `high` - High
+        events_count:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: How many times this issue has been recorded.
+        line_number:
+          type: string
+          readOnly: true
+        column_number:
+          type: string
+          readOnly: true
+        first_seen:
+          type: string
+          format: date-time
+          description: Timestamp when this issue was first observed.
+        last_seen:
+          type: string
+          format: date-time
+          description: Timestamp when this issue was most recently observed.
+        tags:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description: Optional field for tags or contextual info (key/value pairs).
+        participants:
+          type: array
+          items:
+            type: integer
+          description: Users participating or subscribed to updates for this issue.
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        last_mod:
+          type: string
+          format: date-time
+          readOnly: true
+        suggestions:
+          type: string
+          readOnly: true
+        suggestion:
+          type: string
+          readOnly: true
+        overview:
+          type: string
+          readOnly: true
+      required:
+      - column_number
+      - last_mod
+      - line_number
+      - overview
+      - project
+      - suggestion
+      - suggestions
+      - timestamp
+      - uuid
+    Level28eEnum:
+      enum:
+      - debug
+      - info
+      - warning
+      - error
+      - fatal
+      type: string
+      description: |-
+        * `debug` - Debug
+        * `info` - Info
+        * `warning` - Warning
+        * `error` - Error
+        * `fatal` - Fatal
+    LogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          nullable: true
+          description: Short title or summary of the issue.
+          maxLength: 255
+        host:
+          type: string
+        company:
+          type: integer
+          nullable: true
+        project:
+          type: integer
+          nullable: true
+        issue:
+          type: integer
+          nullable: true
+        level:
+          $ref: '#/components/schemas/LogEntryLevelEnum'
+        message:
+          type: string
+          nullable: true
+        file_path:
+          type: string
+          nullable: true
+          maxLength: 255
+        relative_file_path:
+          type: string
+          nullable: true
+          maxLength: 255
+        logger_name:
+          type: string
+          nullable: true
+          maxLength: 255
+        stack_trace:
+          type: string
+          nullable: true
+        extra_data:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - timestamp
+      - uuid
+    LogEntryLevelEnum:
+      enum:
+      - DEBUG
+      - INFO
+      - WARNING
+      - ERROR
+      - CRITICAL
+      type: string
+      description: |-
+        * `DEBUG` - Debug
+        * `INFO` - Info
+        * `WARNING` - Warning
+        * `ERROR` - Error
+        * `CRITICAL` - Critical
+    PaginatedHostList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Host'
+    PaginatedIssueList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Issue'
+    PaginatedIssueSuggestionList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueSuggestion'
+    PaginatedLogEntryList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogEntry'
+    PaginatedProjectList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+    PaginatedTeamList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Team'
+    PaginatedUserList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PatchedHost:
+      type: object
+      description: |-
+        Serializer for the Host model.
+        Demonstrates how to reference related objects (project, user) by primary key.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        project:
+          type: integer
+        user:
+          type: integer
+          nullable: true
+        user_email:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          description: Name of the host, e.g. 'My MacBook Pro'.
+          maxLength: 255
+        slug:
+          type: string
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        last_mod:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedIssue:
+      type: object
+      description: |-
+        Serializer for the Issue model, including all fields.
+        Handles many-to-many participants via IDs by default.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        project:
+          type: integer
+          description: The project to which this issue belongs.
+        title:
+          type: string
+          nullable: true
+          description: Short title or summary of the issue.
+          maxLength: 255
+        message:
+          type: string
+          nullable: true
+          description: Detailed message or error excerpt that describes this issue.
+        environment:
+          type: string
+          description: Which environment (production, staging, etc.) this issue occurred
+            in.
+          maxLength: 50
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusB13Enum'
+          description: |-
+            The current status of the issue.
+
+            * `open` - Open
+            * `ongoing` - Ongoing
+            * `resolved` - Resolved
+            * `archived` - Archived
+        level:
+          allOf:
+          - $ref: '#/components/schemas/Level28eEnum'
+          description: |-
+            Severity level of the issue (e.g., error, warning, info).
+
+            * `debug` - Debug
+            * `info` - Info
+            * `warning` - Warning
+            * `error` - Error
+            * `fatal` - Fatal
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          description: |-
+            Priority for resolution (e.g., high, medium, low).
+
+            * `low` - Low
+            * `medium` - Medium
+            * `high` - High
+        events_count:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: How many times this issue has been recorded.
+        first_seen:
+          type: string
+          format: date-time
+          description: Timestamp when this issue was first observed.
+        last_seen:
+          type: string
+          format: date-time
+          description: Timestamp when this issue was most recently observed.
+        tags:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description: Optional field for tags or contextual info (key/value pairs).
+        participants:
+          type: array
+          items:
+            type: integer
+          description: Users participating or subscribed to updates for this issue.
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        last_mod:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedLogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          nullable: true
+          description: Short title or summary of the issue.
+          maxLength: 255
+        host:
+          type: string
+        company:
+          type: integer
+          nullable: true
+        project:
+          type: integer
+          nullable: true
+        issue:
+          type: integer
+          nullable: true
+        level:
+          $ref: '#/components/schemas/LogEntryLevelEnum'
+        message:
+          type: string
+          nullable: true
+        file_path:
+          type: string
+          nullable: true
+          maxLength: 255
+        relative_file_path:
+          type: string
+          nullable: true
+          maxLength: 255
+        logger_name:
+          type: string
+          nullable: true
+          maxLength: 255
+        stack_trace:
+          type: string
+          nullable: true
+        extra_data:
+          type: object
+          additionalProperties: {}
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedProject:
+      type: object
+      description: |-
+        Serializer for the Project model.
+        Includes old fields plus the new fields required by the frontend.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        slug:
+          type: string
+          description: Unique identifier for a company's projects.
+          maxLength: 200
+          pattern: ^[-a-zA-Z0-9_]+$
+        team:
+          type: integer
+          description: Team that owns this project.
+        name:
+          type: string
+          description: Name of the project, e.g. 'My Frontend Client'.
+          maxLength: 200
+        platform:
+          allOf:
+          - $ref: '#/components/schemas/PlatformEnum'
+          description: |-
+            Platform or framework for this project.
+
+            * `.net_maui` - .NET MAUI
+            * `android` - Android
+            * `angular` - Angular
+            * `aspnet_core` - ASP.NET Core
+            * `astro` - Astro
+            * `browser_js` - Browser JavaScript
+            * `django` - Django
+            * `express` - Express
+            * `fastapi` - FastAPI
+            * `flask` - Flask
+            * `flutter` - Flutter
+            * `ios` - iOS
+            * `laravel` - Laravel
+            * `nestjs` - Nest.js
+            * `nextjs` - Next.js
+            * `nodejs` - Node.js
+            * `nuxt` - Nuxt
+            * `php` - PHP
+            * `python` - Python
+            * `rails` - Rails
+            * `react` - React
+            * `react_native` - React Native
+            * `remix` - Remix
+            * `spring_boot` - Spring Boot
+            * `sveltekit` - SvelteKit
+            * `symfony` - Symfony
+            * `unity` - Unity
+            * `vite` - Vite
+            * `vue` - Vue
+        platform_display:
+          type: string
+          readOnly: true
+        key:
+          type: string
+          format: uuid
+          nullable: true
+          description: Unique key for this project.
+        alert_rule_enabled:
+          type: boolean
+          description: Whether a default alert rule is active for this project.
+        alert_rule_occurrences:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Trigger an alert if error occurrences exceed this number within
+            the timeframe.
+        alert_rule_time_window:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Time window (in minutes) for the alert rule.
+        alert_via_email:
+          type: boolean
+          description: If true, send alerts via email.
+        alert_via_messaging:
+          type: boolean
+          description: If true, send alerts via connected messaging channels.
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        last_mod:
+          type: string
+          format: date-time
+          readOnly: true
+        description:
+          type: string
+          description: Descriptive summary of the project.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ProjectStatusEnum'
+          description: |-
+            Operational status of the project.
+
+            * `active` - Active
+            * `inactive` - Inactive
+            * `maintenance` - Maintenance
+        status_display:
+          type: string
+          readOnly: true
+        last_deployed:
+          type: string
+          format: date-time
+          nullable: true
+          description: When this project was last deployed.
+        issue_count:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: How many issues have been reported for this project.
+        error_rate:
+          type: number
+          format: double
+          description: Average error rate (e.g., errors per minute).
+        language:
+          type: string
+          description: Programming language used in this project.
+          maxLength: 50
+        framework:
+          type: string
+          description: Framework used in this project.
+          maxLength: 50
+        owner:
+          type: integer
+          nullable: true
+          description: The user responsible for this project.
+        owner_username:
+          type: string
+          readOnly: true
+    PatchedTeam:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: The name of this team.
+          maxLength: 200
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamMember'
+          readOnly: true
+    PatchedUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        company:
+          type: string
+          readOnly: true
+        groups:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        subscription_tier:
+          $ref: '#/components/schemas/SubscriptionTierEnum'
+        subscription_info:
+          type: string
+          readOnly: true
+        url:
+          type: string
+          format: uri
+          readOnly: true
+    PlatformEnum:
+      enum:
+      - .net_maui
+      - android
+      - angular
+      - aspnet_core
+      - astro
+      - browser_js
+      - django
+      - express
+      - fastapi
+      - flask
+      - flutter
+      - ios
+      - laravel
+      - nestjs
+      - nextjs
+      - nodejs
+      - nuxt
+      - php
+      - python
+      - rails
+      - react
+      - react_native
+      - remix
+      - spring_boot
+      - sveltekit
+      - symfony
+      - unity
+      - vite
+      - vue
+      type: string
+      description: |-
+        * `.net_maui` - .NET MAUI
+        * `android` - Android
+        * `angular` - Angular
+        * `aspnet_core` - ASP.NET Core
+        * `astro` - Astro
+        * `browser_js` - Browser JavaScript
+        * `django` - Django
+        * `express` - Express
+        * `fastapi` - FastAPI
+        * `flask` - Flask
+        * `flutter` - Flutter
+        * `ios` - iOS
+        * `laravel` - Laravel
+        * `nestjs` - Nest.js
+        * `nextjs` - Next.js
+        * `nodejs` - Node.js
+        * `nuxt` - Nuxt
+        * `php` - PHP
+        * `python` - Python
+        * `rails` - Rails
+        * `react` - React
+        * `react_native` - React Native
+        * `remix` - Remix
+        * `spring_boot` - Spring Boot
+        * `sveltekit` - SvelteKit
+        * `symfony` - Symfony
+        * `unity` - Unity
+        * `vite` - Vite
+        * `vue` - Vue
+    PriorityEnum:
+      enum:
+      - low
+      - medium
+      - high
+      type: string
+      description: |-
+        * `low` - Low
+        * `medium` - Medium
+        * `high` - High
+    Project:
+      type: object
+      description: |-
+        Serializer for the Project model.
+        Includes old fields plus the new fields required by the frontend.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        slug:
+          type: string
+          description: Unique identifier for a company's projects.
+          maxLength: 200
+          pattern: ^[-a-zA-Z0-9_]+$
+        team:
+          type: integer
+          description: Team that owns this project.
+        name:
+          type: string
+          description: Name of the project, e.g. 'My Frontend Client'.
+          maxLength: 200
+        platform:
+          allOf:
+          - $ref: '#/components/schemas/PlatformEnum'
+          description: |-
+            Platform or framework for this project.
+
+            * `.net_maui` - .NET MAUI
+            * `android` - Android
+            * `angular` - Angular
+            * `aspnet_core` - ASP.NET Core
+            * `astro` - Astro
+            * `browser_js` - Browser JavaScript
+            * `django` - Django
+            * `express` - Express
+            * `fastapi` - FastAPI
+            * `flask` - Flask
+            * `flutter` - Flutter
+            * `ios` - iOS
+            * `laravel` - Laravel
+            * `nestjs` - Nest.js
+            * `nextjs` - Next.js
+            * `nodejs` - Node.js
+            * `nuxt` - Nuxt
+            * `php` - PHP
+            * `python` - Python
+            * `rails` - Rails
+            * `react` - React
+            * `react_native` - React Native
+            * `remix` - Remix
+            * `spring_boot` - Spring Boot
+            * `sveltekit` - SvelteKit
+            * `symfony` - Symfony
+            * `unity` - Unity
+            * `vite` - Vite
+            * `vue` - Vue
+        platform_display:
+          type: string
+          readOnly: true
+        key:
+          type: string
+          format: uuid
+          nullable: true
+          description: Unique key for this project.
+        alert_rule_enabled:
+          type: boolean
+          description: Whether a default alert rule is active for this project.
+        alert_rule_occurrences:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Trigger an alert if error occurrences exceed this number within
+            the timeframe.
+        alert_rule_time_window:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Time window (in minutes) for the alert rule.
+        alert_via_email:
+          type: boolean
+          description: If true, send alerts via email.
+        alert_via_messaging:
+          type: boolean
+          description: If true, send alerts via connected messaging channels.
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        last_mod:
+          type: string
+          format: date-time
+          readOnly: true
+        description:
+          type: string
+          description: Descriptive summary of the project.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ProjectStatusEnum'
+          description: |-
+            Operational status of the project.
+
+            * `active` - Active
+            * `inactive` - Inactive
+            * `maintenance` - Maintenance
+        status_display:
+          type: string
+          readOnly: true
+        last_deployed:
+          type: string
+          format: date-time
+          nullable: true
+          description: When this project was last deployed.
+        issue_count:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: How many issues have been reported for this project.
+        error_rate:
+          type: number
+          format: double
+          description: Average error rate (e.g., errors per minute).
+        language:
+          type: string
+          description: Programming language used in this project.
+          maxLength: 50
+        framework:
+          type: string
+          description: Framework used in this project.
+          maxLength: 50
+        owner:
+          type: integer
+          nullable: true
+          description: The user responsible for this project.
+        owner_username:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - last_mod
+      - name
+      - owner_username
+      - platform
+      - platform_display
+      - status_display
+      - team
+      - timestamp
+    ProjectStatusEnum:
+      enum:
+      - active
+      - inactive
+      - maintenance
+      type: string
+      description: |-
+        * `active` - Active
+        * `inactive` - Inactive
+        * `maintenance` - Maintenance
+    RoleEnum:
+      enum:
+      - owner
+      - admin
+      - member
+      - viewer
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `admin` - Admin
+        * `member` - Member
+        * `viewer` - Viewer
+    StatusB13Enum:
+      enum:
+      - open
+      - ongoing
+      - resolved
+      - archived
+      type: string
+      description: |-
+        * `open` - Open
+        * `ongoing` - Ongoing
+        * `resolved` - Resolved
+        * `archived` - Archived
+    SubscriptionTierEnum:
+      enum:
+      - free
+      - preview
+      - basic
+      - pro
+      - enterprise
+      type: string
+      description: |-
+        * `free` - Free
+        * `preview` - Preview
+        * `basic` - Basic
+        * `pro` - Pro
+        * `enterprise` - Enterprise
+    Team:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: The name of this team.
+          maxLength: 200
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeamMember'
+          readOnly: true
+      required:
+      - id
+      - members
+      - name
+      - timestamp
+    TeamMember:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - timestamp
+      - user
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
+    TokenVerify:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+      required:
+      - token
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        company:
+          type: string
+          readOnly: true
+        groups:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        subscription_tier:
+          $ref: '#/components/schemas/SubscriptionTierEnum'
+        subscription_info:
+          type: string
+          readOnly: true
+        url:
+          type: string
+          format: uri
+          readOnly: true
+      required:
+      - company
+      - email
+      - groups
+      - id
+      - status
+      - subscription_info
+      - url
+    UserAndTokenObtainPair:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"
+servers:
+- url: http://127.0.0.1:8002
+- url: https://api.backend.com/v1/
