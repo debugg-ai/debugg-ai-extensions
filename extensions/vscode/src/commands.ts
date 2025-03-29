@@ -42,8 +42,10 @@ import { startLocalOllama } from "core/util/ollamaHelper";
 import { SuggestionCodeLensProvider } from "./debug/codeLens/suggestionsLensProvider";
 import { pullErrorsAndHighlight } from "./debug/pullErrors";
 import { showSnippetWebview } from "./debug/webviews/snippetWebview";
+import { applySuggestedFix } from "./errorTracking/codeFixes/applySuggestedFix";
 import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
 import { FilesService } from "./services/backend/files";
+import { Issue } from "./services/backend/types";
 import { post } from "./util/axiosNaming";
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
 
@@ -1099,43 +1101,36 @@ const getCommandsMap: (
     /**
      * Apply a suggested fix (e.g. replace code in the editor).
      */
-    "continue.applySuggestedFix": async (uri?: vscode.Uri, line?: number, newCode?: string) => {
+    "continue.applySuggestedFix": async (uri?: vscode.Uri, line?: number, issue?: Issue) => {
       captureCommandTelemetry("continue.applySuggestedFix");
 
-      if (!uri || line == null || newCode == null) {
+      if (!uri || !issue || !line) {
         vscode.window.showWarningMessage("Not enough info to apply fix!");
         return;
       }
 
-      // Open the document, show it, replace the text on the given line with newCode
-      const doc = await vscode.workspace.openTextDocument(uri);
-      const editor = await vscode.window.showTextDocument(doc);
-
-      await editor.edit(editBuilder => {
-        const range = doc.lineAt(line).range;
-        editBuilder.replace(range, newCode);
-      });
+      await applySuggestedFix(uri, issue);
 
       // Clear suggestions for this file since we've applied one
-      const codeLensProvider = SuggestionCodeLensProvider.getInstance();
-      codeLensProvider.setSuggestionsForFile(uri.fsPath, []);
+      // const codeLensProvider = SuggestionCodeLensProvider.getInstance();
+      // codeLensProvider.setSuggestionsForFile(uri.fsPath, []);
 
-      vscode.window.showInformationMessage(`Applied fix for line ${line + 1}`);
+      // vscode.window.showInformationMessage(`Applied fix for issue - ${issue.title}`);
     },
 
     /**
      * Mark the issue as resolved.
      */
-    "continue.markResolved": async (uri?: vscode.Uri, line?: number, issueId?: string) => {
+    "continue.markResolved": async (uri?: vscode.Uri, line?: number, issue?: Issue) => {
       captureCommandTelemetry("continue.markResolved");
 
-      if (!issueId) {
+      if (!issue) {
         // vscode.window.showWarningMessage("No issue ID provided.");
         return;
       }
 
       // Call the API to mark the issue as resolved
-      const response = await post(`/api/v1/issues/${issueId}/resolve/`);
+      const response = await post(`/api/v1/issues/${issue.uuid}/resolve/`);
       console.log(response);
       vscode.window.showInformationMessage("Issue marked as resolved!");
     },

@@ -348,6 +348,12 @@
         "category": "Continue",
         "title": "Show Files with Errors",
         "group": "Continue"
+      },
+      {
+        "command": "continue.applySuggestedFix",
+        "category": "Continue",
+        "title": "Apply Suggested Fix",
+        "group": "Continue"
       }
     ],
     "keybindings": [

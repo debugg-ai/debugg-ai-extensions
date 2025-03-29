@@ -42,6 +42,7 @@ import { VsCodeMessenger } from "./VsCodeMessenger";
 // Extended classes
 import { ErrorFileDecorationProvider } from "../errorTracking/fileDecorations/ErrorFileDecoration";
 
+import { OptionsInlayHintsProvider } from "../debug/codeLens/inlayHintsProvider";
 import type { VsCodeWebviewProtocol } from "../webviewProtocol";
 
 export class VsCodeExtension {
@@ -54,6 +55,7 @@ export class VsCodeExtension {
   private windowId: string;
   private editDecorationManager: EditDecorationManager;
   private errorFileDecorationProvider: ErrorFileDecorationProvider;
+  private inlineIssueHintsProvider: OptionsInlayHintsProvider;
   private verticalDiffManager: VerticalDiffManager;
   webviewProtocolPromise: Promise<VsCodeWebviewProtocol>;
   private core: Core;
@@ -114,6 +116,15 @@ export class VsCodeExtension {
     this.errorFileDecorationProvider = new ErrorFileDecorationProvider();
     context.subscriptions.push(
       vscode.window.registerFileDecorationProvider(this.errorFileDecorationProvider)
+    );
+
+    this.inlineIssueHintsProvider = new OptionsInlayHintsProvider();
+    // Register the inlay hints provider
+    context.subscriptions.push(
+      vscode.languages.registerInlayHintsProvider(
+        ['*'], // Register for all languages, or specify specific ones like ['typescript', 'javascript']
+        this.inlineIssueHintsProvider
+      )
     );
 
     // Config Handler with output channel

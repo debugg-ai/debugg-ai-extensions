@@ -1,13 +1,22 @@
 
+export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
+
 export interface Issue {
-    id: number;
+    uuid: string;
     project: number;
     title?: string;
     message?: string;
     environment: string;
     status: 'open' | 'ongoing' | 'resolved' | 'archived';
-    level: 'debug' | 'info' | 'warning' | 'error' | 'fatal';
+    level: Level;
     priority: 'low' | 'medium' | 'high';
+    lineNumber: number;
+    columnNumber: number;
     eventsCount: number;
     filePath: string;
     firstSeen: string;
@@ -16,13 +25,45 @@ export interface Issue {
     participants: number[];
     timestamp: string;
     lastMod: string;
+    overview: LogOverview;
+    solution?: IssueSolution;
+    suggestions?: IssueSuggestion[];
 }
 
-export interface PaginatedResponse<T> {
-    count: number;
-    next: string | null;
-    previous: string | null;
-    results: T[];
+/**
+ * Snippet update for a file change
+ */
+export interface SnippetUpdate {
+    startLine: number; // 1-indexed
+    endLine: number; // 1-indexed
+    newContent: string;
+    prevContent: string;
+}
+
+/**
+ * File change for an issue solution
+ */
+export interface FileChange {
+    filePath: string;
+    snippetsToUpdate: SnippetUpdate[];
+}
+
+/**
+ * Fix for an issue
+ */
+export interface IssueSolution {
+    uuid: string;
+    changes: FileChange[];
+}
+/**
+ * Issue suggestion
+ */
+export interface IssueSuggestion {
+    filePath: string;
+    errorCount: number;
+    lineNumber: string;
+    columnNumber: string;
+    message: string;
 }
 
 /**
@@ -31,24 +72,14 @@ export interface PaginatedResponse<T> {
 export interface PaginatedIssueResponse extends PaginatedResponse<Issue> {
 }
 
-export interface IssueSuggestion extends Issue {
-    uuid: string;
-    lineNumber: string;
-    columnNumber: string;
-    suggestions: string;
-    suggestion: string;
-    overview: string;
-}
-
-export interface PaginatedIssueSuggestionResponse {
-    count: number;
-    next: string | null;
-    previous: string | null;
-    results: IssueSuggestion[];
+/**
+ * Paginated response for issue suggestions
+ */
+export interface PaginatedIssueSuggestionResponse extends PaginatedResponse<IssueSuggestion> {
 }
 
 
-export type Level = 'debug' | 'info' | 'warning' | 'error';
+export type Level = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'FATAL' | 'METRIC';
 
 
 export interface LogOverview {
@@ -73,8 +104,8 @@ export interface LogOverview {
 }
 
 
+// TODO: Remove this
 export interface FileResult {
-    id: number;
     uuid: string;
     company: number;
     level: Level | null;

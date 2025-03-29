@@ -7,20 +7,11 @@ import { extractMinimalStackTraceInfo } from "core/util/extractMinimalStackTrace
 import { Telemetry } from "core/util/posthog";
 import * as vscode from "vscode";
 
-import { OptionsInlayHintsProvider } from "./debug/codeLens/inlayHintsProvider";
 import { getExtensionVersion } from "./util/util";
 
 async function dynamicImportAndActivate(context: vscode.ExtensionContext) {
   await setupCa();
   const { activateExtension } = await import("./activation/activate");
-
-  // Register the inlay hints provider
-  context.subscriptions.push(
-    vscode.languages.registerInlayHintsProvider(
-      ['*'], // Register for all languages, or specify specific ones like ['typescript', 'javascript']
-      new OptionsInlayHintsProvider()
-    )
-  );
 
   return await activateExtension(context);
 }

@@ -1,7 +1,7 @@
 // myInlayHintsProvider.ts
 import * as vscode from 'vscode';
-import { FileResult, Level, LogOverview } from '../../services/backend/types';
-import { getFileResults } from '../../services/debugg-ai/inlays';
+import { getIssuesInFile } from '../../services/backend/files';
+import { Issue, IssueSuggestion, LogOverview } from '../../services/backend/types';
 import { clearDecorations, highlightInlayLine } from '../highlightLine';
 import { getMarkdownStructure } from './structure';
 
@@ -15,7 +15,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
     // Cache mapping document URI to {timestamp, hints}
     private cache = new Map<string, { timestamp: number; hints: vscode.InlayHint[] }>();
     // Time-to-live for cache in milliseconds (e.g., 1000ms = 1 seconds)
-    private cacheTTL = 1000;
+    private cacheTTL = 5000;
 
     // Called by VS Code whenever inlay hints are needed for a document range
     public async provideInlayHints(
@@ -54,13 +54,13 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
         const inlayHints: vscode.InlayHint[] = [];
         const editor = vscode.window.activeTextEditor;
 
-        const fileResults = await this.getLinesWithSuggestions(document);
+        const issues = await this.getIssuesInDocument(document);
         const lineNumbersUser: number[] = [];
-        for (const result of fileResults) {
-            const { suggestions, overview, lineNumber, title, message } = result;
+        for (const issue of issues) {
+            const { suggestions, overview, lineNumber, title, message } = issue;
             const suggestion = suggestions?.[0];
             const vsLineNumber = lineNumber ? lineNumber - 1 : null;
-            const level = overview.level;
+            const level = overview?.level;
 
             // Skip if out of range
             if (!vsLineNumber || vsLineNumber >= document.lineCount) {
@@ -71,7 +71,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
             }
             // Highlight the line containing the inlay hints
             if (editor && document.uri === editor.document.uri) {
-                highlightInlayLine(editor, lineNumber || 0, level || 'info');
+                highlightInlayLine(editor, lineNumber || 0, level || 'INFO');
             }
 
             // We'll place the hints at the start of the line above
@@ -79,14 +79,23 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
             const endColumn = lineText.length;
             const hintPosition = new vscode.Position(vsLineNumber, endColumn);
 
-            const fmtdOverview = this.getErrorMarkdown(title, message || '', overview);
+            const fmtdOverview = this.getErrorMarkdown(title || '-', message || '-', overview);
 
+            console.log(issue); 
             // Create inlay hints for 3 separate clickable items
-            inlayHints.push(this.createHint("Resolve", fmtdOverview, "continue.markResolved", document.uri, vsLineNumber, hintPosition, level, result.uuid));
+            inlayHints.push(this.createHint("Resolve", fmtdOverview, "continue.markResolved", document.uri, vsLineNumber, hintPosition, issue));
+            if (issue.solution) {
+                const solutionMarkdown = issue.solution.changes.map(change => {
+                    return `File: ${change.filePath}\n${change.snippetsToUpdate.map(update => {
+                        return `Line: ${update.startLine} - ${update.endLine}\n${update.newContent}`;
+                    }).join('\n')}`;
+                }).join('\n');
+                inlayHints.push(this.createHint("Fix", solutionMarkdown, "continue.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
+            }
             if (suggestion) {
                 const suggestionMarkdown = this.getSuggestionMarkdown(suggestion);
-                inlayHints.push(this.createHint("Suggested Fix", suggestionMarkdown, "continue.applySuggestedFix", document.uri, vsLineNumber, hintPosition, level, result.uuid));
-                inlayHints.push(this.createHint("Test Coverage", suggestion.message, "continue.showTestCoverage", document.uri, vsLineNumber, hintPosition, level, result.uuid));
+                inlayHints.push(this.createHint("Suggested Fix", suggestionMarkdown, "continue.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
+                inlayHints.push(this.createHint("Test Coverage", suggestion.message, "continue.showTestCoverage", document.uri, vsLineNumber, hintPosition, issue));
             } else {
                 // inlayHints.push(this.createHint("Error", title, "continue.showOverview", document.uri, vsLineNumber, hintPosition, level));
             }
@@ -114,6 +123,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
      * @param uri         The file's Uri
      * @param line        The line number (0-based)
      * @param position    Where to place the hint
+     * @param issue       The issue object
      */
     private createHint(
         label: string,
@@ -122,20 +132,20 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
         uri: vscode.Uri,
         line: number,
         position: vscode.Position,
-        level: Level | null = 'info', // Add level parameter with default
-        objId: string | null = null
+        issue: Issue | null = null
     ): vscode.InlayHint {
         const hint = new vscode.InlayHint(position, label, vscode.InlayHintKind.Type);
         const tip = new vscode.MarkdownString(labelTooltip);
         tip.isTrusted = true;
 
         const colorMap = {
-            debug: '$(debug)',   // maybe $(debug-alt) or another icon
-            info: '$(info)',
-            warning: '$(warning)',
-            error: '$(error)',
+            DEBUG: '$(debug)',   // maybe $(debug-alt) or another icon
+            INFO: '$(info)',
+            WARNING: '$(warning)',
+            ERROR: '$(error)',
+            FATAL: '$(error)',
+            METRIC: '$(info)',
         };
-
 
         // Build a label part that includes the text, tooltip, and command
         const labelPart: vscode.InlayHintLabelPart = {
@@ -144,7 +154,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
             command: {
                 command: commandId,
                 title: label,
-                arguments: [uri, line, objId]
+                arguments: [uri, line, issue]
             }
         };
 
@@ -167,14 +177,13 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
      * @param document The text document to analyze
      * @returns Array of line numbers where hints should be shown
      */
-    private async getLinesWithSuggestions(document: vscode.TextDocument): Promise<FileResult[]> {
+    private async getIssuesInDocument(document: vscode.TextDocument): Promise<Issue[]> {
         // Implement this to return actual line numbers where you want the buttons to appear
         // This could come from your diagnostic system, test coverage data, etc.
-        const fileResults = await getFileResults({
+        const issues = await getIssuesInFile({
             filePath: document.uri.fsPath
         });
-        // console.log('File results:', fileResults);
-        return fileResults; // Replace with actual implementation
+        return issues; 
     }
 
     // Returns Markdown as a string
@@ -182,12 +191,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
         return getMarkdownStructure(title, message, overview);
     }
 
-    private getSuggestionMarkdown(suggestion: {
-        lineNumber: number;
-        message: string;
-        filePath: string;
-        errorCount: number;
-    }): string {
+    private getSuggestionMarkdown(suggestion: IssueSuggestion): string {
         try {
             const jsonSuggestion = JSON.parse(suggestion.message);
             const keys = Object.keys(jsonSuggestion);

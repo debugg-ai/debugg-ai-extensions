@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { gitProcessTool } from '../../util/gitUtils';
+
 export class ErrorFileDecorationProvider implements vscode.FileDecorationProvider {
   // Event emitter for when decorations need to be updated.
   private _onDidChangeFileDecorations = new vscode.EventEmitter<vscode.Uri | vscode.Uri[]>();
@@ -7,6 +8,7 @@ export class ErrorFileDecorationProvider implements vscode.FileDecorationProvide
 
   // A simple set to keep track of files with errors (store file URI strings)
   private errorFiles: Set<string> = new Set();
+  private previousUris: vscode.Uri[] = [];
 
   /**
    * Update the list of files that have errors.
@@ -21,10 +23,15 @@ export class ErrorFileDecorationProvider implements vscode.FileDecorationProvide
         }
         return `${gitProcess}${f.startsWith('/') ? '' : '/'}${f}`;
     }));
-    console.log('Error files: ', urls);
+    
+    // Set new decorations
     const uris = Array.from(urls).map(uri => vscode.Uri.parse(uri));
-    // Fire the event so VS Code refreshes the decorations.
     this.errorFiles = new Set(uris.map(uri => uri.toString()));
+    this.previousUris = uris;
+
+    // Clear old decorations
+    this._onDidChangeFileDecorations.fire(this.previousUris);
+    // Set new decorations
     this._onDidChangeFileDecorations.fire(uris);
   }
 

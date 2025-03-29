@@ -54,18 +54,20 @@ export function clearDecorations() {
 
 function getDecorationForLevel(level: Level): vscode.TextEditorDecorationType {
   const colors = {
-    debug: '#2196F3',
-    info: '#4CAF50', 
-    warning: '#FFC107',
-    error: '#F44336',
-    fatal: '#D32F2F'
+    DEBUG: '#2196F3',
+    INFO: '#4CAF50', 
+    WARNING: '#FFC107',
+    ERROR: '#F44336',
+    FATAL: '#D32F2F',
+    METRIC: '#9E9E9E'
   };
   const underLineColors = {
-    debug: 'white',
-    info: 'white',
-    warning: 'yellow',
-    error: 'red',
-    fatal: 'red'
+    DEBUG: 'white',
+    INFO: 'white',
+    WARNING: 'yellow',
+    ERROR: 'red',
+    FATAL: 'red',
+    METRIC: 'gray'
   };
 
   return vscode.window.createTextEditorDecorationType({
