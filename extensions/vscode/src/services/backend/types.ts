@@ -87,6 +87,7 @@ export interface LogOverview {
     message: string;
     args: unknown[];                       // e.g. ['foo', 'bar']
     kwargs: Record<string, unknown>;       // e.g. { baz: 'qux' }
+    stackTrace: string | null;             // e.g. "File "backend/transactions/tasks.py", line 10, in <module>\n    raise Exception('test')\nException: test"
 
     exceptionType?: string | null;        // e.g. "AttributeError"
     handled?: string | null;               // e.g. "no"

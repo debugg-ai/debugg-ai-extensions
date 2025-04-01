@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { getIssuesInFile } from '../../services/backend/files';
 import { Issue, IssueSuggestion, LogOverview } from '../../services/backend/types';
 import { clearDecorations, highlightInlayLine } from '../highlightLine';
-import { getMarkdownStructure } from './structure';
+import { getFixMarkdown, getIssueMarkdown, getMarkdownStructure } from './structure';
 
 
 /**
@@ -59,7 +59,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
         for (const issue of issues) {
             const { suggestions, overview, lineNumber, title, message } = issue;
             const suggestion = suggestions?.[0];
-            const vsLineNumber = lineNumber ? lineNumber - 1 : null;
+            const vsLineNumber = lineNumber ? lineNumber - 1 : 0;
             const level = overview?.level;
 
             // Skip if out of range
@@ -79,17 +79,13 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
             const endColumn = lineText.length;
             const hintPosition = new vscode.Position(vsLineNumber, endColumn);
 
-            const fmtdOverview = this.getErrorMarkdown(title || '-', message || '-', overview);
+            const fmtdOverview = this.getIssueMarkdown(issue);
 
             console.log(issue); 
             // Create inlay hints for 3 separate clickable items
             inlayHints.push(this.createHint("Resolve", fmtdOverview, "continue.markResolved", document.uri, vsLineNumber, hintPosition, issue));
             if (issue.solution) {
-                const solutionMarkdown = issue.solution.changes.map(change => {
-                    return `File: ${change.filePath}\n${change.snippetsToUpdate.map(update => {
-                        return `Line: ${update.startLine} - ${update.endLine}\n${update.newContent}`;
-                    }).join('\n')}`;
-                }).join('\n');
+                const solutionMarkdown = getFixMarkdown(title || '-', issue.solution);
                 inlayHints.push(this.createHint("Fix", solutionMarkdown, "continue.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
             }
             if (suggestion) {
@@ -189,6 +185,9 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
     // Returns Markdown as a string
     private getErrorMarkdown(title: string, message: string, overview: LogOverview): string {
         return getMarkdownStructure(title, message, overview);
+    }
+    private getIssueMarkdown(issue: Issue): string {
+        return getIssueMarkdown(issue);
     }
 
     private getSuggestionMarkdown(suggestion: IssueSuggestion): string {

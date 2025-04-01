@@ -461,4 +461,188 @@ export class VerticalDiffManager {
       );
     }
   }
+
+  async insertEdit(
+    input: string,
+    modelTitle: string | undefined,
+    streamId?: string,
+    onlyOneInsertion?: boolean,
+    quickEdit?: string,
+    range?: vscode.Range,
+    newCode?: string, // new code is provided since we already have the final solution
+  ): Promise<string | undefined> {
+    // Set context to indicate a diff is visible
+    vscode.commands.executeCommand("setContext", "continue.diffVisible", true);
+  
+    let editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      return undefined;
+    }
+  
+    const fileUri = editor.document.uri.toString();
+    let startLine: number, endLine: number;
+
+    if (range) {
+      startLine = range.start.line;
+      endLine = range.end.line;
+    } else {
+      startLine = editor.selection.start.line;
+      endLine = editor.selection.end.line;
+    }
+
+    // If no selection is made, use the current line only instead of the whole file.
+    let selectedRange: vscode.Range;
+    // if (editor.selection.isEmpty) {
+    //   selectedRange = editor.document.lineAt(editor.selection.active.line).range;
+    // } else {
+    //   selectedRange = new vscode.Range(
+    //     editor.selection.start,
+    //     editor.selection.end,
+    //   );
+    // }
+    selectedRange = range ?? new vscode.Range(
+      new vscode.Position(startLine, 0),
+      new vscode.Position(endLine, editor.document.lineAt(endLine).text.length),
+    );
+
+    // Clear any existing diff handler.
+    const existingHandler = this.getHandlerForFile(fileUri);
+    if (existingHandler) {
+      // if (quickEdit) {
+      //   // If a quick edit exists, check if a new range was selected.
+      //   const rangeSelected = (startLine !== endLine ||
+      //     editor.selection.start.character !== editor.selection.end.character);
+      //   const newRangeDiffers =
+      //     startLine !== existingHandler.range.start.line ||
+      //     endLine !== existingHandler.range.end.line;
+      //   if (!rangeSelected || !newRangeDiffers) {
+      //     // Use the previous quickEdit range if no new range was highlighted.
+      //     startLine = existingHandler.range.start.line;
+      //     endLine = existingHandler.range.end.line;
+      //   }
+      // }
+      // Clear the previous diff handler.
+      existingHandler.clear(false);
+    }
+  
+    // Allow a brief delay to ensure any previous decorations are cleared.
+    await new Promise(resolve => setTimeout(resolve, 200));
+  
+    // Create a new vertical diff handler for this file and range.
+    const diffHandler = this.createVerticalDiffHandler(
+      fileUri,
+      startLine,
+      endLine,
+      {
+        input,
+        onStatusUpdate: (status, numDiffs, fileContent) =>
+          streamId &&
+          void this.webviewProtocol.request("updateApplyState", {
+            streamId,
+            status,
+            numDiffs,
+            fileContent,
+            filepath: fileUri,
+          }),
+      },
+    );
+  
+    if (!diffHandler) {
+      console.warn("Issue occurred while creating new vertical diff handler");
+      return undefined;
+    }
+  
+    // If selection is empty, default to using the full line range.
+    // if (selectedRange.isEmpty) {
+    //   selectedRange = new vscode.Range(
+    //     editor.selection.start.with(undefined, 0),
+    //     editor.selection.end.with(undefined, Number.MAX_SAFE_INTEGER),
+    //   );
+    // }
+  
+    // Retrieve language model details (e.g. context length) based on modelTitle.
+    const llm = await this.configHandler.llmFromTitle(modelTitle);
+    const rangeContent = editor.document.getText(selectedRange);
+    // Compute prefix and suffix using your prune functions.
+    const prefix = pruneLinesFromTop(
+      editor.document.getText(
+        new vscode.Range(new vscode.Position(0, 0), selectedRange.start),
+      ),
+      llm.contextLength / 4,
+      llm.model,
+    );
+    const suffix = pruneLinesFromBottom(
+      editor.document.getText(
+        new vscode.Range(
+          selectedRange.end,
+          new vscode.Position(editor.document.lineCount, 0),
+        ),
+      ),
+      llm.contextLength / 4,
+      llm.model,
+    );
+    
+    // Use the provided newCode as the replacement text.
+    // Fallback to input if newCode is not provided.
+    // const finalReplacement = prefix + (newCode ?? input) + suffix;
+  
+    // // Unselect any text in the editor.
+    // if (editor.selection) {
+    //   editor.selection = new vscode.Selection(
+    //     editor.selection.active,
+    //     editor.selection.active,
+    //   );
+    // }
+  
+    // // Set context to indicate that we are applying a diff.
+    // vscode.commands.executeCommand("setContext", "continue.streamingDiff", true);
+    // // Clear any existing edit decorations.
+    // this.editDecorationManager.clear();
+  // For an inline edit, we no longer compute prefix and suffix.
+  // Instead, we simply replace the text in the selected range with the new code.
+    const finalReplacement = newCode ?? input;
+
+    // Unselect any text.
+    editor.selection = new vscode.Selection(
+      editor.selection.active,
+      editor.selection.active,
+    );
+
+    vscode.commands.executeCommand("setContext", "continue.streamingDiff", true);
+    this.editDecorationManager.clear();
+
+    try {
+      // Instead of streaming diff lines, we directly apply the final replacement.
+      // await editor.edit(editBuilder => {
+      //   editBuilder.replace(selectedRange, finalReplacement);
+      // });
+      const streamedLines: string[] = [];
+
+      async function* recordedStream() {
+        const streamLines = finalReplacement?.split("\n");
+        for (const line of streamLines) {
+          yield {
+            type: "new",
+            line,
+          } as DiffLine;
+        }
+      }
+
+      this.logDiffs = await diffHandler.run(recordedStream());
+
+      // enable a listener for user edits to file while diff is open
+      this.enableDocumentChangeListener();
+      return finalReplacement;
+    } catch (e) {
+      this.disableDocumentChangeListener();
+      if (!handleLLMError(e)) {
+        vscode.window.showErrorMessage(`Error inserting diff: ${e}`);
+      }
+      return undefined;
+    } finally {
+      // Clear the context flag.
+      vscode.commands.executeCommand("setContext", "continue.streamingDiff", false);
+    }
+  }
+  
 }
