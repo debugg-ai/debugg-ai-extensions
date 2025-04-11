@@ -6,18 +6,6 @@ dotenv.config()
 
 console.info(process.env.DEBUGG_AI_HOST)
 
-// 1) Initialize
-// DebuggLogger.init({
-//   endpoint: 'http://localhost:81/api/v1/ingest/59be6716-a478-4834-b7e0-754f975f4368/',
-//   level: 'error',
-//   handleExceptions: true, // if you want to catch node exceptions
-//   console: false,
-//   host: process.env.DEBUGG_AI_HOST,
-//   otherTransports: [
-//     // e.g. new transports.File({ filename: 'combined.log' })
-//   ]
-// });
-
 const ENDPOINT = 'http://localhost:81/api/v1/ingest/b3e51bab-a37b-49d9-b07c-af9b8c7c9146/aa1c72c7-45ed-48e6-be1b-83e81cbefb55/'
 
 // 1) Simple initialization
@@ -26,9 +14,9 @@ DebuggAiLogger.init({
   endpoint: ENDPOINT,
   level: 'debug', 
   includeConsole: true,
-  pinoOptions: {
-    base: { serviceName: 'debuggai-sandbox' }, // Pino's standard config
-  }
+  hostName: 'debugg-ai-js-local',
+  environment: 'local',
+  pinoOptions: {}
   // concurrency: 5, etc.
 });
 

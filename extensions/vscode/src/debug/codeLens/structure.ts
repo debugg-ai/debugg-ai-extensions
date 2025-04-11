@@ -127,6 +127,7 @@ export function getIssueMarkdown(
         title,
         message,
         overview,
+        environment,
     } = issue;
     const {
         args,
@@ -140,7 +141,6 @@ export function getIssueMarkdown(
         filePath,
         handled,
         mechanism,
-        environment,
         traceId,
         celeryTaskId,
         runtimeVersion,
@@ -153,7 +153,9 @@ ${message}
 
 **Level:** ${level}
 
-**Timestamp:** ${timestamp}
+**Priority:** ${issue.priority}
+
+**Timestamp:** ${new Date(issue.timestamp).toLocaleString()}
 
 
 ---
@@ -161,24 +163,13 @@ ${message}
 
 ### Description
 
-**Event ID:** ${eventId}   
-
-**Exception Type:** ${exceptionType}  
-
-**Message Preview:** ${messagePreview}  
-
-**File Path:** ${filePath}  
-
-**Handled:** ${handled}
+  **Event ID:** ${issue.uuid}   
 
 
----
+  **File Path:** ${issue.filePath}  
 
-### Stack Trace
 
-\`\`\`
-${stackTrace?.split('\n').join('\n')}
-\`\`\`
+  **Handled:** ${issue.status}
 
 ---
 
@@ -187,12 +178,9 @@ ${stackTrace?.split('\n').join('\n')}
 
 | Field               | Value         
 |---------------------|--------------------
-| **Mechanism**       | ${mechanism}
-| **Environment**     | ${environment}
+| **Event Count**     | ${issue.eventsCount}
+| **Environment**     | ${issue.environment}
 | **Trace ID**        | ${traceId}
-| **Celery Task ID**  | ${celeryTaskId}
-| **Runtime Version** | ${runtimeVersion}
-| **Server Name**     | ${serverName}
 
 
 ---
@@ -204,7 +192,19 @@ ${stackTrace?.split('\n').join('\n')}
     ${JSON.stringify(args, null, 2)}
 
 - **Kwargs:**
-    ${JSON.stringify(kwargs, null, 2)}`;
+    ${JSON.stringify(kwargs, null, 2)}
+
+
+---
+
+
+### Stack Trace
+
+\`\`\`
+${stackTrace?.split('\n').join('\n')}
+\`\`\`
+
+---`;
 
     return struct;
 }

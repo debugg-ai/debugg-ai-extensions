@@ -1,13 +1,16 @@
 {
   "name": "debugg-ai-sdk",
-  "version": "1.0.18",
+  "version": "1.0.40",
   "description": "This is the SDK for the DebuggAI platform. It is used to capture and analyze logs from your application.",
-  "main": "dist/index.js",
-  "module": "dist/index.esm.js",
+  "main": "dist/node/index.js",
+  "browser": "dist/browser/index.esm.js",
+  "module": "dist/browser/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "rollup -c",
+    "build": "npm run build:rollup",
+    "build:types": "tsc --emitDeclarationOnly --outDir dist/types",
+    "build:rollup": "rollup -c",
     "prepare": "npm run build",
     "dev-run": "node --loader ts-node/esm src/test.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -17,14 +20,20 @@
   "homepage": "https://debugg.ai",
   "license": "BSD-3-Clause",
   "dependencies": {
+    "@rollup/plugin-alias": "^5.1.1",
     "axios": "^1.8.4",
     "dotenv": "^16.4.7",
     "pino": "^8.0.0",
-    "pino-abstract-transport": "^2.0.0"
+    "pino-abstract-transport": "^2.0.0",
+    "source-map": "^0.7.4",
+    "stream": "^0.0.3"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-inject": "^5.0.5",
+    "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-typescript": "^11.0.0",
     "@types/node": "^20.0.0",
     "@vitejs/plugin-react": "^4.3.4",
@@ -33,12 +42,5 @@
     "tslib": "^2.6.0",
     "typescript": "^5.8.2",
     "vite": "^6.2.3"
-  },
-  "browser": {
-    "path": false,
-    "worker_threads": false,
-    "url": false,
-    "pino-abstract-transport": false,
-    "./src/transports/debuggAiTransport.js": false
   }
 }

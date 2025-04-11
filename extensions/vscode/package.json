@@ -1,27 +1,27 @@
 {
-  "name": "continue",
+  "name": "debuggai",
   "icon": "media/icon.png",
-  "author": "Continue Dev, Inc",
-  "version": "1.1.12",
+  "author": "Debugg Inc",
+  "version": "1.0.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/continuedev/continue"
+    "url": "https://github.com/debugg-ai/debugg-ai-extensions"
   },
   "extensionKind": [
     "ui",
     "workspace"
   ],
   "bugs": {
-    "url": "https://github.com/continuedev/continue/issues",
-    "email": "nate@continue.dev"
+    "url": "https://github.com/debugg-ai/debugg-ai-extensions",
+    "email": "support@debugg.ai"
   },
-  "homepage": "https://continue.dev",
-  "qna": "https://github.com/continuedev/continue/issues/new/choose",
+  "homepage": "https://debugg.ai",
+  "qna": "https://github.com/debugg-ai/debugg-ai-extensions",
   "license": "Apache-2.0",
-  "displayName": "Continue - Codestral, Claude, and more",
+  "displayName": "Debugg AI",
   "pricing": "Free",
-  "description": "The leading open-source AI code assistant",
-  "publisher": "Continue",
+  "description": "Quickly find, track and squash bugs in your codebase.",
+  "publisher": "debugg-ai",
   "engines": {
     "vscode": "^1.70.0",
     "node": ">=20.11.0"
@@ -582,7 +582,7 @@
         {
           "type": "webview",
           "id": "continue.continueGUIView",
-          "name": "Continue",
+          "name": "Debugg AI",
           "icon": "media/sidebar-icon.png",
           "visibility": "visible"
         }

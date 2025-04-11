@@ -52,6 +52,15 @@
 
 </div>
 
-## License
+
+
+## Attribution
+
+We at Debugg AI would like to thank the Continue team for their work on this extension. Their extensive code base provided an excellent starting point for this project. You can find the original repository [here](https://github.com/continuedev/continue). 
+
+A copy of the original license is included in this repository for your convenience. We have used best efforts to ensure that the original license is respected. If you have any questions, please contact us at support@debugg.ai.
+
+
+## Original License
 
 [Apache 2.0 © 2023-2024 Continue Dev, Inc.](./LICENSE)

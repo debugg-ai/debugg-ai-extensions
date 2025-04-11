@@ -2,6 +2,15 @@
 import build from 'pino-abstract-transport';
 import { post } from '../utils/axiosNaming.ts';
 
+// Use dynamic imports for environment-specific modules
+async function loadDeminify() {
+  if (typeof window === 'undefined') {
+    // Node.js environment. Browser is handled with differnt Transport
+    const { default: deminifyStack } = await import('../parsers/deminifyBrowser.ts');
+    return { deminifyStack };
+  }
+}
+
 // Optional: map numeric Pino levels to string levels
 const PINO_TO_STRING_LEVELS = {
   10: 'trace',
@@ -32,10 +41,10 @@ const LOG_LEVELS = {
  * @returns {Function} async function that processes log records from Pino
  */
 export default async function (opts) {
-  const { endpoint, level = 'info' } = opts;
-
+  const { endpoint, hostName, environment, level = 'info' } = opts;
   // Basic safeguard if user passes something invalid
   const normalizedLevel = LOG_LEVELS.hasOwnProperty(level) ? level : 'info';
+  const { deminifyStack } = await loadDeminify();
 
   return build(async function (source) {
     // For each log object from Pino:
@@ -50,17 +59,25 @@ export default async function (opts) {
       }
 
       // Extract error information
-    //   const { filePath, lineNo, funcName, stack } = stackParser(obj);
+      //   const { filePath, lineNo, funcName, stack } = stackParser(obj);
+      const currentDir = process.cwd();
+      // console.log('currentDir', currentDir);
+      
+      // Execute the script
+      const deminifiedStack = await deminifyStack(obj.meta?.stack, currentDir)
+      // console.log('deminifiedStack', deminifiedStack);
 
-      console.log('obj', obj);
+      // console.log('obj', obj);
       // Build the payload that you want to send to the remote endpoint
       // The fields (stack_trace, filename, etc.) assume you attached them in obj.meta
+      const stackTrace = deminifiedStack.deminifiedStack ?? obj.meta?.stack;
       const payload = {
-        host: obj.serviceName,
+        host: hostName,
+        environment: environment,
         message: obj.msg,
         level: levelName.toUpperCase(),
-        loggerName: 'sentinal',
-        stackTrace: obj.meta?.stack,
+        loggerName: obj.loggerName,
+        stackTrace: stackTrace,
         filename: obj.meta?.filePath,
         filePath: obj.meta?.filePath,
         lineNumber: obj.meta?.lineno,
@@ -69,7 +86,7 @@ export default async function (opts) {
         extraData: obj.meta,
         timestamp: new Date().toISOString()
       };
-      console.log('payload', payload);
+      // console.log('payload', payload);
       // Send to your endpoint if provided; otherwise just log to console or do nothing
       if (endpoint) {
         try {
@@ -85,11 +102,11 @@ export default async function (opts) {
           //  - swallow them
           //  - log them to console
           //  - or send them to a fallback
-          console.log('Transport failed to send log:', err, payload);
+          // console.log('Transport failed to send log:', err, payload);
         }
       } else {
         // If no endpoint is set, do something else (e.g. console or file)
-        console.log('No endpoint set; logging data:', payload);
+        // console.log('No endpoint set; logging data:', payload);
       }
     }
   });

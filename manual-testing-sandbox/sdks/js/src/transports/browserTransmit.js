@@ -1,20 +1,22 @@
 // browserTransmit.js
-import { post } from '../utils/axiosNaming.ts';
+import { deminifyStack } from '../parsers/deminifyBrowser';
+import { post } from '../utils/axiosNaming';
 
 /**
  * Creates a "transmit" configuration object for Pino's browser option.
  * This allows sending log events to the specified endpoint.
  * 
  * @param {string} endpoint - The URL to send logs to.
+ * @param {string} hostName - The name of the host sending the logs.
  * @param {string} level - The minimum log level (e.g., 'info').
  * @returns {object} The transmit config for Pino's browser option.
  */
-export default function createBrowserTransmit(endpoint, level = 'info') {
+export function createBrowserTransmit(endpoint, hostName, environment, level = 'info') {
     return {
         // Tells Pino which log levels are sent to 'send'
         level,
         // Called for each log event that meets or exceeds the above level
-        send(logLevel, logEvent) {
+        async send(logLevel, logEvent) {
             // logEvent typically looks like:
             // {
             //   ts: 1691836123456,  // timestamp
@@ -39,16 +41,19 @@ export default function createBrowserTransmit(endpoint, level = 'info') {
                     // Otherwise the first item might be the message
                     mainMessage = maybeMeta;
                 }
+                const deminifiedStack = await deminifyStack(meta.stack, null);
+                const stackTrace = deminifiedStack.deminifiedStack ?? meta.stack;
 
                 // The rest of the array might be more arguments
                 const extraArgs = rest;
 
                 const payload = {
-                    host: logEvent.bindings?.name || 'browser',  // or something
+                    host: hostName,  //
+                    environment: environment,
                     message: String(mainMessage),
                     level: logLevel.toUpperCase(),
-                    loggerName: 'sentinal',
-                    stackTrace: meta.stack,
+                    loggerName: logEvent.bindings?.name || 'browser',
+                    stackTrace: stackTrace,
                     filename: meta.filePath,
                     filePath: meta.filePath,
                     lineNumber: meta.lineno,
@@ -65,3 +70,4 @@ export default function createBrowserTransmit(endpoint, level = 'info') {
     }
 };
 
+export default createBrowserTransmit;

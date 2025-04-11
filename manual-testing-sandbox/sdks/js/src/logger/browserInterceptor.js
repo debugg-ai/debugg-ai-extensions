@@ -1,3 +1,4 @@
+
 const originalConsole = { ...console };
 
 export function browserInterceptor(pinoLogger) {
@@ -12,7 +13,7 @@ export function browserInterceptor(pinoLogger) {
 
             // 2) Otherwise, do your capturing logic
             const stackStr = getStackTrace();
-            const { filePath, lineno, colno, funcName, trimmedStack } = parseStackTrace(stackStr);
+            const { filePath, lineno, colno, funcName, trimmedStack } = parseBrowserStackTrace(stackStr);
 
             const message = args
                 .map(arg => (typeof arg === 'object' ? JSON.stringify(arg) : String(arg)))
@@ -44,13 +45,16 @@ function getStackTrace() {
  * A simple parse that tries to grab the second or third line from the stack
  * Each browser/Node version can differ in formatting.
  */
-function parseStackTrace(stackStr) {
+export function parseBrowserStackTrace(stackStr) {
     const result = {
         filePath: undefined,
         lineno: undefined,
         colno: undefined,
         trimmedStack: stackStr || ''
     };
+
+    // Execute the script
+    // const deminifiedStack = await deminifyStack(stackStr, currentDir)
 
     if (!stackStr) {
         // No stack? Return defaults
@@ -101,3 +105,4 @@ function parseStackTrace(stackStr) {
     return result;
 }
 
+export default browserInterceptor;

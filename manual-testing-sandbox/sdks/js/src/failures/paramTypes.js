@@ -1,15 +1,4 @@
 
-// Initialize logging
-// SentinalLogger.init({
-//     endpoint: 'http://localhost:81/api/v1/ingest/59be6716-a478-4834-b7e0-754f975f4368/',
-//     level: 'error',
-//     console: false,
-//     host: 'debuggai-sandbox',
-//     handleExceptions: true,
-//     otherTransports: []
-// });
-// ConsoleWrapper.init(SentinalLogger.getLogger());
-
 // This function expects an array of user objects with specific properties
 // But silently fails in unexpected ways if given wrong parameter structure
 function calculateTotalUserPoints(users) {

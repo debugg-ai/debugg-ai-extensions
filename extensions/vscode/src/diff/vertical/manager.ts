@@ -626,6 +626,22 @@ export class VerticalDiffManager {
             line,
           } as DiffLine;
         }
+        // const stream = cleanInsertDiffLines(
+        //   prefix,
+        //   rangeContent,
+        //   suffix,
+        //   llm,
+        //   input,
+        //   streamLines,
+        //   getMarkdownLanguageTagForFile(fileUri)
+        // );
+
+        // for await (const line of stream) {
+        //   if (line.type === "new" || line.type === "same") {
+        //     streamedLines.push(line.line);
+        //   }
+        //   yield line;
+        // }
       }
 
       this.logDiffs = await diffHandler.run(recordedStream());

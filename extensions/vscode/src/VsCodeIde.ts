@@ -139,46 +139,15 @@ class VsCodeIde implements IDE {
       if (!this.askedForAuth) {
         vscode.window
           .showInformationMessage(
-            "Continue will request read access to your GitHub email so that we can prevent abuse of the free trial. If you prefer not to sign in, you can use Continue with your own API keys or local model.",
+            "Debugg AI uses your email to connect to your account and track project errors.",
             "Sign in",
-            "Use API key / local model",
             "Learn more",
           )
           .then(async (selection) => {
-            if (selection === "Use API key / local model") {
-              await vscode.commands.executeCommand(
-                "continue.continueGUIView.focus",
-              );
-              (await this.vscodeWebviewProtocolPromise).request(
-                "openOnboardingCard",
-                undefined,
-              );
-
-              // Remove free trial models
-              editConfigJson((config) => {
-                let tabAutocompleteModel = undefined;
-                if (Array.isArray(config.tabAutocompleteModel)) {
-                  tabAutocompleteModel = config.tabAutocompleteModel.filter(
-                    (model) => model.provider !== "free-trial",
-                  );
-                } else if (
-                  config.tabAutocompleteModel?.provider === "free-trial"
-                ) {
-                  tabAutocompleteModel = undefined;
-                }
-
-                return {
-                  ...config,
-                  models: config.models.filter(
-                    (model) => model.provider !== "free-trial",
-                  ),
-                  tabAutocompleteModel,
-                };
-              });
-            } else if (selection === "Learn more") {
+            if (selection === "Learn more") {
               vscode.env.openExternal(
                 vscode.Uri.parse(
-                  "https://docs.continue.dev/reference/Model%20Providers/freetrial",
+                  "https://docs.debugg.ai/getting-started/overview",
                 ),
               );
             } else if (selection === "Sign in") {

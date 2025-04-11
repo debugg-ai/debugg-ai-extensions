@@ -7,6 +7,7 @@ export function interceptConsole(logger) {
     console[method] = (...args) => {
       // 1. Capture / parse the stack
       const stackStr = getStackTrace();
+
       const { filePath, lineno, colno, trimmedStack, funcName } = parseStackTrace(stackStr);
 
       // 2. Construct a message from the arguments
@@ -117,3 +118,4 @@ function parseStackTrace(stackStr) {
   return result;
 }
 
+export default interceptConsole;

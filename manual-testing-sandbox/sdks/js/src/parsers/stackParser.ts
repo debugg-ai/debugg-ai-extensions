@@ -1,57 +1,44 @@
-interface StackInfo {
-    filePath?: string;
-    lineNo?: number;
-    funcName?: string;
-    stack?: string;
+export interface StackTraceLine {
+  original: string;
+  functionName?: string;
+  file?: string;
+  line?: number;
+  column?: number;
 }
 
-// interface ErrorWithStack extends Error {
-//   stack: string;
-// }
-
-export function stackParser(obj: { err?: Error }): StackInfo {
-    let filePath: string | undefined;
-    let lineNo: number | undefined;
-    let funcName: string | undefined;
-    let stack: string | undefined;
-    let error: Error;
-
-    // Check if there's an error object
-    if (obj.err) {
-        error = obj.err;
-
-        stack = error.stack;
-        // Parse the first line of the stack trace that contains file info
-        const stackLines = (stack || '').split('\n');
-        const fileLine = stackLines.find(line => line.includes('at '));
-        if (fileLine) {
-            // Extract file path and line number from stack trace
-            const match = fileLine.match(/at\s+(?:(.+?)\s+\()?(?:(.+?):(\d+):(\d+))\)?/);
-            if (match) {
-                funcName = match[1];
-                filePath = match[2];
-                lineNo = parseInt(match[3], 10);
-            }
-        }
+// Helper function to parse stack trace line
+export function parseStackTraceLine(line: string): StackTraceLine | null {
+    // Match patterns like: "at functionName (file.js:line:column)"
+    const regex = new RegExp('at\\s+(?:(.+?)\\s+\\$)?(?:(.+?):(\\d+):(\\d+))\\$?');
+    const match = line.match(regex);
+    
+    if (!match) return null;
+    
+    const [, functionName, file, lineStr, columnStr] = match;
+    return {
+      original: line,
+      functionName: functionName || 'anonymous',
+      file,
+      line: parseInt(lineStr, 10),
+      column: parseInt(columnStr, 10)
+    };
+}
+  
+// Parse a full stack trace into lines
+export function parseStackTrace(stackTrace: string): StackTraceLine[] {
+    const lines = stackTrace.split('\n');
+    const parsedLines: StackTraceLine[] = [];
+    
+    for (const line of lines) {
+      const parsedLine = parseStackTraceLine(line.trim());
+      
+      if (parsedLine) {
+        parsedLines.push(parsedLine);
+      } else {
+        // Keep unparseable lines as-is
+        parsedLines.push({ original: line });
+      }
     }
-    // If no error object, try to get caller info
-    if (!filePath && Error.captureStackTrace) {
-        const err: { stack?: string } = {};
-        Error.captureStackTrace(err, stackParser);
-        const stackLines = err.stack?.split('\n') || [];
-        // Look for the first line that's not from this file
-        const fileLine = stackLines.find(line =>
-            line.includes('at ') && !line.includes('debuggAiTransport.js')
-        );
-        if (fileLine) {
-            const match = fileLine.match(/at\s+(?:(.+?)\s+\()?(?:(.+?):(\d+):(\d+))\)?/);
-            if (match) {
-                funcName = match[1];
-                filePath = match[2];
-                lineNo = parseInt(match[3], 10);
-            }
-        }
-    }
-
-    return { filePath, lineNo, funcName, stack };
+    
+    return parsedLines;
 }

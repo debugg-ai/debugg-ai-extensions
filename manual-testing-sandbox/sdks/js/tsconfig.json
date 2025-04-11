@@ -13,7 +13,11 @@
       "esModuleInterop": true,
       "allowJs": true,
       "allowImportingTsExtensions": true,
-      "noEmit": true
+      "noEmit": true,
+      /* Declaration options */
+      "declaration": true,
+      "declarationMap": true,
+      "emitDeclarationOnly": false, // We'll override this via CLI in the script
     },
     "include": [
       "src",
@@ -21,7 +25,10 @@
       "src/**/*"
     ],
     "exclude": [
-      "node_modules"
+      "node_modules",
+      "dist",
+      "next-js-test",
+      "dev-test"
     ]
   }
   

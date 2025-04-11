@@ -13,6 +13,29 @@ export const IssuesService = {
   },
 
   /**
+   * Get a paginated list of Alert Level issues which are essentially just very recent
+   * and high priority issues that have been logged locally during development.
+   */
+  async getAlertLevelIssues(projectKey: string): Promise<Issue[]> {
+    
+    const issues = await this.getIssuesForProject(projectKey, "error", 1);
+    const alertLevelIssues = issues.results.filter((issue: Issue) => issue.priority === "alert");
+    return alertLevelIssues;
+  },
+  /**
+   * Get a paginated list of issues for a project
+   */
+  async getIssuesForProject(projectKey: string, level?: string, page?: number, additionalParams?: Record<string, any>): Promise<PaginatedIssueResponse> {
+    const params = {
+      ...(level ? { level } : {}),
+      ...(page ? { page } : {}),
+      ...(additionalParams || {}),
+    };
+    const response = await get(`/api/v1/issues/project/${projectKey}/`, { params });
+    return response.data;
+  },
+
+  /**
    * Create a new issue
    */
   async createIssue(issue: Partial<Issue>): Promise<Issue> {

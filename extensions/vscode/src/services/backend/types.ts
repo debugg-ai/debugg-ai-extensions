@@ -14,7 +14,7 @@ export interface Issue {
     environment: string;
     status: 'open' | 'ongoing' | 'resolved' | 'archived';
     level: Level;
-    priority: 'low' | 'medium' | 'high';
+    priority: 'low' | 'medium' | 'high' | 'alert';
     lineNumber: number;
     columnNumber: number;
     eventsCount: number;

@@ -7,6 +7,8 @@
     "tsc:watch:binary": "tsc --project binary/tsconfig.json --watch --noEmit --pretty"
   },
   "devDependencies": {
+    "@rollup/plugin-inject": "^5.0.5",
+    "@rollup/plugin-json": "^6.1.0",
     "@typescript-eslint/parser": "^7.8.0",
     "eslint-plugin-import": "^2.29.1",
     "prettier": "^3.3.3",
