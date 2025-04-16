@@ -21,18 +21,17 @@ import {
   StatusBarStatus,
 } from "../autocomplete/statusBar";
 import { registerAllCommands } from "../commands";
-import { ContinueGUIWebviewViewProvider } from "../ContinueGUIWebviewViewProvider";
 import { VerticalDiffManager } from "../diff/vertical/manager";
 import { registerAllCodeLensProviders } from "../lang-server/codeLens";
 import { registerAllPromptFilesCompletionProviders } from "../lang-server/promptFileCompletions";
 import EditDecorationManager from "../quickEdit/EditDecorationManager";
 import { QuickEdit } from "../quickEdit/QuickEditQuickPick";
 import { setupRemoteConfigSync } from "../stubs/activation";
-import { UriEventHandler } from "../stubs/uriHandler";
 import {
+  DebuggAIAuthProvider,
   getControlPlaneSessionInfo,
-  WorkOsAuthProvider,
-} from "../stubs/WorkOsAuthProvider";
+} from "../stubs/DebuggAIAuthProvider";
+import { UriEventHandler } from "../stubs/uriHandler";
 import { Battery } from "../util/battery";
 import { FileSearch } from "../util/FileSearch";
 import { VsCodeIde } from "../VsCodeIde";
@@ -43,6 +42,7 @@ import { VsCodeMessenger } from "./VsCodeMessenger";
 import { ErrorFileDecorationProvider } from "../errorTracking/fileDecorations/ErrorFileDecoration";
 
 import { OptionsInlayHintsProvider } from "../debug/codeLens/inlayHintsProvider";
+import { DebuggGuiWebviewViewProvider } from "../DebuggGUIWebviewViewProvider";
 import type { VsCodeWebviewProtocol } from "../webviewProtocol";
 
 export class VsCodeExtension {
@@ -51,7 +51,7 @@ export class VsCodeExtension {
   private configHandler: ConfigHandler;
   private extensionContext: vscode.ExtensionContext;
   private ide: VsCodeIde;
-  private sidebar: ContinueGUIWebviewViewProvider;
+  private sidebar: DebuggGuiWebviewViewProvider;
   private windowId: string;
   private editDecorationManager: EditDecorationManager;
   private errorFileDecorationProvider: ErrorFileDecorationProvider;
@@ -60,15 +60,15 @@ export class VsCodeExtension {
   webviewProtocolPromise: Promise<VsCodeWebviewProtocol>;
   private core: Core;
   private battery: Battery;
-  private workOsAuthProvider: WorkOsAuthProvider;
+  private debuggAIAuthProvider: DebuggAIAuthProvider;
   private fileSearch: FileSearch;
   private uriHandler = new UriEventHandler();
 
   constructor(context: vscode.ExtensionContext) {
     // Register auth provider
-    this.workOsAuthProvider = new WorkOsAuthProvider(context, this.uriHandler);
-    this.workOsAuthProvider.refreshSessions();
-    context.subscriptions.push(this.workOsAuthProvider);
+    this.debuggAIAuthProvider = new DebuggAIAuthProvider(context, this.uriHandler);
+    this.debuggAIAuthProvider.refreshSessions();
+    context.subscriptions.push(this.debuggAIAuthProvider);
 
     this.editDecorationManager = new EditDecorationManager(context);
 
@@ -93,16 +93,17 @@ export class VsCodeExtension {
     const configHandlerPromise = new Promise<ConfigHandler>((resolve) => {
       resolveConfigHandler = resolve;
     });
-    this.sidebar = new ContinueGUIWebviewViewProvider(
+    this.sidebar = new DebuggGuiWebviewViewProvider(
       configHandlerPromise,
       this.windowId,
       this.extensionContext,
     );
 
+    console.log('pushing sidebar')
     // Sidebar
     context.subscriptions.push(
       vscode.window.registerWebviewViewProvider(
-        "continue.continueGUIView",
+        "debuggai.debuggaiGUIView",
         this.sidebar,
         {
           webviewOptions: { retainContextWhenHidden: true },
@@ -129,7 +130,7 @@ export class VsCodeExtension {
 
     // Config Handler with output channel
     const outputChannel = vscode.window.createOutputChannel(
-      "Continue - LLM Prompt/Completion",
+      "Debuggai - LLM Prompt/Completion",
     );
     const inProcessMessenger = new InProcessMessenger<
       ToCoreProtocol,
@@ -142,7 +143,7 @@ export class VsCodeExtension {
       this.ide,
       verticalDiffManagerPromise,
       configHandlerPromise,
-      this.workOsAuthProvider,
+      this.debuggAIAuthProvider,
       this.editDecorationManager,
     );
 
@@ -282,7 +283,7 @@ export class VsCodeExtension {
       this.sidebar,
       this.configHandler,
       this.verticalDiffManager,
-      this.core.continueServerClientPromise,
+      this.core.debuggAIServerClientPromise,
       this.battery,
       quickEdit,
       this.core,
@@ -351,7 +352,7 @@ export class VsCodeExtension {
       if (e.provider.id === env.AUTH_TYPE) {
         vscode.commands.executeCommand(
           "setContext",
-          "continue.isSignedInToControlPlane",
+          "debuggai.isSignedInToControlPlane",
           true,
         );
 
@@ -370,7 +371,7 @@ export class VsCodeExtension {
       } else {
         vscode.commands.executeCommand(
           "setContext",
-          "continue.isSignedInToControlPlane",
+          "debuggai.isSignedInToControlPlane",
           false,
         );
 

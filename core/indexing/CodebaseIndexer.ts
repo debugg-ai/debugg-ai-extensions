@@ -1,16 +1,17 @@
 import * as fs from "fs/promises";
 
 import { ConfigHandler } from "../config/ConfigHandler.js";
-import { IContinueServerClient } from "../continueServer/interface.js";
+import { IDebuggAIServerClient } from "../debuggAIServer/interface.js";
 import { IDE, IndexingProgressUpdate, IndexTag } from "../index.js";
 import { extractMinimalStackTraceInfo } from "../util/extractMinimalStackTraceInfo.js";
 import { getIndexSqlitePath, getLanceDbPath } from "../util/paths.js";
 import { findUriInDirs, getUriPathBasename } from "../util/uri.js";
 
+import { AstraDbIndex } from "./AstraDbIndex.js"; // Move from LanceDb to a local & remote AstraDB
 import { ChunkCodebaseIndex } from "./chunk/ChunkCodebaseIndex.js";
 import { CodeSnippetsCodebaseIndex } from "./CodeSnippetsIndex.js";
 import { FullTextSearchCodebaseIndex } from "./FullTextSearchCodebaseIndex.js";
-import { LanceDbIndex } from "./LanceDbIndex.js";
+
 import { getComputeDeleteAddRemove } from "./refreshIndex.js";
 import {
   CodebaseIndex,
@@ -55,13 +56,14 @@ export class CodebaseIndexer {
     private readonly configHandler: ConfigHandler,
     protected readonly ide: IDE,
     private readonly pauseToken: PauseToken,
-    private readonly continueServerClient: IContinueServerClient,
+    private readonly debuggAIServerClient: IDebuggAIServerClient,
   ) {}
 
   async clearIndexes() {
     const sqliteFilepath = getIndexSqlitePath();
     const lanceDbFolder = getLanceDbPath();
 
+    console.log("Clearing indexes using sqliteFilepath", sqliteFilepath);
     try {
       await fs.unlink(sqliteFilepath);
     } catch (error) {
@@ -89,18 +91,35 @@ export class CodebaseIndexer {
     const indexes: CodebaseIndex[] = [
       new ChunkCodebaseIndex(
         this.ide.readFile.bind(this.ide),
-        this.continueServerClient,
+        this.debuggAIServerClient,
         embeddingsModel.maxEmbeddingChunkSize,
       ), // Chunking must come first
     ];
 
-    const lanceDbIndex = await LanceDbIndex.create(
+    // const lanceDbIndex = await LanceDbIndex.create(
+    //   embeddingsModel,
+    //   this.ide.readFile.bind(this.ide),
+    // );
+
+    // if (lanceDbIndex) {
+    //   indexes.push(lanceDbIndex);
+    // }
+
+    // Move from LanceDb to a local & remote AstraDB
+    const astraDbIndex = await AstraDbIndex.create(
       embeddingsModel,
       this.ide.readFile.bind(this.ide),
+      {
+        apiKey: config?.vectorDatabaseOpts?.apiKey || '',
+        endpoint: config?.vectorDatabaseOpts?.endpoint || '',
+        keyspace: config?.vectorDatabaseOpts?.keyspace || 'default_keyspace',
+        metric: config?.vectorDatabaseOpts?.metric || 'cosine',
+      },
+      this.debuggAIServerClient
     );
 
-    if (lanceDbIndex) {
-      indexes.push(lanceDbIndex);
+    if (astraDbIndex) {
+      indexes.push(astraDbIndex);
     }
 
     indexes.push(
@@ -120,26 +139,64 @@ export class CodebaseIndexer {
     );
   }
 
+  /**
+   * Filters the indexing operations to only include those for a single file.
+   * 
+   * This is used when refreshing a single file's indices to avoid processing
+   * operations for other files.
+   * 
+   * @param results - The full set of indexing operations to filter
+   * @param lastUpdated - Array of files that were last updated
+   * @param filePath - Path of the file to filter for
+   * @returns Tuple of [filtered results, filtered lastUpdated array]
+   */
   private singleFileIndexOps(
-    results: RefreshIndexResults,
-    lastUpdated: PathAndCacheKey[],
-    filePath: string,
+    results: RefreshIndexResults, // Full set of indexing operations
+    lastUpdated: PathAndCacheKey[], // Files that were last updated
+    filePath: string, // Path to filter for
   ): [RefreshIndexResults, PathAndCacheKey[]] {
+    // Filter function to match only operations for this file path
     const filterFn = (item: PathAndCacheKey) => item.path === filePath;
+
+    // Filter each type of operation to only include this file
     const compute = results.compute.filter(filterFn);
-    const del = results.del.filter(filterFn);
+    const del = results.del.filter(filterFn); 
     const addTag = results.addTag.filter(filterFn);
     const removeTag = results.removeTag.filter(filterFn);
+
+    // Construct filtered results object
     const newResults = {
       compute,
       del,
-      addTag,
+      addTag, 
       removeTag,
     };
+
+    // Filter lastUpdated array
     const newLastUpdated = lastUpdated.filter(filterFn);
+
     return [newResults, newLastUpdated];
   }
 
+  /**
+   * Refreshes the indices for a single file in the workspace.
+   * 
+   * @param file - The file path to refresh indices for
+   * @param workspaceDirs - Array of workspace directory paths to search for the file in
+   * @returns Promise that resolves when indexing is complete
+   * 
+   * This method:
+   * 1. Checks if indexing is paused via pauseToken
+   * 2. Finds which workspace directory contains the file
+   * 3. Gets branch and repo info for the containing directory
+   * 4. Builds necessary indices for the file by:
+   *    - Getting file stats
+   *    - Computing changes needed (add/remove/update)
+   *    - Updating each index if there are changes
+   * 
+   * Note: If indexing is paused when this is called, the file may not get reindexed
+   * after unpausing even if it was modified while paused.
+   */
   public async refreshFile(
     file: string,
     workspaceDirs: string[],

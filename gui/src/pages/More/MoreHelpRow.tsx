@@ -17,7 +17,7 @@ function MoreHelpRow({ title, description, onClick, Icon }: MoreHelpRowProps) {
         <span className="py-1 text-xs text-stone-500">{description}</span>
       </div>
 
-      <div className="flex h-5 w-1/5 w-5 cursor-pointer justify-end text-stone-500">
+      <div className="flex h-5 w-5 cursor-pointer justify-end text-stone-500">
         <Icon />
       </div>
     </div>

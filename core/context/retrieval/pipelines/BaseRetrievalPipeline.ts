@@ -4,7 +4,8 @@ import nlp from "wink-nlp-utils";
 import { BranchAndDir, Chunk, ContinueConfig, IDE, ILLM } from "../../../";
 import { chunkDocument } from "../../../indexing/chunk/chunk";
 import { FullTextSearchCodebaseIndex } from "../../../indexing/FullTextSearchCodebaseIndex";
-import { LanceDbIndex } from "../../../indexing/LanceDbIndex";
+// import { LanceDbIndex } from "../../../indexing/LanceDbIndex";
+import { AstraDbIndex } from "../../../indexing/AstraDbIndex";
 import { recentlyEditedFilesCache } from "../recentlyEditedFilesCache";
 
 const DEFAULT_CHUNK_SIZE = 384;
@@ -33,21 +34,27 @@ export interface IRetrievalPipeline {
 
 export default class BaseRetrievalPipeline implements IRetrievalPipeline {
   private ftsIndex = new FullTextSearchCodebaseIndex();
-  private lanceDbIndex: LanceDbIndex | null = null;
+  private astraDbIndex: AstraDbIndex | null = null;
 
   constructor(protected readonly options: RetrievalPipelineOptions) {
-    void this.initLanceDb();
+    void this.initAstraDb();
   }
 
-  private async initLanceDb() {
+  private async initAstraDb() {
     const embedModel = this.options.config.selectedModelByRole.embed;
 
     if (!embedModel) {
       return;
     }
 
-    this.lanceDbIndex = await LanceDbIndex.create(embedModel, (uri) =>
+    this.astraDbIndex = await AstraDbIndex.create(embedModel, (uri) =>
       this.options.ide.readFile(uri),
+      {
+        apiKey: this.options.config.vectorDatabaseOpts?.apiKey || '',
+        endpoint: this.options.config.vectorDatabaseOpts?.endpoint || '',
+        keyspace: this.options.config.vectorDatabaseOpts?.keyspace || 'default_keyspace',
+        metric: this.options.config.vectorDatabaseOpts?.metric || 'cosine',
+      },
     );
   }
 
@@ -138,14 +145,14 @@ export default class BaseRetrievalPipeline implements IRetrievalPipeline {
     input: string,
     n: number,
   ): Promise<Chunk[]> {
-    if (!this.lanceDbIndex) {
+    if (!this.astraDbIndex) {
       console.warn(
-        "LanceDB index not available, skipping embeddings retrieval",
+        "AstraDB index not available, skipping embeddings retrieval",
       );
       return [];
     }
 
-    return this.lanceDbIndex.retrieve(
+    return this.astraDbIndex.retrieve(
       input,
       n,
       this.options.tags,

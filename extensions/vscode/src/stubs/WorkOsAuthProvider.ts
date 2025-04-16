@@ -413,7 +413,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
           this._codeExchangePromises.set(scopeString, codeExchangePromise);
         }
 
-        try {
+        try { 
           return await Promise.race([
             codeExchangePromise.promise,
             new Promise<string>(

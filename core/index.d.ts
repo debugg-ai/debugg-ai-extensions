@@ -1157,6 +1157,26 @@ export interface AnalyticsConfig {
   clientKey?: string;
 }
 
+
+export enum VectorDatabaseProvider {
+  AstraDB = "astradb",
+  LanceDB = "lancedb",
+}
+
+// core/indexing providers and configuration
+type CollectionVectorMetric = "cosine" | "euclidean" | "dot_product";
+
+export interface VectorDatabaseIndexOpts {
+  /** Data API application token */
+  apiKey: string;
+  /** Database REST endpoint, e.g. https://<db-id>-<region>.apps.astra.datastax.com */
+  endpoint: string;
+  /** Keyspace / namespace to use (defaults to `default_keyspace`) */
+  keyspace?: string;
+  /** Vector similarity metric to use when creating new collections (defaults cosine) */
+  metric?: CollectionVectorMetric;
+}
+
 // config.json
 export interface SerializedContinueConfig {
   env?: string[];
@@ -1233,6 +1253,7 @@ export interface Config {
   /** Analytics configuration */
   analytics?: AnalyticsConfig;
   data?: DataDestination[];
+  vectorDatabaseOpts?: VectorDatabaseIndexOpts;
 }
 
 // in the actual Continue source code
@@ -1256,6 +1277,7 @@ export interface ContinueConfig {
   modelsByRole: Record<ModelRole, ILLM[]>;
   selectedModelByRole: Record<ModelRole, ILLM | null>;
   data?: DataDestination[];
+  vectorDatabaseOpts?: VectorDatabaseIndexOpts;
 }
 
 export interface BrowserSerializedContinueConfig {

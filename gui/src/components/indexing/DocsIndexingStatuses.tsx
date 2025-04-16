@@ -1,13 +1,13 @@
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { IndexingStatus } from "core";
+import { useContext, useMemo } from "react";
 import { useDispatch } from "react-redux";
 import { SecondaryButton } from "..";
+import { IdeMessengerContext } from "../../context/IdeMessenger";
+import { useAppSelector } from "../../redux/hooks";
 import { setDialogMessage, setShowDialog } from "../../redux/slices/uiSlice";
 import AddDocsDialog from "../dialogs/AddDocsDialog";
 import DocsIndexingStatus from "./DocsIndexingStatus";
-import { useAppSelector } from "../../redux/hooks";
-import { useContext, useMemo } from "react";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import { IdeMessengerContext } from "../../context/IdeMessenger";
-import { IndexingStatus } from "core";
 
 function DocsIndexingStatuses() {
   const dispatch = useDispatch();
@@ -46,7 +46,7 @@ function DocsIndexingStatuses() {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex flex-row items-center justify-between">
-        <h3 className="mb-0 mt-0 text-xl">@docs indexes</h3>
+        <h3 className="mb-0 mt-0 text-xl">Indexing Status (Docs)</h3>
         {sortedConfigDocs.length ? (
           <SecondaryButton
             className="!my-0 flex h-7 flex-col items-center justify-center"

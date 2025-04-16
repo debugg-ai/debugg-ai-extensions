@@ -1,7 +1,6 @@
 import {
   ArrowTopRightOnSquareIcon,
-  DocumentArrowUpIcon,
-  TableCellsIcon,
+  TableCellsIcon
 } from "@heroicons/react/24/outline";
 import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
@@ -10,8 +9,6 @@ import PageHeader from "../../components/PageHeader";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { setOnboardingCard } from "../../redux/slices/uiSlice";
-import { saveCurrentSession } from "../../redux/thunks/session";
 import IndexingProgress from "./IndexingProgress";
 import KeyboardShortcuts from "./KeyboardShortcuts";
 import MoreHelpRow from "./MoreHelpRow";
@@ -31,7 +28,7 @@ function MorePage() {
       <div className="gap-2 divide-x-0 divide-y-2 divide-solid divide-zinc-700 px-4">
         <div className="py-5">
           <div>
-            <h3 className="mx-auto mb-1 mt-0 text-xl">@codebase index</h3>
+            <h3 className="mx-auto mb-1 mt-0 text-xl">Indexing Status</h3>
             <span className="w-3/4 text-xs text-stone-500">
               Local embeddings of your codebase
             </span>
@@ -60,10 +57,10 @@ function MorePage() {
           <div className="-mx-4 flex flex-col">
             <MoreHelpRow
               title="Documentation"
-              description="Learn how to configure and use Continue"
+              description="Learn how to configure and use Debugg AI"
               Icon={ArrowTopRightOnSquareIcon}
               onClick={() =>
-                ideMessenger.post("openUrl", "https://docs.continue.dev/")
+                ideMessenger.post("openUrl", "https://docs.debugg.ai/")
               }
             />
 
@@ -74,17 +71,8 @@ function MorePage() {
               onClick={() =>
                 ideMessenger.post(
                   "openUrl",
-                  "https://github.com/continuedev/continue/issues/new/choose",
+                  "https://github.com/debuggai/debugg-ai/issues/new/choose",
                 )
-              }
-            />
-
-            <MoreHelpRow
-              title="Join the community!"
-              description="Join us on Discord to stay up-to-date on the latest developments"
-              Icon={ArrowTopRightOnSquareIcon}
-              onClick={() =>
-                ideMessenger.post("openUrl", "https://discord.gg/vapESyrFmJ")
               }
             />
 
@@ -96,21 +84,12 @@ function MorePage() {
             />
 
             <MoreHelpRow
-              title="Quickstart"
-              description="Reopen the quickstart and tutorial file"
-              Icon={DocumentArrowUpIcon}
-              onClick={async () => {
-                navigate("/");
-                // Used to clear the chat panel before showing onboarding card
-                await dispatch(
-                  saveCurrentSession({
-                    openNewSession: true,
-                    generateTitle: true,
-                  }),
-                );
-                dispatch(setOnboardingCard({ show: true, activeTab: "Best" }));
-                ideMessenger.post("showTutorial", undefined);
-              }}
+              title="Contribute to Continue"
+              description="Continue's Open Source project provided the base for our extensions. Join their community to stay up-to-date on the latest developments."
+              Icon={ArrowTopRightOnSquareIcon}
+              onClick={() =>
+                ideMessenger.post("openUrl", "https://discord.gg/vapESyrFmJ")
+              }
             />
           </div>
         </div>

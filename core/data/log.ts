@@ -167,10 +167,10 @@ export class DataLogger {
                 headers["Authorization"] = `Bearer ${dataConfig.apiKey}`;
               }
 
-              // For events going to Continue, overwrite the access token
+              // For events going to Debugg AI, overwrite the access token
               if (
-                uriComponents.host?.endsWith(".continue.dev") ||
-                uriComponents.host === "continue.dev"
+                uriComponents.host?.endsWith(".debugg.ai") ||
+                uriComponents.host === "debugg.ai"
               ) {
                 //
                 const accessToken =

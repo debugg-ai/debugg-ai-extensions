@@ -92,11 +92,11 @@ export class NotificationProvider {
     this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     this.statusBarItem.text = `$(alert) ${notifications.length} issue notifications`;
     this.statusBarItem.tooltip = "Click to view issue notifications";
-    this.statusBarItem.command = "continue.openNotifications";
+    this.statusBarItem.command = "debuggai.openNotifications";
     this.statusBarItem.show();
 
     // Register a command for when the status bar item is clicked.
-    const disposable = vscode.commands.registerCommand("continue.openNotifications", async () => {
+    const disposable = vscode.commands.registerCommand("debuggai.openNotifications", async () => {
       await this.showQuickPick(notifications);
       if (this.statusBarItem) {
         this.statusBarItem.hide();

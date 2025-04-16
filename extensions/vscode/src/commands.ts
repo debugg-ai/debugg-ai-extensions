@@ -9,9 +9,10 @@ import {
 } from "core";
 import { CompletionProvider } from "core/autocomplete/CompletionProvider";
 import { ConfigHandler } from "core/config/ConfigHandler";
-import { ContinueServerClient } from "core/continueServer/stubs/client";
+// import { ContinueServerClient } from "core/continueServer/stubs/client";
 import { EXTENSION_NAME } from "core/control-plane/env";
 import { Core } from "core/core";
+import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import { walkDirAsync } from "core/indexing/walkDir";
 import { getDevDataFilePath } from "core/util/paths";
 import { Telemetry } from "core/util/posthog";
@@ -27,7 +28,6 @@ import {
   setupStatusBar,
   StatusBarStatus,
 } from "./autocomplete/statusBar";
-import { ContinueGUIWebviewViewProvider } from "./ContinueGUIWebviewViewProvider";
 
 import { VerticalDiffManager } from "./diff/vertical/manager";
 import EditDecorationManager from "./quickEdit/EditDecorationManager";
@@ -42,6 +42,7 @@ import { startLocalOllama } from "core/util/ollamaHelper";
 import { SuggestionCodeLensProvider } from "./debug/codeLens/suggestionsLensProvider";
 import { pullErrorsAndHighlight } from "./debug/pullErrors";
 import { showSnippetWebview } from "./debug/webviews/snippetWebview";
+import { DebuggGuiWebviewViewProvider } from "./DebuggGUIWebviewViewProvider";
 import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
 import { FilesService } from "./services/backend/files";
 import { Issue } from "./services/backend/types";
@@ -53,7 +54,7 @@ let fullScreenPanel: vscode.WebviewPanel | undefined;
 function getFullScreenTab() {
   const tabs = vscode.window.tabGroups.all.flatMap((tabGroup) => tabGroup.tabs);
   return tabs.find((tab) =>
-    (tab.input as any)?.viewType?.endsWith("continue.continueGUIView"),
+    (tab.input as any)?.viewType?.endsWith("debuggai.debuggaiGUIView"),
   );
 }
 
@@ -230,7 +231,7 @@ function focusGUI() {
     fullScreenPanel?.reveal();
   } else {
     // focus sidebar
-    vscode.commands.executeCommand("continue.continueGUIView.focus");
+    vscode.commands.executeCommand("debuggai.debuggaiGUIView.focus");
     // vscode.commands.executeCommand("workbench.action.focusAuxiliaryBar");
   }
 }
@@ -242,14 +243,14 @@ function hideGUI() {
     fullScreenPanel?.dispose();
   } else {
     // focus sidebar
-    vscode.commands.executeCommand("workbench.action.closeAuxiliaryBar");
-    // vscode.commands.executeCommand("workbench.action.toggleAuxiliaryBar");
+    // vscode.commands.executeCommand("workbench.action.closeAuxiliaryBar");
+    vscode.commands.executeCommand("workbench.action.toggleAuxiliaryBar");
   }
 }
 
 async function processDiff(
   action: "accept" | "reject",
-  sidebar: ContinueGUIWebviewViewProvider,
+  sidebar: DebuggGuiWebviewViewProvider,
   ide: VsCodeIde,
   verticalDiffManager: VerticalDiffManager,
   newFileUri?: string,
@@ -294,7 +295,7 @@ async function processDiff(
 }
 
 function waitForSidebarReady(
-  sidebar: ContinueGUIWebviewViewProvider,
+  sidebar: DebuggGuiWebviewViewProvider,
   timeout: number,
   interval: number,
 ): Promise<boolean> {
@@ -319,10 +320,11 @@ function waitForSidebarReady(
 const getCommandsMap: (
   ide: VsCodeIde,
   extensionContext: vscode.ExtensionContext,
-  sidebar: ContinueGUIWebviewViewProvider,
+  sidebar: DebuggGuiWebviewViewProvider,
   configHandler: ConfigHandler,
   verticalDiffManager: VerticalDiffManager,
-  continueServerClientPromise: Promise<ContinueServerClient>,
+  // continueServerClientPromise: Promise<ContinueServerClient>,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
   battery: Battery,
   quickEdit: QuickEdit,
   core: Core,
@@ -464,7 +466,7 @@ const getCommandsMap: (
       }
     }
     return {
-      "continue.acceptDiff": async (newFileUri?: string, streamId?: string) =>
+      "debuggai.acceptDiff": async (newFileUri?: string, streamId?: string) =>
         processDiff(
           "accept",
           sidebar,
@@ -474,7 +476,7 @@ const getCommandsMap: (
           streamId,
         ),
 
-      "continue.rejectDiff": async (newFilepath?: string, streamId?: string) =>
+      "debuggai.rejectDiff": async (newFilepath?: string, streamId?: string) =>
         processDiff(
           "reject",
           sidebar,
@@ -483,15 +485,15 @@ const getCommandsMap: (
           newFilepath,
           streamId,
         ),
-      "continue.acceptVerticalDiffBlock": (fileUri?: string, index?: number) => {
+      "debuggai.acceptVerticalDiffBlock": (fileUri?: string, index?: number) => {
         captureCommandTelemetry("acceptVerticalDiffBlock");
         verticalDiffManager.acceptRejectVerticalDiffBlock(true, fileUri, index);
       },
-      "continue.rejectVerticalDiffBlock": (fileUri?: string, index?: number) => {
+      "debuggai.rejectVerticalDiffBlock": (fileUri?: string, index?: number) => {
         captureCommandTelemetry("rejectVerticalDiffBlock");
         verticalDiffManager.acceptRejectVerticalDiffBlock(false, fileUri, index);
       },
-      "continue.quickFix": async (
+      "debuggai.quickFix": async (
         range: vscode.Range,
         diagnosticMessage: string,
       ) => {
@@ -501,14 +503,14 @@ const getCommandsMap: (
 
         addCodeToContextFromRange(range, sidebar.webviewProtocol, prompt);
 
-        vscode.commands.executeCommand("continue.continueGUIView.focus");
+        vscode.commands.executeCommand("debuggai.debuggaiGUIView.focus");
       },
       // Passthrough for telemetry purposes
-      "continue.defaultQuickAction": async (args: QuickEditShowParams) => {
+      "debuggai.defaultQuickAction": async (args: QuickEditShowParams) => {
         captureCommandTelemetry("defaultQuickAction");
-        vscode.commands.executeCommand("continue.focusEdit", args);
+        vscode.commands.executeCommand("debuggai.focusEdit", args);
       },
-      "continue.customQuickActionSendToChat": async (
+      "debuggai.customQuickActionSendToChat": async (
         prompt: string,
         range: vscode.Range,
       ) => {
@@ -516,9 +518,9 @@ const getCommandsMap: (
 
         addCodeToContextFromRange(range, sidebar.webviewProtocol, prompt);
 
-        vscode.commands.executeCommand("continue.continueGUIView.focus");
+        vscode.commands.executeCommand("debuggai.debuggaiGUIView.focus");
       },
-      "continue.customQuickActionStreamInlineEdit": async (
+      "debuggai.customQuickActionStreamInlineEdit": async (
         prompt: string,
         range: vscode.Range,
       ) => {
@@ -526,19 +528,19 @@ const getCommandsMap: (
 
         streamInlineEdit("docstring", prompt, false, range);
       },
-      "continue.codebaseForceReIndex": async () => {
+      "debuggai.codebaseForceReIndex": async () => {
         core.invoke("index/forceReIndex", undefined);
       },
-      "continue.rebuildCodebaseIndex": async () => {
+      "debuggai.rebuildCodebaseIndex": async () => {
         core.invoke("index/forceReIndex", { shouldClearIndexes: true });
       },
-      "continue.docsIndex": async () => {
+      "debuggai.docsIndex": async () => {
         core.invoke("context/indexDocs", { reIndex: false });
       },
-      "continue.docsReIndex": async () => {
+      "debuggai.docsReIndex": async () => {
         core.invoke("context/indexDocs", { reIndex: true });
       },
-      "continue.focusContinueInput": async () => {
+      "debuggai.focusContinueInput": async () => {
         const isContinueInputFocused = await sidebar.webviewProtocol.request(
           "isContinueInputFocused",
           undefined,
@@ -582,7 +584,7 @@ const getCommandsMap: (
           void addHighlightedCodeToContext(sidebar.webviewProtocol);
         }
       },
-      "continue.focusContinueInputWithoutClear": async () => {
+      "debuggai.focusContinueInputWithoutClear": async () => {
         const isContinueInputFocused = await sidebar.webviewProtocol.request(
           "isContinueInputFocused",
           undefined,
@@ -615,7 +617,7 @@ const getCommandsMap: (
       },
       // QuickEditShowParams are passed from CodeLens, temp fix
       // until we update to new params specific to Edit
-      "continue.focusEdit": async (args?: QuickEditShowParams) => {
+      "debuggai.focusEdit": async (args?: QuickEditShowParams) => {
         captureCommandTelemetry("focusEdit");
         focusGUI();
 
@@ -675,7 +677,7 @@ const getCommandsMap: (
           );
         }
       },
-      "continue.focusEditWithoutClear": async () => {
+      "debuggai.focusEditWithoutClear": async () => {
         captureCommandTelemetry("focusEditWithoutClear");
         focusGUI();
 
@@ -715,12 +717,12 @@ const getCommandsMap: (
           });
         }
       },
-      "continue.exitEditMode": async () => {
+      "debuggai.exitEditMode": async () => {
         captureCommandTelemetry("exitEditMode");
         editDecorationManager.clear();
         void sidebar.webviewProtocol?.request("exitEditMode", undefined);
       },
-      // "continue.quickEdit": async (args: QuickEditShowParams) => {
+      // "debuggai.quickEdit": async (args: QuickEditShowParams) => {
       //   let linesOfCode = undefined;
       //   if (args.range) {
       //     linesOfCode = args.range.end.line - args.range.start.line;
@@ -730,7 +732,7 @@ const getCommandsMap: (
       //   });
       //   quickEdit.show(args);
       // },
-      "continue.writeCommentsForCode": async () => {
+      "debuggai.writeCommentsForCode": async () => {
         captureCommandTelemetry("writeCommentsForCode");
 
         streamInlineEdit(
@@ -738,7 +740,7 @@ const getCommandsMap: (
           "Write comments for this code. Do not change anything about the code itself.",
         );
       },
-      "continue.writeDocstringForCode": async () => {
+      "debuggai.writeDocstringForCode": async () => {
         captureCommandTelemetry("writeDocstringForCode");
 
         streamInlineEdit(
@@ -747,7 +749,7 @@ const getCommandsMap: (
           true,
         );
       },
-      "continue.fixCode": async () => {
+      "debuggai.fixCode": async () => {
         captureCommandTelemetry("fixCode");
 
         streamInlineEdit(
@@ -755,51 +757,51 @@ const getCommandsMap: (
           "Fix this code. If it is already 100% correct, simply rewrite the code.",
         );
       },
-      "continue.optimizeCode": async () => {
+      "debuggai.optimizeCode": async () => {
         captureCommandTelemetry("optimizeCode");
         streamInlineEdit("optimize", "Optimize this code");
       },
-      "continue.fixGrammar": async () => {
+      "debuggai.fixGrammar": async () => {
         captureCommandTelemetry("fixGrammar");
         streamInlineEdit(
           "fixGrammar",
           "If there are any grammar or spelling mistakes in this writing, fix them. Do not make other large changes to the writing.",
         );
       },
-      "continue.viewLogs": async () => {
+      "debuggai.viewLogs": async () => {
         captureCommandTelemetry("viewLogs");
         vscode.commands.executeCommand("workbench.action.toggleDevTools");
       },
-      "continue.debugTerminal": async () => {
+      "debuggai.debugTerminal": async () => {
         captureCommandTelemetry("debugTerminal");
 
         const terminalContents = await ide.getTerminalContents();
 
-        vscode.commands.executeCommand("continue.continueGUIView.focus");
+        vscode.commands.executeCommand("debuggai.debuggaiGUIView.focus");
 
         sidebar.webviewProtocol?.request("userInput", {
           input: `I got the following error, can you please help explain how to fix it?\n\n${terminalContents.trim()}`,
         });
       },
-      "continue.hideInlineTip": () => {
+      "debuggai.hideInlineTip": () => {
         vscode.workspace
           .getConfiguration(EXTENSION_NAME)
           .update("showInlineTip", false, vscode.ConfigurationTarget.Global);
       },
 
       // Commands without keyboard shortcuts
-      "continue.addModel": () => {
+      "debuggai.addModel": () => {
         captureCommandTelemetry("addModel");
 
-        vscode.commands.executeCommand("continue.continueGUIView.focus");
+        vscode.commands.executeCommand("debuggai.debuggaiGUIView.focus");
         sidebar.webviewProtocol?.request("addModel", undefined);
       },
-      "continue.sendMainUserInput": (text: string) => {
+      "debuggai.sendMainUserInput": (text: string) => {
         sidebar.webviewProtocol?.request("userInput", {
           input: text,
         });
       },
-      "continue.selectRange": (startLine: number, endLine: number) => {
+      "debuggai.selectRange": (startLine: number, endLine: number) => {
         if (!vscode.window.activeTextEditor) {
           return;
         }
@@ -810,7 +812,7 @@ const getCommandsMap: (
           0,
         );
       },
-      "continue.foldAndUnfold": (
+      "debuggai.foldAndUnfold": (
         foldSelectionLines: number[],
         unfoldSelectionLines: number[],
       ) => {
@@ -821,17 +823,17 @@ const getCommandsMap: (
           selectionLines: foldSelectionLines,
         });
       },
-      "continue.sendToTerminal": (text: string) => {
+      "debuggai.sendToTerminal": (text: string) => {
         captureCommandTelemetry("sendToTerminal");
         ide.runCommand(text);
       },
-      "continue.newSession": () => {
+      "debuggai.newSession": () => {
         sidebar.webviewProtocol?.request("newSession", undefined);
       },
-      "continue.viewHistory": () => {
-        vscode.commands.executeCommand("continue.navigateTo", "/history", true);
+      "debuggai.viewHistory": () => {
+        vscode.commands.executeCommand("debuggai.navigateTo", "/history", true);
       },
-      "continue.focusContinueSessionId": async (
+      "debuggai.focusContinueSessionId": async (
         sessionId: string | undefined,
       ) => {
         if (!sessionId) {
@@ -843,10 +845,10 @@ const getCommandsMap: (
           sessionId,
         });
       },
-      "continue.applyCodeFromChat": () => {
+      "debuggai.applyCodeFromChat": () => {
         void sidebar.webviewProtocol.request("applyCodeFromChat", undefined);
       },
-      "continue.toggleFullScreen": async () => {
+      "debuggai.toggleFullScreen": async () => {
         focusGUI();
 
         const sessionId = await sidebar.webviewProtocol.request(
@@ -863,15 +865,15 @@ const getCommandsMap: (
         }
 
         // Clear the sidebar to prevent overwriting changes made in fullscreen
-        vscode.commands.executeCommand("continue.newSession");
+        vscode.commands.executeCommand("debuggai.newSession");
 
         // Full screen not open - open it
         captureCommandTelemetry("openFullScreen");
 
         // Create the full screen panel
         let panel = vscode.window.createWebviewPanel(
-          "continue.continueGUIView",
-          "Continue",
+          "debuggai.debuggaiGUIView",
+          "Debugg AI",
           vscode.ViewColumn.One,
           {
             retainContextWhenHidden: true,
@@ -890,10 +892,10 @@ const getCommandsMap: (
         );
 
         const sessionLoader = panel.onDidChangeViewState(() => {
-          vscode.commands.executeCommand("continue.newSession");
+          vscode.commands.executeCommand("debuggai.newSession");
           if (sessionId) {
             vscode.commands.executeCommand(
-              "continue.focusContinueSessionId",
+              "debuggai.focusContinueSessionId",
               sessionId,
             );
           }
@@ -905,7 +907,7 @@ const getCommandsMap: (
         panel.onDidDispose(
           () => {
             sidebar.resetWebviewProtocolWebview();
-            vscode.commands.executeCommand("continue.focusContinueInput");
+            vscode.commands.executeCommand("debuggai.focusContinueInput");
           },
           null,
           extensionContext.subscriptions,
@@ -914,10 +916,10 @@ const getCommandsMap: (
         vscode.commands.executeCommand("workbench.action.copyEditorToNewWindow");
         vscode.commands.executeCommand("workbench.action.closeAuxiliaryBar");
       },
-      "continue.openConfigPage": () => {
-        vscode.commands.executeCommand("continue.navigateTo", "/config", true);
+      "debuggai.openConfigPage": () => {
+        vscode.commands.executeCommand("debuggai.navigateTo", "/config", true);
       },
-      "continue.selectFilesAsContext": async (
+      "debuggai.selectFilesAsContext": async (
         firstUri: vscode.Uri,
         uris: vscode.Uri[],
       ) => {
@@ -925,7 +927,7 @@ const getCommandsMap: (
           throw new Error("No files were selected");
         }
 
-        vscode.commands.executeCommand("continue.continueGUIView.focus");
+        vscode.commands.executeCommand("debuggai.debuggaiGUIView.focus");
 
         for (const uri of uris) {
           // If it's a folder, add the entire folder contents recursively by using walkDir (to ignore ignored files)
@@ -946,13 +948,16 @@ const getCommandsMap: (
           }
         }
       },
-      "continue.logAutocompleteOutcome": (
+      "debuggai.logAutocompleteOutcome": (
         completionId: string,
         completionProvider: CompletionProvider,
       ) => {
         completionProvider.accept(completionId);
       },
-      "continue.toggleTabAutocompleteEnabled": () => {
+      "debuggai.toggleTabAutocompleteEnabled": () => {
+        // This is the command that toggles in the bottom right of the window
+        // footer bar. The little menus pop up in the search bar when you click the 
+        // button. 
         captureCommandTelemetry("toggleTabAutocompleteEnabled");
 
         const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
@@ -988,7 +993,7 @@ const getCommandsMap: (
           }
         }
       },
-      "continue.openTabAutocompleteConfigMenu": async () => {
+      "debuggai.openTabAutocompleteConfigMenu": async () => {
         captureCommandTelemetry("openTabAutocompleteConfigMenu");
 
         const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
@@ -1075,20 +1080,20 @@ const getCommandsMap: (
               });
             }
           } else if (selectedOption === "$(feedback) Give feedback") {
-            vscode.commands.executeCommand("continue.giveAutocompleteFeedback");
+            vscode.commands.executeCommand("debuggai.giveAutocompleteFeedback");
           } else if (selectedOption === "$(comment) Open chat") {
-            vscode.commands.executeCommand("continue.focusContinueInput");
+            vscode.commands.executeCommand("debuggai.focusContinueInput");
           } else if (selectedOption === "$(screen-full) Open full screen chat") {
-            vscode.commands.executeCommand("continue.toggleFullScreen");
+            vscode.commands.executeCommand("debuggai.toggleFullScreen");
           } else if (selectedOption === "$(question) Open help center") {
             focusGUI();
-            vscode.commands.executeCommand("continue.navigateTo", "/more", true);
+            vscode.commands.executeCommand("debuggai.navigateTo", "/more", true);
           }
           quickPick.dispose();
         });
         quickPick.show();
       },
-      "continue.giveAutocompleteFeedback": async () => {
+      "debuggai.giveAutocompleteFeedback": async () => {
         const feedback = await vscode.window.showInputBox({
           ignoreFocusOut: true,
           prompt:
@@ -1105,17 +1110,17 @@ const getCommandsMap: (
           client.sendFeedback(feedback, lastLines);
         }
       },
-      "continue.openMorePage": () => {
-        vscode.commands.executeCommand("continue.navigateTo", "/more", true);
+      "debuggai.openMorePage": () => {
+        vscode.commands.executeCommand("debuggai.navigateTo", "/more", true);
       },
-      "continue.navigateTo": (path: string, toggle: boolean) => {
+      "debuggai.navigateTo": (path: string, toggle: boolean) => {
         sidebar.webviewProtocol?.request("navigateTo", { path, toggle });
         focusGUI();
       },
-      "continue.startLocalOllama": () => {
+      "debuggai.startLocalOllama": () => {
         startLocalOllama(ide);
       },
-      "continue.installModel": async (
+      "debuggai.installModel": async (
         modelName: string,
         llmProvider: ILLM | undefined,
       ) => {
@@ -1134,13 +1139,13 @@ const getCommandsMap: (
           );
         }
       },
-      "continue.highlightErrors": async () => {
+      "debuggai.highlightErrors": async () => {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
           await pullErrorsAndHighlight(editor);
         }
       },
-      "continue.applyFix": async (documentUri: vscode.Uri, range: vscode.Range, newCode: string) => {
+      "debuggai.applyFix": async (documentUri: vscode.Uri, range: vscode.Range, newCode: string) => {
         try {
           // 1. Open the document
           const doc = await vscode.workspace.openTextDocument(documentUri);
@@ -1167,8 +1172,8 @@ const getCommandsMap: (
       /**
        * Show an overview of the line (e.g. show info in a popup or side panel)
        */
-      "continue.showOverview": async (uri?: vscode.Uri, line?: number) => {
-        captureCommandTelemetry("continue.showOverview");
+      "debuggai.showOverview": async (uri?: vscode.Uri, line?: number) => {
+        captureCommandTelemetry("debuggai.showOverview");
 
         // Example: we just show a popup with info
         vscode.window.showInformationMessage(
@@ -1180,8 +1185,8 @@ const getCommandsMap: (
       /**
        * Apply a suggested fix (e.g. replace code in the editor).
        */
-      "continue.applySuggestedFix": async (uri?: vscode.Uri, line?: number, issue?: Issue) => {
-        captureCommandTelemetry("continue.applySuggestedFix");
+      "debuggai.applySuggestedFix": async (uri?: vscode.Uri, line?: number, issue?: Issue) => {
+        captureCommandTelemetry("debuggai.applySuggestedFix");
 
         if (!uri || !issue || !line) {
           vscode.window.showWarningMessage("Not enough info to apply fix!");
@@ -1202,8 +1207,8 @@ const getCommandsMap: (
       /**
        * Mark the issue as resolved.
        */
-      "continue.markResolved": async (uri?: vscode.Uri, line?: number, issue?: Issue) => {
-        captureCommandTelemetry("continue.markResolved");
+      "debuggai.markResolved": async (uri?: vscode.Uri, line?: number, issue?: Issue) => {
+        captureCommandTelemetry("debuggai.markResolved");
 
         if (!issue) {
           // vscode.window.showWarningMessage("No issue ID provided.");
@@ -1219,8 +1224,8 @@ const getCommandsMap: (
       /**
        * Show test coverage for the given line (e.g. open a coverage report).
        */
-      "continue.showTestCoverage": async (uri?: vscode.Uri, line?: number) => {
-        captureCommandTelemetry("continue.showTestCoverage");
+      "debuggai.showTestCoverage": async (uri?: vscode.Uri, line?: number) => {
+        captureCommandTelemetry("debuggai.showTestCoverage");
 
         vscode.window.showInformationMessage(
           `Showing test coverage for line ${line != null ? line + 1 : "??"} in ${uri?.fsPath ?? ""}`
@@ -1230,8 +1235,8 @@ const getCommandsMap: (
       /**
        * Display the snippet preview webview.
        */
-      "continue.showSnippetPreview": async (snippet?: string) => {
-        captureCommandTelemetry("continue.showSnippetPreview");
+      "debuggai.showSnippetPreview": async (snippet?: string) => {
+        captureCommandTelemetry("debuggai.showSnippetPreview");
 
         if (!snippet) {
           vscode.window.showWarningMessage("No snippet provided for preview.");
@@ -1248,8 +1253,8 @@ const getCommandsMap: (
       /**
        * Highlight files with errors on the sidebar
        */
-      "continue.showFilesWithErrors": async () => {
-        captureCommandTelemetry("continue.showFilesWithErrors");
+      "debuggai.showFilesWithErrors": async () => {
+        captureCommandTelemetry("debuggai.showFilesWithErrors");
         const errorFiles = await FilesService.getFilesWithRecentErrors();
         errorFileDecorationProvider.updateErrorFiles(errorFiles.map(f => f.filePath));
       },
@@ -1278,7 +1283,7 @@ const registerCopyBufferSpy = (
       });
     }
 
-    await context.workspaceState.update("continue.copyBuffer", {
+    await context.workspaceState.update("debuggai.copyBuffer", {
       text: clipboardText,
       copiedAt: new Date().toISOString(),
     });
@@ -1337,10 +1342,10 @@ export function registerAllCommands(
   context: vscode.ExtensionContext,
   ide: VsCodeIde,
   extensionContext: vscode.ExtensionContext,
-  sidebar: ContinueGUIWebviewViewProvider,
+  sidebar: DebuggGuiWebviewViewProvider,
   configHandler: ConfigHandler,
   verticalDiffManager: VerticalDiffManager,
-  continueServerClientPromise: Promise<ContinueServerClient>,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
   battery: Battery,
   quickEdit: QuickEdit,
   core: Core,
@@ -1356,7 +1361,7 @@ export function registerAllCommands(
       sidebar,
       configHandler,
       verticalDiffManager,
-      continueServerClientPromise,
+      debuggAIServerClientPromise,
       battery,
       quickEdit,
       core,

@@ -1,10 +1,10 @@
 import {
-  InputBox,
-  Key,
-  WebDriver,
-  WebElement,
-  WebView,
-  Workbench,
+    InputBox,
+    Key,
+    WebDriver,
+    WebElement,
+    WebView,
+    Workbench,
 } from "vscode-extension-tester";
 
 import { DEFAULT_TIMEOUT } from "../constants";
@@ -69,7 +69,7 @@ export class GUIActions {
 
   public static toggleGui = async () => {
     return TestUtils.waitForSuccess(() =>
-      new Workbench().executeCommand("continue.focusContinueInput"),
+      new Workbench().executeCommand("debuggai.focusContinueInput"),
     );
   };
 

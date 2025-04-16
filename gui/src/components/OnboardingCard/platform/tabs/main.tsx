@@ -1,10 +1,9 @@
-import { ChevronRightIcon } from "@heroicons/react/24/outline";
 import { useContext } from "react";
-import { Button, ButtonSubtext } from "../../..";
+import { Button } from "../../..";
 import { useAuth } from "../../../../context/Auth";
 import { IdeMessengerContext } from "../../../../context/IdeMessenger";
 import { hasPassedFTL } from "../../../../util/freeTrial";
-import ContinueLogo from "../../../gui/ContinueLogo";
+import DebuggAILogo from "../../../gui/DebuggAILogo";
 import { useOnboardingCard } from "../../hooks";
 
 export default function MainTab({
@@ -39,7 +38,7 @@ export default function MainTab({
   return (
     <div className="xs:px-0 flex w-full max-w-full flex-col items-center justify-center px-4 text-center">
       <div className="xs:flex hidden">
-        <ContinueLogo height={75} />
+        <DebuggAILogo height={75} width={75}/>
       </div>
 
       {pastFreeTrialLimit ? (
@@ -72,7 +71,7 @@ export default function MainTab({
       ) : (
         <>
           <p className="xs:w-3/4 w-full text-sm">
-            Log in to quickly build your first custom AI code assistant
+            Please login to start using Debugg AI
           </p>
 
           <Button
@@ -82,22 +81,6 @@ export default function MainTab({
             Get started
           </Button>
         </>
-      )}
-
-      {onboardingCard.activeTab === "ExistingUserHubIntro" ? (
-        <ButtonSubtext onClick={() => onboardingCard.close(isDialog)}>
-          <div className="mt-4 flex cursor-pointer items-center justify-center gap-1">
-            <span>Or, use Continue as usual</span>
-            <ChevronRightIcon className="h-3 w-3" />
-          </div>
-        </ButtonSubtext>
-      ) : (
-        <ButtonSubtext onClick={onRemainLocal}>
-          <div className="mt-4 flex cursor-pointer items-center justify-center gap-1">
-            <span>Or, remain local</span>
-            <ChevronRightIcon className="h-3 w-3" />
-          </div>
-        </ButtonSubtext>
       )}
     </div>
   );

@@ -83,17 +83,17 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
 
             console.log(issue); 
             // Create inlay hints for 3 separate clickable items
-            inlayHints.push(this.createHint("Resolve", fmtdOverview, "continue.markResolved", document.uri, vsLineNumber, hintPosition, issue));
+            inlayHints.push(this.createHint("Resolve", fmtdOverview, "debuggai.markResolved", document.uri, vsLineNumber, hintPosition, issue));
             if (issue.solution) {
                 const solutionMarkdown = getFixMarkdown(title || '-', issue.solution);
-                inlayHints.push(this.createHint("Fix", solutionMarkdown, "continue.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
+                inlayHints.push(this.createHint("Fix", solutionMarkdown, "debuggai.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
             }
             if (suggestion) {
                 const suggestionMarkdown = this.getSuggestionMarkdown(suggestion);
-                inlayHints.push(this.createHint("Suggested Fix", suggestionMarkdown, "continue.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
-                inlayHints.push(this.createHint("Test Coverage", suggestion.message, "continue.showTestCoverage", document.uri, vsLineNumber, hintPosition, issue));
+                inlayHints.push(this.createHint("Suggested Fix", suggestionMarkdown, "debuggai.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
+                inlayHints.push(this.createHint("Test Coverage", suggestion.message, "debuggai.showTestCoverage", document.uri, vsLineNumber, hintPosition, issue));
             } else {
-                // inlayHints.push(this.createHint("Error", title, "continue.showOverview", document.uri, vsLineNumber, hintPosition, level));
+                // inlayHints.push(this.createHint("Error", title, "debuggai.showOverview", document.uri, vsLineNumber, hintPosition, level));
             }
 
 
@@ -101,7 +101,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
             const earlierEndColumn = earlierLineText.length;
             const earlierHintPosition = new vscode.Position(vsLineNumber - 1, earlierEndColumn);
             lineNumbersUser.push(vsLineNumber);
-            // inlayHints.push(this.createHint("Runtime: 47ms", '47 runs and 0 failures', "continue.showTestCoverage", document.uri, vsLineNumber - 1, earlierHintPosition, level));
+            // inlayHints.push(this.createHint("Runtime: 47ms", '47 runs and 0 failures', "debuggai.showTestCoverage", document.uri, vsLineNumber - 1, earlierHintPosition, level));
 
         }
         // vscode.commands.executeCommand('continue.showSnippetPreview', 'console.log("Hello from snippet!")');

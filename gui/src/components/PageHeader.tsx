@@ -16,7 +16,7 @@ export default function PageHeader({
 }: PageHeaderProps) {
   return (
     <div
-      className={`bg-vsc-background sticky top-0 z-20 m-0 flex items-center justify-between bg-inherit py-0.5 ${
+      className={`bg-vsc-background sticky top-0 z-20 m-0 flex items-center justify-between py-0.5 ${
         showBorder
           ? "border-0 border-b-[1px] border-solid border-b-zinc-700"
           : ""

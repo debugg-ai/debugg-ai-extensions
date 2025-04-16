@@ -263,7 +263,7 @@ class VsCodeIde implements IDE {
       version: vscode.version,
       remoteName: vscode.env.remoteName || "local",
       extensionVersion:
-        vscode.extensions.getExtension("continue.continue")?.packageJSON
+        vscode.extensions.getExtension("debuggai.continue")?.packageJSON
           .version,
     });
   }
@@ -315,7 +315,7 @@ class VsCodeIde implements IDE {
   }
 
   async getClipboardContent() {
-    return this.context.workspaceState.get("continue.copyBuffer", {
+    return this.context.workspaceState.get("debuggai.copyBuffer", {
       text: "",
       copiedAt: new Date("1900-01-01").toISOString(),
     });

@@ -1,10 +1,9 @@
 import {
-  ArrowRightStartOnRectangleIcon,
   BookOpenIcon,
   ClipboardDocumentIcon,
   Cog6ToothIcon,
   PencilSquareIcon,
-  XMarkIcon,
+  XMarkIcon
 } from "@heroicons/react/24/outline";
 import { useContext } from "react";
 import { lightGray } from "..";
@@ -23,10 +22,10 @@ export function TutorialCard({ onClose }: TutorialCardProps) {
   return (
     <div
       className="border-0.5 border-lightGray bg-vsc-background m-1 max-w-96 rounded-md border-solid px-3 py-3 sm:px-5"
-      data-testid={`tutorial-card`}
+      data-testid="tutorial-card"
     >
       <div className="flex items-center justify-between">
-        <h3 className="m-0 p-0"></h3>
+        <h3 className="m-0 p-0">Getting Started with DebuggAI</h3>
         <div
           onClick={onClose}
           className="cursor-pointer items-center justify-center"
@@ -36,38 +35,21 @@ export function TutorialCard({ onClose }: TutorialCardProps) {
       </div>
 
       <ul className="space-y-4 pl-0" style={{ color: lightGray }}>
-        {!jetbrains && (
-          <li className="flex items-start">
-            <ArrowRightStartOnRectangleIcon className="h-4 w-4 pr-3 align-middle" />
-            <span>
-              <span
-                className="cursor-pointer underline"
-                onClick={() =>
-                  ideMessenger.post("vscode/openMoveRightMarkdown", undefined)
-                }
-              >
-                Move Chat panel to the right
-              </span>{" "}
-              for the cleanest experience
-            </span>
-          </li>
-        )}
         <li className="flex items-start">
           <div>
             <PencilSquareIcon className="h-4 w-4 pr-3 align-middle" />
           </div>
           <span>
-            Highlight code and press <Shortcut>meta I</Shortcut> to quickly make
-            natural language edits
-          </span>
-        </li>
-        <li className="flex items-start">
-          <div>
-            <ClipboardDocumentIcon className="h-4 w-4 pr-3 align-middle" />
-          </div>
-          <span>
-            Highlight code and press <Shortcut>meta L</Shortcut> to add it to
-            the chat window
+            Make sure you have setup your project to properly log to DebuggAI.
+            If you don't have a project setup, you can do so at{" "}
+            <a
+              className="cursor-pointer text-inherit underline hover:text-inherit"
+              onClick={() =>
+                ideMessenger.post("openUrl", "https://app.debugg.ai")
+              }
+            >
+              app.debugg.ai
+            </a>
           </span>
         </li>
         <li className="flex items-start">
@@ -75,7 +57,16 @@ export function TutorialCard({ onClose }: TutorialCardProps) {
             <Cog6ToothIcon className="h-4 w-4 pr-3 align-middle" />
           </div>
           <span>
-            Click the gear icon in the upper right to configure Continue
+            Click the gear icon in the upper right to configure DebuggAI for
+            your workflow.
+          </span>
+        </li>
+        <li className="flex items-start">
+          <div>
+            <ClipboardDocumentIcon className="h-4 w-4 pr-3 align-middle" />
+          </div>
+          <span>
+            To implement any displayed fixes, use <Shortcut>Ctrl Click</Shortcut> to insert the new code.
           </span>
         </li>
         <li className="flex items-start">
@@ -86,12 +77,12 @@ export function TutorialCard({ onClose }: TutorialCardProps) {
             <a
               className="cursor-pointer text-inherit underline hover:text-inherit"
               onClick={() =>
-                ideMessenger.post("openUrl", "https://docs.continue.dev")
+                ideMessenger.post("openUrl", "https://docs.debugg.ai")
               }
             >
               Read our documentation
             </a>{" "}
-            to learn more
+            to learn more about DebuggAI’s features.
           </span>
         </li>
       </ul>

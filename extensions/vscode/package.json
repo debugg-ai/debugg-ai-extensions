@@ -54,7 +54,7 @@
   "activationEvents": [
     "onUri",
     "onStartupFinished",
-    "onView:continueGUIView"
+    "onView:debuggaiGUIView"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -85,59 +85,59 @@
       }
     ],
     "configuration": {
-      "title": "Continue",
+      "title": "Debugg AI",
       "properties": {
-        "continue.telemetryEnabled": {
+        "debuggai.telemetryEnabled": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Continue collects anonymous usage data, cleaned of PII, to help us improve the product for our users. Read more  at [continue.dev › Telemetry](https://docs.continue.dev/telemetry)."
+          "markdownDescription": "DebuggAI collects anonymous usage data, cleaned of PII, to help us improve the product for our users. Read more  at [debuggai.dev › Telemetry](https://docs.debuggai.dev/telemetry)."
         },
-        "continue.enableContinueForTeams": {
+        "debuggai.enableContinueForTeams": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Enable Continue for teams beta features. To sign in, click the gear icon to go to the settings page, and click Sign In."
         },
-        "continue.showInlineTip": {
+        "debuggai.showInlineTip": {
           "type": "boolean",
           "default": true,
           "description": "Show inline suggestion to use the Continue keyboard shortcuts (e.g. \"Cmd/Ctrl L to select code, Cmd/Ctrl I to edit\")."
         },
-        "continue.disableQuickFix": {
+        "debuggai.disableQuickFix": {
           "type": "boolean",
           "default": false,
           "description": "Disable the quick fix feature."
         },
-        "continue.enableQuickActions": {
+        "debuggai.enableQuickActions": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Enable the experimental Quick Actions feature. Read our walkthrough to learn about configuration and how to share feedback: [continue.dev › Walkthrough: Quick Actions (experimental)](https://docs.continue.dev/features/quick-actions)"
+          "markdownDescription": "Enable the experimental Quick Actions feature. Read our walkthrough to learn about configuration and how to share feedback: [debuggai.dev › Walkthrough: Quick Actions (experimental)](https://docs.debuggai.dev/features/quick-actions)"
         },
-        "continue.enableTabAutocomplete": {
+        "debuggai.enableTabAutocomplete": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Enable Continue's tab autocomplete feature. Read our walkthrough to learn about configuration and how to share feedback: [continue.dev › Walkthrough: Tab Autocomplete (beta)](https://docs.continue.dev/features/tab-autocomplete)"
+          "markdownDescription": "Enable Continue's tab autocomplete feature. Read our walkthrough to learn about configuration and how to share feedback: [debuggai.dev › Walkthrough: Tab Autocomplete (beta)](https://docs.debuggai.dev/features/tab-autocomplete)"
         },
-        "continue.pauseTabAutocompleteOnBattery": {
+        "debuggai.pauseTabAutocompleteOnBattery": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Pause Continue's tab autocomplete feature when your battery is low."
         },
-        "continue.pauseCodebaseIndexOnStart": {
+        "debuggai.pauseCodebaseIndexOnStart": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Pause Continue's codebase index on start."
         },
-        "continue.remoteConfigServerUrl": {
+        "debuggai.remoteConfigServerUrl": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter the server URL here and your user token below to enable automatic syncing."
         },
-        "continue.userToken": {
+        "debuggai.userToken": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter your user token here and your server URL above to enable automatic syncing."
         },
-        "continue.remoteConfigSyncPeriod": {
+        "debuggai.remoteConfigSyncPeriod": {
           "type": "number",
           "default": 60,
           "description": "The period of time in minutes between automatic syncs."
@@ -146,424 +146,424 @@
     },
     "commands": [
       {
-        "command": "continue.applyCodeFromChat",
-        "category": "Continue",
+        "command": "debuggai.applyCodeFromChat",
+        "category": "Debugg AI",
         "title": "Apply code from chat",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.acceptDiff",
-        "category": "Continue",
+        "command": "debuggai.acceptDiff",
+        "category": "Debugg AI",
         "title": "Accept Diff",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.rejectDiff",
-        "category": "Continue",
+        "command": "debuggai.rejectDiff",
+        "category": "Debugg AI",
         "title": "Reject Diff",
-        "group": "Continue",
+        "group": "Debugg AI",
         "icon": "$(stop)"
       },
       {
-        "command": "continue.acceptVerticalDiffBlock",
-        "category": "Continue",
+        "command": "debuggai.acceptVerticalDiffBlock",
+        "category": "Debugg AI",
         "title": "Accept Vertical Diff Block",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.rejectVerticalDiffBlock",
-        "category": "Continue",
+        "command": "debuggai.rejectVerticalDiffBlock",
+        "category": "Debugg AI",
         "title": "Reject Vertical Diff Block",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.focusEdit",
-        "category": "Continue",
+        "command": "debuggai.focusEdit",
+        "category": "Debugg AI",
         "title": "Generate Code",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.focusContinueInput",
-        "category": "Continue",
+        "command": "debuggai.focusContinueInput",
+        "category": "Debugg AI",
         "title": "Add Highlighted Code to Context and Clear Chat",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.focusContinueInputWithoutClear",
-        "category": "Continue",
+        "command": "debuggai.focusContinueInputWithoutClear",
+        "category": "Debugg AI",
         "title": "Add Highlighted Code to Context",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.debugTerminal",
-        "category": "Continue",
+        "command": "debuggai.debugTerminal",
+        "category": "Debugg AI",
         "title": "Debug Terminal",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.exitEditMode",
-        "category": "Continue",
+        "command": "debuggai.exitEditMode",
+        "category": "Debugg AI",
         "title": "Exit Edit Mode",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.toggleFullScreen",
-        "category": "Continue",
+        "command": "debuggai.toggleFullScreen",
+        "category": "Debugg AI",
         "title": "Open in new window",
         "icon": "$(link-external)",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.openConfigPage",
-        "category": "Continue",
+        "command": "debuggai.openConfigPage",
+        "category": "Debugg AI",
         "title": "Open Settings",
         "icon": "$(gear)",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.toggleTabAutocompleteEnabled",
-        "category": "Continue",
+        "command": "debuggai.toggleTabAutocompleteEnabled",
+        "category": "Debugg AI",
         "title": "Toggle Autocomplete Enabled",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.selectFilesAsContext",
-        "category": "Continue",
+        "command": "debuggai.selectFilesAsContext",
+        "category": "Debugg AI",
         "title": "Select Files as Context",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.newSession",
-        "category": "Continue",
+        "command": "debuggai.newSession",
+        "category": "Debugg AI",
         "title": "New Session",
         "icon": "$(add)",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.viewHistory",
-        "category": "Continue",
+        "command": "debuggai.viewHistory",
+        "category": "Debugg AI",
         "title": "View History",
         "icon": "$(history)",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.viewLogs",
-        "category": "Continue",
+        "command": "debuggai.viewLogs",
+        "category": "Debugg AI",
         "title": "View History",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.navigateTo",
-        "category": "Continue",
+        "command": "debuggai.navigateTo",
+        "category": "Debugg AI",
         "title": "Navigate to a path",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.openMorePage",
-        "category": "Continue",
+        "command": "debuggai.openMorePage",
+        "category": "Debugg AI",
         "title": "More",
         "icon": "$(ellipsis)",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.writeCommentsForCode",
-        "category": "Continue",
+        "command": "debuggai.writeCommentsForCode",
+        "category": "Debugg AI",
         "title": "Write Comments for this Code",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.writeDocstringForCode",
-        "category": "Continue",
+        "command": "debuggai.writeDocstringForCode",
+        "category": "Debugg AI",
         "title": "Write a Docstring for this Code",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.fixCode",
-        "category": "Continue",
+        "command": "debuggai.fixCode",
+        "category": "Debugg AI",
         "title": "Fix this Code",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.optimizeCode",
-        "category": "Continue",
+        "command": "debuggai.optimizeCode",
+        "category": "Debugg AI",
         "title": "Optimize this Code",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.fixGrammar",
-        "category": "Continue",
+        "command": "debuggai.fixGrammar",
+        "category": "Debugg AI",
         "title": "Fix Grammar / Spelling",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.codebaseForceReIndex",
-        "category": "Continue",
+        "command": "debuggai.codebaseForceReIndex",
+        "category": "Debugg AI",
         "title": "Codebase Force Re-Index",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.rebuildCodebaseIndex",
-        "category": "Continue",
+        "command": "debuggai.rebuildCodebaseIndex",
+        "category": "Debugg AI",
         "title": "Rebuild codebase index",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.docsIndex",
-        "category": "Continue",
+        "command": "debuggai.docsIndex",
+        "category": "Debugg AI",
         "title": "Docs Index",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.docsReIndex",
-        "category": "Continue",
+        "command": "debuggai.docsReIndex",
+        "category": "Debugg AI",
         "title": "Docs Force Re-Index",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.focusContinueInput",
-        "category": "Continue",
-        "title": "Focus Continue Chat",
-        "group": "Continue"
+        "command": "debuggai.focusDebuggAIInput",
+        "category": "Debugg AI",
+        "title": "Focus Debugg AI Chat",
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.highlightErrors",
-        "category": "Continue",
+        "command": "debuggai.highlightErrors",
+        "category": "Debugg AI",
         "title": "Highlight Logged Errors",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.applyFix",
-        "category": "Continue",
+        "command": "debuggai.applyFix",
+        "category": "Debugg AI",
         "title": "Apply Fix",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.showSnippetPreview",
-        "category": "Continue",
+        "command": "debuggai.showSnippetPreview",
+        "category": "Debugg AI",
         "title": "Show Snippet Panel",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.showFilesWithErrors",
-        "category": "Continue",
+        "command": "debuggai.showFilesWithErrors",
+        "category": "Debugg AI",
         "title": "Show Files with Errors",
-        "group": "Continue"
+        "group": "Debugg AI"
       },
       {
-        "command": "continue.applySuggestedFix",
-        "category": "Continue",
+        "command": "debuggai.applySuggestedFix",
+        "category": "Debugg AI",
         "title": "Apply Suggested Fix",
-        "group": "Continue"
+        "group": "Debugg AI"
       }
     ],
     "keybindings": [
       {
-        "command": "continue.focusContinueInput",
+        "command": "debuggai.focusContinueInput",
         "mac": "cmd+l",
         "key": "ctrl+l"
       },
       {
-        "command": "continue.focusContinueInputWithoutClear",
+        "command": "debuggai.focusContinueInputWithoutClear",
         "mac": "cmd+shift+l",
         "key": "ctrl+shift+l"
       },
       {
-        "command": "continue.acceptDiff",
+        "command": "debuggai.acceptDiff",
         "mac": "shift+cmd+enter",
         "key": "shift+ctrl+enter",
-        "when": "continue.diffVisible"
+        "when": "debuggai.diffVisible"
       },
       {
-        "command": "continue.rejectDiff",
+        "command": "debuggai.rejectDiff",
         "mac": "shift+cmd+backspace",
         "key": "shift+ctrl+backspace",
-        "when": "continue.diffVisible"
+        "when": "debuggai.diffVisible"
       },
       {
-        "command": "continue.rejectDiff",
+        "command": "debuggai.rejectDiff",
         "mac": "cmd+z",
         "key": "ctrl+z",
-        "when": "continue.diffVisible"
+        "when": "debuggai.diffVisible"
       },
       {
-        "command": "continue.quickEditHistoryUp",
+        "command": "debuggai.quickEditHistoryUp",
         "mac": "up",
         "key": "up",
-        "when": "false && continue.quickEditHistoryFocused"
+        "when": "false && debuggai.quickEditHistoryFocused"
       },
       {
-        "command": "continue.quickEditHistoryDown",
+        "command": "debuggai.quickEditHistoryDown",
         "mac": "down",
         "key": "down",
-        "when": "false && continue.quickEditHistoryFocused"
+        "when": "false && debuggai.quickEditHistoryFocused"
       },
       {
-        "command": "continue.acceptVerticalDiffBlock",
+        "command": "debuggai.acceptVerticalDiffBlock",
         "mac": "alt+cmd+y",
         "key": "alt+ctrl+y"
       },
       {
-        "command": "continue.rejectVerticalDiffBlock",
+        "command": "debuggai.rejectVerticalDiffBlock",
         "mac": "alt+cmd+n",
         "key": "alt+ctrl+n"
       },
       {
-        "command": "continue.focusEdit",
+        "command": "debuggai.focusEdit",
         "title": "Edit code with natural language",
         "mac": "cmd+i",
         "key": "ctrl+i"
       },
       {
-        "command": "continue.focusEditWithoutClear",
+        "command": "debuggai.focusEditWithoutClear",
         "mac": "cmd+shift+i",
         "key": "ctrl+shift+i"
       },
       {
-        "command": "continue.exitEditMode",
+        "command": "debuggai.exitEditMode",
         "mac": "escape",
         "key": "escape",
-        "when": "continue.inEditMode && editorFocus"
+        "when": "debuggai.inEditMode && editorFocus"
       },
       {
-        "command": "continue.debugTerminal",
+        "command": "debuggai.debugTerminal",
         "mac": "cmd+shift+r",
         "key": "ctrl+shift+r"
       },
       {
-        "command": "continue.toggleFullScreen",
+        "command": "debuggai.toggleFullScreen",
         "mac": "cmd+k cmd+m",
         "key": "ctrl+k ctrl+m",
         "when": "!terminalFocus"
       },
       {
-        "command": "continue.toggleTabAutocompleteEnabled",
+        "command": "debuggai.toggleTabAutocompleteEnabled",
         "mac": "cmd+k cmd+a",
         "key": "ctrl+k ctrl+a",
         "when": "!terminalFocus"
       },
       {
-        "command": "continue.applyCodeFromChat",
+        "command": "debuggai.applyCodeFromChat",
         "mac": "alt+a",
         "key": "alt+a"
       }
     ],
     "submenus": [
       {
-        "id": "continue.continueSubMenu",
-        "label": "Continue"
+        "id": "debuggai.continueSubMenu",
+        "label": "debuggai"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "continue.focusContinueInput"
+          "command": "debuggai.focusContinueInput"
         },
         {
-          "command": "continue.focusContinueInputWithoutClear"
+          "command": "debuggai.focusContinueInputWithoutClear"
         },
         {
-          "command": "continue.debugTerminal"
+          "command": "debuggai.debugTerminal"
         },
         {
-          "command": "continue.toggleFullScreen"
+          "command": "debuggai.toggleFullScreen"
         },
         {
-          "command": "continue.newSession"
+          "command": "debuggai.newSession"
         }
       ],
       "editor/context": [
         {
-          "submenu": "continue.continueSubMenu",
+          "submenu": "debuggai.continueSubMenu",
           "group": "0_acontinue"
         }
       ],
       "editor/title/run": [
         {
-          "command": "continue.rejectDiff",
-          "group": "Continue",
-          "when": "continue.streamingDiff"
+          "command": "debuggai.rejectDiff",
+          "group": "Debugg AI",
+          "when": "debuggai.streamingDiff"
         }
       ],
-      "continue.continueSubMenu": [
+      "debuggai.continueSubMenu": [
         {
-          "command": "continue.focusContinueInputWithoutClear",
-          "group": "Continue",
+          "command": "debuggai.focusContinueInputWithoutClear",
+          "group": "Debugg AI",
           "when": "editorHasSelection"
         },
         {
-          "command": "continue.writeCommentsForCode",
-          "group": "Continue",
+          "command": "debuggai.writeCommentsForCode",
+          "group": "Debugg AI",
           "when": "editorHasSelection && !editorReadonly"
         },
         {
-          "command": "continue.writeDocstringForCode",
-          "group": "Continue",
+          "command": "debuggai.writeDocstringForCode",
+          "group": "Debugg AI",
           "when": "editorHasSelection && !editorReadonly"
         },
         {
-          "command": "continue.fixCode",
-          "group": "Continue",
+          "command": "debuggai.fixCode",
+          "group": "Debugg AI",
           "when": "editorHasSelection && !editorReadonly"
         },
         {
-          "command": "continue.optimizeCode",
-          "group": "Continue",
+          "command": "debuggai.optimizeCode",
+          "group": "Debugg AI",
           "when": "editorHasSelection && !editorReadonly"
         },
         {
-          "command": "continue.fixGrammar",
-          "group": "Continue",
+          "command": "debuggai.fixGrammar",
+          "group": "Debugg AI",
           "when": "editorHasSelection && editorLangId == 'markdown' && !editorReadonly"
         }
       ],
       "explorer/context": [
         {
-          "command": "continue.selectFilesAsContext",
+          "command": "debuggai.selectFilesAsContext",
           "group": "1_debug@1"
         }
       ],
       "view/title": [
         {
-          "command": "continue.newSession",
+          "command": "debuggai.newSession",
           "group": "navigation@1",
-          "when": "view == continue.continueGUIView"
+          "when": "view == debuggai.debuggaiGUIView"
         },
         {
-          "command": "continue.viewHistory",
+          "command": "debuggai.viewHistory",
           "group": "navigation@2",
-          "when": "view == continue.continueGUIView"
+          "when": "view == debuggai.debuggaiGUIView"
         },
         {
-          "command": "continue.toggleFullScreen",
+          "command": "debuggai.toggleFullScreen",
           "group": "navigation@3",
-          "when": "view == continue.continueGUIView"
+          "when": "view == debuggai.debuggaiGUIView"
         },
         {
-          "command": "continue.openConfigPage",
+          "command": "debuggai.openConfigPage",
           "group": "navigation@4",
-          "when": "view == continue.continueGUIView"
+          "when": "view == debuggai.debuggaiGUIView"
         },
         {
-          "command": "continue.openMorePage",
+          "command": "debuggai.openMorePage",
           "group": "navigation@6",
-          "when": "view == continue.continueGUIView"
+          "when": "view == debuggai.debuggaiGUIView"
         }
       ],
       "editor/title": [
         {
-          "command": "continue.newSession",
+          "command": "debuggai.newSession",
           "group": "navigation@1",
-          "when": "activeWebviewPanelId == continue.continueGUIView"
+          "when": "activeWebviewPanelId == debuggai.debuggaiGUIView"
         },
         {
-          "command": "continue.viewHistory",
+          "command": "debuggai.viewHistory",
           "group": "navigation@2",
-          "when": "activeWebviewPanelId == continue.continueGUIView"
+          "when": "activeWebviewPanelId == debuggai.debuggaiGUIView"
         }
       ],
       "terminal/context": [
         {
-          "command": "continue.debugTerminal",
+          "command": "debuggai.debugTerminal",
           "group": "navigation@top"
         }
       ]
@@ -571,19 +571,19 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "continue",
-          "title": "Continue",
-          "icon": "media/sidebar-icon.png"
+          "id": "debuggai",
+          "title": "Debugg AI",
+          "icon": "media/sidebar-icon.svg"
         }
       ]
     },
     "views": {
-      "continue": [
+      "debuggai": [
         {
           "type": "webview",
-          "id": "continue.continueGUIView",
+          "id": "debuggai.debuggaiGUIView",
           "name": "Debugg AI",
-          "icon": "media/sidebar-icon.png",
+          "icon": "media/sidebar-icon.svg",
           "visibility": "visible"
         }
       ]
@@ -629,7 +629,7 @@
     "e2e:get-vscode": "CODE_VERSION=\"1.95.0\" extest get-vscode --storage ./e2e/storage",
     "e2e:sign-vscode": "codesign --entitlements entitlements.plist --deep --force -s - './e2e/storage/Visual Studio Code.app'",
     "e2e:copy-vsix": "chmod +x ./e2e/get-latest-vsix.sh && bash ./e2e/get-latest-vsix.sh",
-    "e2e:install-vsix": "extest install-vsix -f ./e2e/vsix/continue.vsix --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage",
+    "e2e:install-vsix": "extest install-vsix -f ./e2e/vsix/debuggai.vsix --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage",
     "e2e:install-extensions": "extest install-from-marketplace ms-vscode-remote.remote-ssh --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage && extest install-from-marketplace ms-vscode-remote.remote-containers --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage && extest install-from-marketplace ms-vscode-remote.remote-wsl --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage",
     "e2e:test": "extest run-tests ${TEST_FILE:-'./e2e/_output/tests/*.test.js'} --code_settings settings.json --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage",
     "e2e:clean": "rm -rf ./e2e/_output",

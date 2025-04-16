@@ -3,10 +3,10 @@ import MiniSearch from "minisearch";
 import React, { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Shortcut from '../gui/Shortcut';
 
-import { getFontSize, getMetaKeyLabel } from "../../util";
-import { HistoryTableRow } from "./HistoryTableRow";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useAppSelector } from "../../redux/hooks";
+import { getFontSize } from "../../util";
+import { HistoryTableRow } from "./HistoryTableRow";
 
 const parseDate = (date: string): Date => {
   let dateObj = new Date(date);
@@ -150,7 +150,7 @@ export function History() {
       </table>
       <br />
       <i className="ml-4 text-sm">
-        All session data is saved in ~/.continue/sessions
+        All session data is saved in ~/.debuggai/sessions
       </i>
     </div>
   );

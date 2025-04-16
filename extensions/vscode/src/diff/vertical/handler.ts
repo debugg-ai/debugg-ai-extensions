@@ -3,11 +3,11 @@ import * as URI from "uri-js";
 import * as vscode from "vscode";
 
 import {
-  DecorationTypeRangeManager,
-  belowIndexDecorationType,
-  greenDecorationType,
-  indexDecorationType,
-  redDecorationType,
+    DecorationTypeRangeManager,
+    belowIndexDecorationType,
+    greenDecorationType,
+    indexDecorationType,
+    redDecorationType,
 } from "./decorations";
 
 import type { ApplyState, DiffLine } from "core";
@@ -234,7 +234,7 @@ export class VerticalDiffHandler implements vscode.Disposable {
   async clear(accept: boolean) {
     vscode.commands.executeCommand(
       "setContext",
-      "continue.streamingDiff",
+      "debuggai.streamingDiff",
       false,
     );
     const rangesToDelete = accept

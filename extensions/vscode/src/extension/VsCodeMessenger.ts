@@ -18,17 +18,17 @@ import { stripImages } from "core/util/messageContent";
 import { getUriPathBasename } from "core/util/uri";
 import * as vscode from "vscode";
 
+import { ILLM } from "core";
 import { VerticalDiffManager } from "../diff/vertical/manager";
 import EditDecorationManager from "../quickEdit/EditDecorationManager";
 import {
+  DebuggAIAuthProvider,
   getControlPlaneSessionInfo,
-  WorkOsAuthProvider,
-} from "../stubs/WorkOsAuthProvider";
+} from "../stubs/DebuggAIAuthProvider";
 import { showTutorial } from "../util/tutorial";
 import { getExtensionUri } from "../util/vscode";
 import { VsCodeIde } from "../VsCodeIde";
 import { VsCodeWebviewProtocol } from "../webviewProtocol";
-import { ILLM } from "core";
 
 /**
  * A shared messenger class between Core and Webview
@@ -80,7 +80,7 @@ export class VsCodeMessenger {
     private readonly ide: VsCodeIde,
     private readonly verticalDiffManagerPromise: Promise<VerticalDiffManager>,
     private readonly configHandlerPromise: Promise<ConfigHandler>,
-    private readonly workOsAuthProvider: WorkOsAuthProvider,
+    private readonly debuggAIAuthProvider: DebuggAIAuthProvider,
     private readonly editDecorationManager: EditDecorationManager,
   ) {
     /** WEBVIEW ONLY LISTENERS **/
@@ -100,7 +100,7 @@ export class VsCodeMessenger {
     });
 
     this.onWebview("toggleDevTools", (msg) => {
-      vscode.commands.executeCommand("continue.viewLogs");
+      vscode.commands.executeCommand("debuggai.viewLogs");
     });
     this.onWebview("reloadWindow", (msg) => {
       vscode.commands.executeCommand("workbench.action.reloadWindow");
@@ -109,12 +109,12 @@ export class VsCodeMessenger {
       vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
     });
     this.onWebview("toggleFullScreen", (msg) => {
-      vscode.commands.executeCommand("continue.toggleFullScreen");
+      vscode.commands.executeCommand("debuggai.toggleFullScreen");
     });
 
     this.onWebview("acceptDiff", async ({ data: { filepath, streamId } }) => {
       await vscode.commands.executeCommand(
-        "continue.acceptDiff",
+        "debuggai.acceptDiff",
         filepath,
         streamId,
       );
@@ -122,7 +122,7 @@ export class VsCodeMessenger {
 
     this.onWebview("rejectDiff", async ({ data: { filepath, streamId } }) => {
       await vscode.commands.executeCommand(
-        "continue.rejectDiff",
+        "debuggai.rejectDiff",
         filepath,
         streamId,
       );
@@ -427,13 +427,13 @@ export class VsCodeMessenger {
       );
     });
     this.onWebviewOrCore("logoutOfControlPlane", async (msg) => {
-      const sessions = await this.workOsAuthProvider.getSessions();
+      const sessions = await this.debuggAIAuthProvider.getSessions();
       await Promise.all(
-        sessions.map((session) => workOsAuthProvider.removeSession(session.id)),
+        sessions.map((session) => debuggAIAuthProvider.removeSession(session.id)),
       );
       vscode.commands.executeCommand(
         "setContext",
-        "continue.isSignedInToControlPlane",
+        "debuggai.isSignedInToControlPlane",
         false,
       );
     });

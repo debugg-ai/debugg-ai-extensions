@@ -1,11 +1,10 @@
 import { CompletionProvider } from "core/autocomplete/CompletionProvider";
 import { processSingleLineCompletion } from "core/autocomplete/util/processSingleLineCompletion";
 import {
-  type AutocompleteInput,
-  type AutocompleteOutcome,
+    type AutocompleteInput,
+    type AutocompleteOutcome,
 } from "core/autocomplete/util/types";
 import { ConfigHandler } from "core/config/ConfigHandler";
-import { startLocalOllama } from "core/util/ollamaHelper";
 import * as URI from "uri-js";
 import { v4 as uuidv4 } from "uuid";
 import * as vscode from "vscode";
@@ -17,10 +16,10 @@ import { getDefinitionsFromLsp } from "./lsp";
 import { RecentlyEditedTracker } from "./recentlyEdited";
 import { RecentlyVisitedRangesService } from "./RecentlyVisitedRangesService";
 import {
-  StatusBarStatus,
-  getStatusBarStatus,
-  setupStatusBar,
-  stopStatusBarLoading,
+    StatusBarStatus,
+    getStatusBarStatus,
+    setupStatusBar,
+    stopStatusBarLoading,
 } from "./statusBar";
 
 import type { IDE } from "core";
@@ -279,7 +278,7 @@ export class ContinueCompletionProvider
         range,
         {
           title: "Log Autocomplete Outcome",
-          command: "continue.logAutocompleteOutcome",
+          command: "debuggai.logAutocompleteOutcome",
           arguments: [input.completionId, this.completionProvider],
         },
       );

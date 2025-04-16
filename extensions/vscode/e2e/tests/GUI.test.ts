@@ -51,7 +51,7 @@ describe("GUI Test", () => {
       const description = await GUISelectors.getDescription(view);
 
       expect(await description.getText()).has.string(
-        "Log in to quickly build your first custom AI code assistant",
+        "Please login to start using Debugg AI",
       );
     }).timeout(DEFAULT_TIMEOUT.XL);
 

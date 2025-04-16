@@ -359,6 +359,7 @@ export class ConfigHandler {
     );
     this.selectedProfileId = profileId;
     const result = await this.loadConfig();
+    console.log('loaded configuration result = ', result)
     this.notifyConfigListeners(result);
     const selectedProfiles =
       this.globalContext.get("lastSelectedProfileForWorkspace") ?? {};
@@ -443,6 +444,7 @@ export class ConfigHandler {
 
   // TODO: this isn't right, there are two different senses in which you want to "reload"
   async reloadConfig() {
+    console.log('reloadConfig')
     if (!this.currentProfile) {
       return {
         config: undefined,

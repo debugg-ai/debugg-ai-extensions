@@ -25,12 +25,31 @@ import {
 
 import type * as LanceType from "vectordb";
 
+/**
+ * LanceDbIndex provides vector database indexing and retrieval capabilities using LanceDB.
+ * It implements the CodebaseIndex interface to store and search code embeddings.
+ * 
+ * Key features:
+ * - Stores code chunks and their embeddings in LanceDB tables
+ * - Provides similarity search for retrieving relevant code snippets
+ * - Caches embeddings in SQLite for reuse
+ * - Handles incremental updates as files change
+ * 
+ * The index is created per repository branch/tag and stores:
+ * - Code chunks with start/end line numbers
+ * - Vector embeddings of the chunks for similarity search
+ * - File paths and cache keys for tracking changes
+ */
+
+/**
+ * Represents a row in the LanceDB table storing code chunks and their embeddings
+ */
 interface LanceDbRow {
-  uuid: string;
-  path: string;
-  cachekey: string;
-  vector: number[];
-  [key: string]: any;
+  uuid: string;          // Unique identifier for the row
+  path: string;          // File path
+  cachekey: string;      // Cache key for tracking changes
+  vector: number[];      // Embedding vector
+  [key: string]: any;    // Additional metadata fields
 }
 
 type ItemWithChunks = { item: PathAndCacheKey; chunks: Chunk[] };
@@ -40,19 +59,26 @@ type ChunkMap = Map<string, ItemWithChunks>;
 export class LanceDbIndex implements CodebaseIndex {
   private static lance: typeof LanceType | null = null;
 
+  // Relative time estimate for indexing operations
   relativeExpectedTime: number = 13;
+
+  /**
+   * Gets the unique identifier for this index's artifacts
+   */
   get artifactId(): string {
     return `vectordb::${this.embeddingsProvider?.embeddingId}`;
   }
 
   /**
    * Factory method for creating LanceDbIndex instances.
-   *
+   * 
    * We dynamically import LanceDB only when supported to avoid native module loading errors
    * on incompatible platforms. LanceDB has CPU-specific native dependencies that can crash
    * the application if loaded on unsupported architectures.
-   *
-   * See isSupportedLanceDbCpuTargetForLinux() for platform compatibility details.
+   * 
+   * @param embeddingsProvider - Provider for generating embeddings
+   * @param readFile - Function to read file contents
+   * @returns LanceDbIndex instance or null if not supported
    */
   static async create(
     embeddingsProvider: ILLM,
@@ -84,6 +110,10 @@ export class LanceDbIndex implements CodebaseIndex {
     return tagToString(tag).replace(/[^\w-_.]/g, "");
   }
 
+  /**
+   * Creates the SQLite cache table for storing embeddings
+   * This allows reusing previously computed embeddings when files haven't changed
+   */
   private async createSqliteCacheTable(db: DatabaseConnection) {
     await db.exec(`CREATE TABLE IF NOT EXISTS lance_db_cache (
         uuid TEXT PRIMARY KEY,
@@ -121,6 +151,12 @@ export class LanceDbIndex implements CodebaseIndex {
     );
   }
 
+  /**
+   * Computes LanceDB rows for a set of files by:
+   * 1. Chunking the file contents
+   * 2. Generating embeddings for the chunks
+   * 3. Creating rows with metadata
+   */
   private async computeRows(items: PathAndCacheKey[]): Promise<LanceDbRow[]> {
     const chunkMap = await this.collectChunks(items);
     const allChunks = Array.from(chunkMap.values()).flatMap(
@@ -146,6 +182,10 @@ export class LanceDbIndex implements CodebaseIndex {
     return this.createLanceDbRows(chunkMap, embeddings);
   }
 
+  /**
+   * Chunks files into smaller segments suitable for embedding
+   * Returns a map of file paths to their chunks
+   */
   private async collectChunks(items: PathAndCacheKey[]): Promise<ChunkMap> {
     const chunkMap: ChunkMap = new Map();
 
@@ -233,6 +273,15 @@ export class LanceDbIndex implements CodebaseIndex {
     return results;
   }
 
+  /**
+   * Updates the index for a given tag with file changes:
+   * - Computes embeddings for new/modified files
+   * - Updates LanceDB tables
+   * - Updates SQLite cache
+   * - Removes deleted files
+   * 
+   * @yields Progress updates during the indexing
+   */
   async *update(
     tag: IndexTag,
     results: RefreshIndexResults,
@@ -399,6 +448,17 @@ export class LanceDbIndex implements CodebaseIndex {
     return results.slice(0, n) as any;
   }
 
+  /**
+   * Retrieves relevant code chunks by:
+   * 1. Converting the query to an embedding vector
+   * 2. Performing similarity search in LanceDB
+   * 3. Fetching full chunk data from SQLite cache
+   * 
+   * @param query - Text to search for
+   * @param n - Number of results to return
+   * @param tags - Branch/directory tags to search in
+   * @param filterDirectory - Optional directory to filter results
+   */
   async retrieve(
     query: string,
     n: number,

@@ -383,41 +383,68 @@ function mapIndexResultTypeToAddRemoveResultType(
   }
 }
 
+/**
+ * Determines which files need to be computed, deleted, tagged or untagged for a given index.
+ * 
+ * This function takes a set of current files and determines what operations need to be performed
+ * to update the index based on the global cache state.
+ *
+ * @param tag - The index tag containing directory, branch and artifactId
+ * @param currentFiles - Map of current files and their stats
+ * @param readFile - Function to read file contents
+ * @param repoName - Optional repository name
+ * @returns A tuple containing:
+ *   1. RefreshIndexResults with arrays of files that need to be:
+ *      - computed (new files not in cache)
+ *      - deleted (removed files)
+ *      - tagged (files already in cache under different tag)
+ *      - untagged (files still in cache under other tags)
+ *   2. Array of files whose last updated time changed
+ *   3. Callback to mark operations as complete and update global cache
+ */
 export async function getComputeDeleteAddRemove(
   tag: IndexTag,
   currentFiles: FileStatsMap,
   readFile: (path: string) => Promise<string>,
   repoName: string | undefined,
 ): Promise<[RefreshIndexResults, PathAndCacheKey[], MarkCompleteCallback]> {
+  // Get basic add/remove/update lists based on file changes
   const [add, remove, lastUpdated, markComplete] = await getAddRemoveForTag(
     tag,
     currentFiles,
     readFile,
   );
 
+  // Initialize result arrays
   const compute: PathAndCacheKey[] = [];
   const del: PathAndCacheKey[] = [];
   const addTag: PathAndCacheKey[] = [];
   const removeTag: PathAndCacheKey[] = [];
 
+  // For files to add, check if they exist in cache under other tags
   for (const { path, cacheKey } of add) {
     const existingTags = await getTagsFromGlobalCache(cacheKey, tag.artifactId);
     if (existingTags.length > 0) {
+      // File exists in cache - just add new tag
       addTag.push({ path, cacheKey });
     } else {
+      // File not in cache - needs full computation
       compute.push({ path, cacheKey });
     }
   }
 
+  // For files to remove, check if they exist under other tags
   for (const { path, cacheKey } of remove) {
     const existingTags = await getTagsFromGlobalCache(cacheKey, tag.artifactId);
     if (existingTags.length > 1) {
+      // File exists under multiple tags - just remove this tag
       removeTag.push({ path, cacheKey });
     } else {
+      // File only exists under this tag - delete completely
       if (existingTags.length === 0) {
+        // This shouldn't happen - file should exist under at least this tag
         // console.warn("Existing tags should not be empty when trying to remove");
       }
-
       del.push({ path, cacheKey });
     }
   }
@@ -434,11 +461,12 @@ export async function getComputeDeleteAddRemove(
   return [
     results,
     lastUpdated,
+    // Callback to mark operations complete and update global cache
     async (items, resultType) => {
-      // Update tag catalog
+      // Update tag catalog first
       await markComplete(items, resultType);
 
-      // Update the global cache
+      // Then update the global cache
       const results: any = {
         compute: [],
         del: [],
@@ -446,6 +474,8 @@ export async function getComputeDeleteAddRemove(
         removeTag: [],
       };
       results[resultType] = items;
+      
+      // Update global cache index
       for await (const _ of globalCacheIndex.update(
         tag,
         results,

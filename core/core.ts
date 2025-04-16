@@ -14,11 +14,11 @@ import { addContextProvider, addModel, deleteModel } from "./config/util";
 import CodebaseContextProvider from "./context/providers/CodebaseContextProvider";
 import CurrentFileContextProvider from "./context/providers/CurrentFileContextProvider";
 import { recentlyEditedFilesCache } from "./context/retrieval/recentlyEditedFilesCache";
-import { ContinueServerClient } from "./continueServer/stubs/client";
 import { getAuthUrlForTokenPage } from "./control-plane/auth/index";
 import { getControlPlaneEnv } from "./control-plane/env";
 import { DevDataSqliteDb } from "./data/devdataSqlite";
 import { DataLogger } from "./data/log";
+import { DebuggAIServerClient } from "./debuggAIServer/stubs/client";
 import { streamDiffLines } from "./edit/streamDiffLines";
 import { CodebaseIndexer, PauseToken } from "./indexing/CodebaseIndexer";
 import DocsService from "./indexing/docs/DocsService";
@@ -54,7 +54,8 @@ export class Core {
   configHandler: ConfigHandler;
   codebaseIndexerPromise: Promise<CodebaseIndexer>;
   completionProvider: CompletionProvider;
-  continueServerClientPromise: Promise<ContinueServerClient>;
+  // continueServerClientPromise: Promise<ContinueServerClient>;
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>;
   codebaseIndexingState: IndexingProgressUpdate;
   private docsService: DocsService;
   private globalContext = new GlobalContext();
@@ -153,30 +154,39 @@ export class Core {
     dataLogger.ideInfoPromise = ideInfoPromise;
     dataLogger.ideSettingsPromise = ideSettingsPromise;
 
+
+    // Transition from Continue Server to DebuggAI for indexing
     // Codebase Indexer and ContinueServerClient depend on IdeSettings
     let codebaseIndexerResolve: (_: any) => void | undefined;
     this.codebaseIndexerPromise = new Promise(
       async (resolve) => (codebaseIndexerResolve = resolve),
     );
 
-    let continueServerClientResolve: (_: any) => void | undefined;
-    this.continueServerClientPromise = new Promise(
-      (resolve) => (continueServerClientResolve = resolve),
+    // let continueServerClientResolve: (_: any) => void | undefined;
+    // this.continueServerClientPromise = new Promise(
+    //   (resolve) => (continueServerClientResolve = resolve),
+    // );
+
+
+    let debuggAIServerClientResolve: (_: any) => void | undefined;
+    this.debuggAIServerClientPromise = new Promise(
+      (resolve) => (debuggAIServerClientResolve = resolve),
     );
 
+
     void ideSettingsPromise.then((ideSettings) => {
-      const continueServerClient = new ContinueServerClient(
+      const debuggAIServerClient = new DebuggAIServerClient(
         ideSettings.remoteConfigServerUrl,
         ideSettings.userToken,
       );
-      continueServerClientResolve(continueServerClient);
+      debuggAIServerClientResolve(debuggAIServerClient);
 
       codebaseIndexerResolve(
         new CodebaseIndexer(
           this.configHandler,
           this.ide,
           this.indexingPauseToken,
-          continueServerClient,
+          debuggAIServerClient,
         ),
       );
 
@@ -833,14 +843,16 @@ export class Core {
     on("index/forceReIndex", async ({ data }) => {
       const { config } = await this.configHandler.loadConfig();
       if (!config || config.disableIndexing) {
+        console.log("Indexing disabled");
         return; // TODO silent in case of commands?
       }
       walkDirCache.invalidate();
       if (data?.shouldClearIndexes) {
+        console.log("Clearing indexes");
         const codebaseIndexer = await this.codebaseIndexerPromise;
         await codebaseIndexer.clearIndexes();
       }
-
+      console.log("Indexing enabled");
       const dirs = data?.dirs ?? (await this.ide.getWorkspaceDirs());
       await this.refreshCodebaseIndex(dirs);
     });
@@ -1099,6 +1111,7 @@ export class Core {
   }
 
   private async refreshCodebaseIndex(paths: string[]) {
+    console.log("Refreshing codebase index");
     if (this.indexingCancellationController) {
       this.indexingCancellationController.abort();
     }

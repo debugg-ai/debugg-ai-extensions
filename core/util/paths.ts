@@ -142,7 +142,7 @@ export function getConfigTsPath(): string {
     fs.writeFileSync(
       packageJsonPath,
       JSON.stringify({
-        name: "debugg-ai-config",
+        name: "debugai-config",
         version: "1.0.0",
         description: "My Debugg AI Configuration",
         main: "config.js",
