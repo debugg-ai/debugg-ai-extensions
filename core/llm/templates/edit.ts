@@ -1,4 +1,5 @@
 import { ChatMessage, PromptTemplate } from "../../index.js";
+
 import { gptEditPrompt } from "./edit/gpt.js";
 
 const simplifiedEditPrompt = `Consider the following code:
@@ -34,7 +35,7 @@ const osModelsEditPrompt: PromptTemplate = (history, otherData) => {
     !firstCharOfFirstLine;
   const suffixTag = isSuffix ? "<STOP EDITING HERE>" : "";
   const suffixExplanation = isSuffix
-    ? ' When you get to "<STOP EDITING HERE>", end your response.'
+    ? " When you get to \"<STOP EDITING HERE>\", end your response."
     : "";
 
   // If neither prefilling nor /v1/completions are supported, we have to use a chat prompt without putting words in the model's mouth

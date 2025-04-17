@@ -2,10 +2,10 @@
 import nlp from "wink-nlp-utils";
 
 import { BranchAndDir, Chunk, ContinueConfig, IDE, ILLM } from "../../../";
+import { AstraDbIndex } from "../../../indexing/AstraDbIndex";
 import { chunkDocument } from "../../../indexing/chunk/chunk";
 import { FullTextSearchCodebaseIndex } from "../../../indexing/FullTextSearchCodebaseIndex";
 // import { LanceDbIndex } from "../../../indexing/LanceDbIndex";
-import { AstraDbIndex } from "../../../indexing/AstraDbIndex";
 import { recentlyEditedFilesCache } from "../recentlyEditedFilesCache";
 
 const DEFAULT_CHUNK_SIZE = 384;
@@ -50,10 +50,10 @@ export default class BaseRetrievalPipeline implements IRetrievalPipeline {
     this.astraDbIndex = await AstraDbIndex.create(embedModel, (uri) =>
       this.options.ide.readFile(uri),
       {
-        apiKey: this.options.config.vectorDatabaseOpts?.apiKey || '',
-        endpoint: this.options.config.vectorDatabaseOpts?.endpoint || '',
-        keyspace: this.options.config.vectorDatabaseOpts?.keyspace || 'default_keyspace',
-        metric: this.options.config.vectorDatabaseOpts?.metric || 'cosine',
+        apiKey: this.options.config.vectorDatabaseOpts?.apiKey || "",
+        endpoint: this.options.config.vectorDatabaseOpts?.endpoint || "",
+        keyspace: this.options.config.vectorDatabaseOpts?.keyspace || "default_keyspace",
+        metric: this.options.config.vectorDatabaseOpts?.metric || "cosine",
       },
     );
   }
@@ -79,7 +79,7 @@ export default class BaseRetrievalPipeline implements IRetrievalPipeline {
   }
 
   private escapeFtsQueryString(query: string): string {
-    const escapedDoubleQuotes = query.replace(/"/g, '""');
+    const escapedDoubleQuotes = query.replace(/"/g, "\"\"");
     return `"${escapedDoubleQuotes}"`;
   }
 

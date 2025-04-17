@@ -11,7 +11,6 @@ import { AstraDbIndex } from "./AstraDbIndex.js"; // Move from LanceDb to a loca
 import { ChunkCodebaseIndex } from "./chunk/ChunkCodebaseIndex.js";
 import { CodeSnippetsCodebaseIndex } from "./CodeSnippetsIndex.js";
 import { FullTextSearchCodebaseIndex } from "./FullTextSearchCodebaseIndex.js";
-
 import { getComputeDeleteAddRemove } from "./refreshIndex.js";
 import {
   CodebaseIndex,
@@ -110,10 +109,10 @@ export class CodebaseIndexer {
       embeddingsModel,
       this.ide.readFile.bind(this.ide),
       {
-        apiKey: config?.vectorDatabaseOpts?.apiKey || '',
-        endpoint: config?.vectorDatabaseOpts?.endpoint || '',
-        keyspace: config?.vectorDatabaseOpts?.keyspace || 'default_keyspace',
-        metric: config?.vectorDatabaseOpts?.metric || 'cosine',
+        apiKey: config?.vectorDatabaseOpts?.apiKey || "",
+        endpoint: config?.vectorDatabaseOpts?.endpoint || "",
+        keyspace: config?.vectorDatabaseOpts?.keyspace || "default_keyspace",
+        metric: config?.vectorDatabaseOpts?.metric || "cosine",
       },
       this.debuggAIServerClient
     );

@@ -1,13 +1,15 @@
 import ignore, { Ignore } from "ignore";
 
-import type { FileType, IDE } from "..";
 
 import { joinPathsToUri } from "../util/uri";
+
 import {
   defaultIgnoreFileAndDir,
   getGlobalContinueIgArray,
   gitIgArrayFromFile,
 } from "./ignore";
+
+import type { FileType, IDE } from "..";
 
 export interface WalkerOptions {
   onlyDirs?: boolean;

@@ -1,3 +1,5 @@
+import { AxiosRequestConfig } from "axios";
+
 import type {
     ArtifactType,
     EmbeddingsCacheResponse
@@ -11,15 +13,23 @@ export interface PaginatedResponse<T> {
     results: T[];
 }
 
+export interface AxiosResponse<T> {
+    data: T;
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    config: AxiosRequestConfig;
+}
+
 export interface Issue {
     uuid: string;
     project: number;
     title?: string;
     message?: string;
     environment: string;
-    status: 'open' | 'ongoing' | 'resolved' | 'archived';
+    status: "open" | "ongoing" | "resolved" | "archived";
     level: Level;
-    priority: 'low' | 'medium' | 'high' | 'alert';
+    priority: "low" | "medium" | "high" | "alert";
     lineNumber: number;
     columnNumber: number;
     eventsCount: number;
@@ -84,7 +94,7 @@ export interface PaginatedIssueSuggestionResponse extends PaginatedResponse<Issu
 }
 
 
-export type Level = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'FATAL' | 'METRIC';
+export type Level = "DEBUG" | "INFO" | "WARNING" | "ERROR" | "FATAL" | "METRIC";
 
 
 export interface LogOverview {

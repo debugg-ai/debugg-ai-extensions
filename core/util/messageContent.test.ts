@@ -1,5 +1,6 @@
-import { stripImages, renderChatMessage, renderContextItems, normalizeToMessageParts } from "./messageContent.js";
 import { ChatMessage, ContextItem, MessageContent, MessagePart } from "../index.js";
+
+import { stripImages, renderChatMessage, renderContextItems, normalizeToMessageParts } from "./messageContent.js";
 
 describe("messageContent utility functions", () => {
   describe("stripImages", () => {

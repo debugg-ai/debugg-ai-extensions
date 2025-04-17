@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { exec } from "node:child_process";
 import path from "node:path";
+
 import { IDE } from "..";
 
 export interface ModelInfo {
@@ -36,7 +37,7 @@ export async function startLocalOllama(ide: IDE): Promise<any> {
                 startCommand = `set -e && chmod +x ${start_script_path} && ${start_script_path}\n`;
                 console.log(`Ollama Linux startup script at : ${start_script_path}`);
             } else {
-                return ide.showToast("error", `Cannot start Ollama: could not find ${start_script_path}!`)
+                return ide.showToast("error", `Cannot start Ollama: could not find ${start_script_path}!`);
             }
     }
     if (startCommand) {

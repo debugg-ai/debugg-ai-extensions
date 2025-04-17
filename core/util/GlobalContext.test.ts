@@ -1,7 +1,8 @@
 // core/util/GlobalContext.test.ts
-import { GlobalContext, GlobalContextType } from "./GlobalContext";
 import fs from "node:fs";
 import path from "path";
+
+import { GlobalContext, GlobalContextType } from "./GlobalContext";
 import { getGlobalContextFilePath } from "./paths";
 
 describe("GlobalContext", () => {

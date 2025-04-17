@@ -1,5 +1,5 @@
-import { ArtifactType, EmbeddingsCacheResponse } from '../interface';
-import { post } from '../utils/axios';
+import { ArtifactType, EmbeddingsCacheResponse } from "../interface";
+import { post } from "../utils/axios";
 
 
 export const IndexesService = {
@@ -10,7 +10,7 @@ export const IndexesService = {
     artifactId: T;
     repo: string;
   }): Promise<EmbeddingsCacheResponse<T>[]> {
-    const response = await post(`/api/v1/indexes`, {
+    const response = await post("/api/v1/indexes", {
       params,
     });
 
@@ -19,7 +19,7 @@ export const IndexesService = {
         console.warn(
           `Failed to retrieve from remote cache (HTTP ${response.status}): ${text}`,
         );
-        return []
+        return [];
     }
     return response.data;
   },

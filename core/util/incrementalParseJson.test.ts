@@ -4,7 +4,7 @@ import { incrementalParseJson } from "./incrementalParseJson";
 
 describe("incrementalParseJson", () => {
   it("should return [true, parsedJson] for valid JSON object", () => {
-    const raw = '{"key": "value"}';
+    const raw = "{\"key\": \"value\"}";
     const [isValid, parsed] = incrementalParseJson(raw);
     expect(isValid).toBe(true);
     expect(parsed).toEqual({ key: "value" });
@@ -18,7 +18,7 @@ describe("incrementalParseJson", () => {
   });
 
   it("should return [false, partialParsedJson] for incomplete JSON object", () => {
-    const raw = '{"key": "value"';
+    const raw = "{\"key\": \"value\"";
     const [isValid, parsed] = incrementalParseJson(raw);
     expect(isValid).toBe(false);
     expect(parsed).toEqual({ key: "value" });

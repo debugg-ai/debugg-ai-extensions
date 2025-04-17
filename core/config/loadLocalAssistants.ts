@@ -1,4 +1,5 @@
 import ignore from "ignore";
+
 import { IDE } from "..";
 import {
   DEFAULT_IGNORE_DIRS,

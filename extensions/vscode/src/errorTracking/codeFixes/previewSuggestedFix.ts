@@ -1,5 +1,5 @@
+import { FileChange, Issue, SnippetUpdate } from 'core/debuggAIServer/types';
 import * as vscode from 'vscode';
-import { FileChange, Issue, SnippetUpdate } from '../../services/backend/types';
 
 /**
  * Generates a modified version of the file content based on snippet updates.

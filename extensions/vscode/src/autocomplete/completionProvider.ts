@@ -278,7 +278,7 @@ export class ContinueCompletionProvider
         range,
         {
           title: "Log Autocomplete Outcome",
-          command: "debuggai.logAutocompleteOutcome",
+          command: "debugg-ai.logAutocompleteOutcome",
           arguments: [input.completionId, this.completionProvider],
         },
       );

@@ -41,47 +41,18 @@ export default function MainTab({
         <DebuggAILogo height={75} width={75}/>
       </div>
 
-      {pastFreeTrialLimit ? (
-        <>
-          <p className="xs:w-3/4 w-full text-sm">
-            You've reached the free trial limit. Visit the Continue Platform to
-            select a Coding Assistant.
-          </p>
-          <Button
-            onClick={openPastFreeTrialOnboarding}
-            className="mt-4 grid w-full grid-flow-col items-center gap-2"
-          >
-            Go to Continue Platform
-          </Button>
-        </>
-      ) : onboardingCard.activeTab === "ExistingUserHubIntro" ? (
-        <>
-          <p className="xs:w-3/4 w-full text-sm">
-            You can now browse and create custom AI code assistants at{" "}
-            <code>hub.continue.dev</code>
-          </p>
+      <>
+        <p className="xs:w-3/4 w-full text-sm">
+          Please login to start using Debugg AI
+        </p>
 
-          <Button
-            onClick={onGetStarted}
-            className="mt-4 grid w-full grid-flow-col items-center gap-2"
-          >
-            Get started
-          </Button>
-        </>
-      ) : (
-        <>
-          <p className="xs:w-3/4 w-full text-sm">
-            Please login to start using Debugg AI
-          </p>
-
-          <Button
-            onClick={onGetStarted}
-            className="mt-4 grid w-full grid-flow-col items-center gap-2"
-          >
-            Get started
-          </Button>
-        </>
-      )}
+        <Button
+          onClick={onGetStarted}
+          className="mt-4 grid w-full grid-flow-col items-center gap-2"
+        >
+          Get started
+        </Button>
+      </>
     </div>
   );
 }

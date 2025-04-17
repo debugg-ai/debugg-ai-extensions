@@ -35,8 +35,8 @@ const TOKEN_ENDPOINT = `${API_BASE_URL}/api/v1/o/token/`;          // POST code�
 const TOKEN_REFRESH_ENDPOINT = `${API_BASE_URL}/api/v1/o/token/`;
 const USERINFO_ENDPOINT = `${API_BASE_URL}/api/v1/users/me/`;
 
-const CLIENT_ID = "itQpxtiloI1uvgMilBrRKyCN3ppQol2wH1TP7184";    
-const CLIENT_SECRET = "AiHgQ1XukD3UEgsnqkI7BjjRN5fIoKiH0KolMLJsXB2rXUaXrZNJ5aPYUzBIMPBByRJIj6ZZQ2A1FLRLan55qcEVgBeHzpKcHtUtnxSjiiaqi3pPX5uBn7nBvN1Zxp66";
+// const CLIENT_ID = "itQpxtiloI1uvgMilBrRKyCN3ppQol2wH1TP7184";    
+// const CLIENT_SECRET = "AiHgQ1XukD3UEgsnqkI7BjjRN5fIoKiH0KolMLJsXB2rXUaXrZNJ5aPYUzBIMPBByRJIj6ZZQ2A1FLRLan55qcEVgBeHzpKcHtUtnxSjiiaqi3pPX5uBn7nBvN1Zxp66";
 // whatever your backend expects
 
 const enableControlServerBeta = workspace
@@ -47,6 +47,7 @@ const controlPlaneEnv = getControlPlaneEnvSync(
     true ? "production" : "none",
     enableControlServerBeta,
 );
+console.log("Control plane env:", controlPlaneEnv);
 
 const SESSIONS_SECRET_KEY = `${controlPlaneEnv.AUTH_TYPE}.sessions`;
 
@@ -135,7 +136,10 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
     }
 
     async getSessions(): Promise<DebuggAIAuthenticationSession[]> {
+        console.log("Getting sessions...");
         const raw = await this.secretStorage.get(SESSIONS_SECRET_KEY);
+        console.log("Raw sessions:", raw);
+        console.log("Raw sessions count:", raw?.length);
         if (!raw) return [];
         try {
             return JSON.parse(raw);
@@ -199,6 +203,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
 
     async removeSession(sessionId: string): Promise<void> {
         const sessions = await this.getSessions();
+        console.log("Sessions before removal:", sessions);
         const idx = sessions.findIndex((s) => s.id === sessionId);
         const removed = sessions.splice(idx, 1);
         await this._storeSessions(sessions);
@@ -241,12 +246,17 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
        PRIVATE HELPERS
     ────────────────────────────────────────────────────────────*/
     private async _storeSessions(v: DebuggAIAuthenticationSession[]) {
+        console.log("Storing sessions to session secret key...");
         await this.secretStorage.store(SESSIONS_SECRET_KEY, JSON.stringify(v, null, 2));
     }
 
     private async _refreshSessions() {
+        console.log("starting _refreshSessions...");
         const sessions = await this.getSessions();
-        if (!sessions.length) return;
+        if (!sessions.length) {
+            console.log("No sessions found");
+            return;
+        };
 
         const final: DebuggAIAuthenticationSession[] = [];
         for (const s of sessions) {
@@ -254,8 +264,10 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
                 const newS = await this._refreshSession(s.refreshToken);
                 final.push({ ...s, ...newS });
             } catch (e) {
-                console.debug("Refresh failed, dropping session:", e);
-                this._sessionChangeEmitter.fire({ added: [], removed: [s], changed: [] });
+                console.log("Refresh failed, moving on", e);
+                final.push(s);
+                // console.debug("Refresh failed, dropping session:", e);
+                // this._sessionChangeEmitter.fire({ added: [], removed: [s], changed: [] });
             }
         }
         await this._storeSessions(final);
@@ -267,15 +279,23 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
     }
 
     private async _refreshSession(refreshToken: string) {
-        const { access_token: access } = await fetchJson<{ access_token: string }>(TOKEN_REFRESH_ENDPOINT, {
+        console.log("Attempting to refresh session... with refresh token:", refreshToken);
+        console.log('args - ', {
             grant_type: "refresh_token",
             refresh_token: refreshToken,
-            client_id: CLIENT_ID,
-            client_secret: CLIENT_SECRET,
+            client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
+            client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
         });
+        const { access_token: access, refresh_token: refresh } = await fetchWithQueryParams<{ access_token: string, refresh_token: string }>(TOKEN_REFRESH_ENDPOINT, {
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+            client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
+            client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
+        });
+        console.log("Refreshed session... with access token:", access);
         return {
             accessToken: access,
-            refreshToken,
+            refreshToken: refresh,
             expiresInMs: jwtLifetime(access),
         };
     }
@@ -300,7 +320,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
                 const scopeString = scopes.join(" ");
                 const url = new URL(LOGIN_URL);
                 url.searchParams.set("response_type", "code");
-                url.searchParams.set("client_id", CLIENT_ID);
+                url.searchParams.set("client_id", controlPlaneEnv.OAUTH_CLIENT_ID);
                 url.searchParams.set("redirect_uri", this.redirectUri);
                 url.searchParams.set("state", stateId);
                 url.searchParams.set("code_challenge", codeChallenge);
@@ -371,7 +391,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    client_id: CLIENT_ID,
+                    client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
                     code_verifier: codeVerifier,
                     grant_type: "authorization_code",
                     code: token,
@@ -446,6 +466,31 @@ async function fetchOauthJson<T>(
             "Content-Type": "application/json",
         },
         body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json() as Promise<T>;
+}
+
+async function fetchWithQueryParams<T>(
+    url: string,
+    queryParams?: any,
+    accessToken?: string,
+): Promise<T> {
+    let body = null;
+    if (queryParams) {
+        // url = `${url}?${new URLSearchParams(queryParams).toString()}`;
+        body = new URLSearchParams(queryParams).toString();
+    }
+
+    console.log("Fetching with body:", body);
+
+    const headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+    };
+    const r = await fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: body,
     });
     if (!r.ok) throw new Error(await r.text());
     return r.json() as Promise<T>;

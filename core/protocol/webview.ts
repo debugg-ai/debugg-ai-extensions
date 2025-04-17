@@ -1,4 +1,5 @@
 import { ConfigResult } from "@continuedev/config-yaml";
+
 import type {
   BrowserSerializedContinueConfig,
   ContextItemWithId,

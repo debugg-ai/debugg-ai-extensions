@@ -24,23 +24,19 @@
  *
  * ---------------------------------------------------------------------------*/
 
+import { createHash } from "crypto";
+
 import {
     Collection,
     DataAPIClient,
 } from "@datastax/astra-db-ts";
-import { createHash } from "crypto";
 import { v4 as uuidv4 } from "uuid";
+
 import { IDebuggAIServerClient } from "../debuggAIServer/interface";
-import type {
-    BranchAndDir,
-    Chunk,
-    ILLM,
-    IndexTag,
-    IndexingProgressUpdate,
-} from "../index";
 import { VectorDatabaseIndexOpts } from "../index.d";
 import { migrate } from "../util/paths"; // <‑ still used for sqlite path
 import { getUriPathBasename } from "../util/uri";
+
 import { basicChunker } from "./chunk/basic.js";
 import { chunkDocument, shouldChunk } from "./chunk/chunk.js";
 import {
@@ -55,6 +51,14 @@ import {
     PathAndCacheKey,
     RefreshIndexResults
 } from "./types";
+
+import type {
+    BranchAndDir,
+    Chunk,
+    ILLM,
+    IndexTag,
+    IndexingProgressUpdate,
+} from "../index";
 
 // ---------------------------------------------------------------------------------------------
 // Utility types & helpers
@@ -205,7 +209,7 @@ export class AstraDbIndex implements CodebaseIndex {
         for (const item of items) {
             try {
                 const content = await this.readFile(item.path);
-                if (!shouldChunk(item.path, content)) continue;
+                if (!shouldChunk(item.path, content)) {continue;}
                 const chunks: Chunk[] = [];
                 for await (const chunk of chunkDocument({
                     filepath: item.path,
@@ -246,7 +250,7 @@ export class AstraDbIndex implements CodebaseIndex {
             // Add some cleaning as the indexing failed several times with
             // Error: 400 '$.input' is invalid. Please check your input...
             const validChunks = chunks
-            .map(c => ({ ...c, clean: this.sanitizeEmbeddingInput(c.content) }))
+            .map(c => ({ ...c, clean: this.sanitizeEmbeddingInput(c.content) }));
             
             const safeChunks = validChunks.filter(c => c.clean !== null);   // keep only safe ones
 
@@ -298,7 +302,7 @@ export class AstraDbIndex implements CodebaseIndex {
                 // Find the array of chunks for this file path
                 const arr = chunkMap.get(chunk.filepath)?.chunks;
                 // If we found the array, remove the failed chunk from it
-                if (arr) arr.splice(arr.indexOf(chunk), 1);
+                if (arr) {arr.splice(arr.indexOf(chunk), 1);}
                 // Remove the failed embedding
                 embeddings.splice(i, 1);
             }
@@ -327,7 +331,7 @@ export class AstraDbIndex implements CodebaseIndex {
         ): Promise<Collection<AstraRow>> => {
             const existing = await db.listCollections();
             const collExists = existing.some((c) => c.name === collectionName);
-            if (collExists) return db.collection<AstraRow>(collectionName);
+            if (collExists) {return db.collection<AstraRow>(collectionName);}
             return db.createCollection<AstraRow>(collectionName, {
                 vector: {
                     dimension: dim,
@@ -427,7 +431,7 @@ export class AstraDbIndex implements CodebaseIndex {
         try {
             // Make sure we also update the remote server with the new index
             if (this.debuggAIServerClient) {
-                await this.debuggAIServerClient.repos.upsertVectorCollection(collectionName, tag.directory, tag.branch, this.artifactId);
+                await this.debuggAIServerClient.repos?.upsertVectorCollection(collectionName, tag.directory, tag.branch, this.artifactId);
             }
         } catch (err) {
             console.error("Error upserting vector collection", err);
@@ -459,7 +463,7 @@ export class AstraDbIndex implements CodebaseIndex {
         for (const tag of tags) {
             const collName = this.tableNameForTag({ ...tag, artifactId: this.artifactId });
             const collections = await db.listCollections();
-            if (!collections.some((c) => c.name === collName)) continue;
+            if (!collections.some((c) => c.name === collName)) {continue;}
             const coll = db.collection<AstraRow>(collName);
 
             const searchOpts: any = { limit: n, includeSimilarity: true };
@@ -502,7 +506,7 @@ export class AstraDbIndex implements CodebaseIndex {
 
             db.db.serialize(() => {
                 db.db.exec("BEGIN", (err: Error | null) => {
-                    if (err) return reject(err);
+                    if (err) {return reject(err);}
                 });
                 const sql =
                     "INSERT INTO lance_db_cache (uuid, cacheKey, path, artifact_id, vector, startLine, endLine, contents) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
@@ -520,12 +524,12 @@ export class AstraDbIndex implements CodebaseIndex {
                             r.contents,
                         ],
                         (err: Error | null) => {
-                            if (err) return reject(err);
+                            if (err) {return reject(err);}
                         },
                     );
                 });
                 db.db.exec("COMMIT", (err: Error | null) => {
-                    if (err) return reject(err);
+                    if (err) {return reject(err);}
                     resolve();
                 });
             });
@@ -547,8 +551,8 @@ export class AstraDbIndex implements CodebaseIndex {
     private sanitizeEmbeddingInput(raw: string): string | null {
         const trimmed = raw.trim();
     
-        if (!trimmed) return null; // nothing to embed
-        if (trimmed.length > this.embeddingsProvider.maxEmbeddingChunkSize * 4) return null;
+        if (!trimmed) {return null;} // nothing to embed
+        if (trimmed.length > this.embeddingsProvider.maxEmbeddingChunkSize * 4) {return null;}
     
         // add any other checks / transforms here
         return trimmed;

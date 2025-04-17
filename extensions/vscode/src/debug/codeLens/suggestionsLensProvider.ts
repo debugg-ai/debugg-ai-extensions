@@ -49,7 +49,7 @@ export class SuggestionCodeLensProvider implements vscode.CodeLensProvider {
         return fileSuggestions.map(suggestion => {
             return new vscode.CodeLens(suggestion.range, {
                 title: "Apply fix",
-                command: "debuggai.applyFix",
+                command: "debugg-ai.applyFix",
                 arguments: [document.uri, suggestion.range, suggestion.newCode]
             });
         });

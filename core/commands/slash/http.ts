@@ -1,6 +1,6 @@
 import { SlashCommand } from "../../index.js";
-import { removeQuotesAndEscapes } from "../../util/index.js";
 import { streamResponse } from "../../llm/stream.js";
+import { removeQuotesAndEscapes } from "../../util/index.js";
 
 const HttpSlashCommand: SlashCommand = {
   name: "http",

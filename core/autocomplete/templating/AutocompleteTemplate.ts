@@ -89,7 +89,7 @@ const codestralMultifileFimTemplate: AutocompleteTemplate = {
   ): [string, string] => {
 
     function getFileName(snippet: { uri: string, uniquePath: string }) {
-      return snippet.uri.startsWith("file://") ? snippet.uniquePath : snippet.uri
+      return snippet.uri.startsWith("file://") ? snippet.uniquePath : snippet.uri;
     }
 
     if (snippets.length === 0) {

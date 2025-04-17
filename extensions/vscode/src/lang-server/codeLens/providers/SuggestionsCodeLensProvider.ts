@@ -22,12 +22,12 @@ export class SuggestionsCodeLensProvider implements vscode.CodeLensProvider {
       codeLenses.push(
         new vscode.CodeLens(range, {
           title: "Accept",
-          command: "debuggai.acceptSuggestion",
+          command: "debugg-ai.acceptSuggestion",
           arguments: [suggestion],
         }),
         new vscode.CodeLens(range, {
           title: "Reject",
-          command: "debuggai.rejectSuggestion",
+          command: "debugg-ai.rejectSuggestion",
           arguments: [suggestion],
         }),
       );

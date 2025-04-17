@@ -1,6 +1,5 @@
 import fetch from "node-fetch";
 
-import { contextProviderClassFromName } from ".";
 import {
   ContextProviderExtras,
   ContextProviderWithParams,
@@ -9,6 +8,8 @@ import {
 import { ConfigHandler } from "../../config/ConfigHandler";
 import { TEST_DIR } from "../../test/testDir";
 import FileSystemIde from "../../util/filesystem";
+
+import { contextProviderClassFromName } from ".";
 
 const CONTEXT_PROVIDERS_TO_TEST: ContextProviderWithParams[] = [
   { name: "diff", params: {} },

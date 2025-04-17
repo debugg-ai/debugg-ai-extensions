@@ -1,6 +1,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+
 import { localPathOrUriToPath, localPathToUri } from "../util/pathToUri";
 
 // Want this outside of the git repository so we can change branches in tests

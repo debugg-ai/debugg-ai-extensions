@@ -77,7 +77,7 @@ export const PROVIDER_TOOL_SUPPORT: Record<
     let modelName = "";
     // Extract the model name after the last slash to support other registries
     if(model.includes("/")) {
-      let parts = model.split('/');
+      let parts = model.split("/");
       modelName = parts[parts.length - 1];
     } else {
       modelName = model;

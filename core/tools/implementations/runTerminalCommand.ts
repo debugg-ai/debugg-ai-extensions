@@ -1,7 +1,7 @@
 import childProcess from "node:child_process";
+import { fileURLToPath } from "node:url";
 import util from "node:util";
 
-import { fileURLToPath } from "node:url";
 import { ToolImpl } from ".";
 
 const asyncExec = util.promisify(childProcess.exec);

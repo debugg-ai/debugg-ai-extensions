@@ -4,12 +4,12 @@ import { ContinueConfig } from "../../..";
 import { testConfigHandler } from "../../../test/fixtures";
 import FileSystemIde from "../../../util/filesystem";
 
+import { commonDocsSites } from "./crawl-test-cases";
 import DocsCrawler, {
   ChromiumInstaller,
   DocsCrawlerType,
   type PageData,
 } from "./DocsCrawler";
-import { commonDocsSites } from "./crawl-test-cases";
 
 // Temporary workaround until we have better caching of Chromium
 // download between test runs

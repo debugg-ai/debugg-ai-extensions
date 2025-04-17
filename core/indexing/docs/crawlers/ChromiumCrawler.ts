@@ -13,6 +13,7 @@ import {
   getChromiumPath,
   getContinueUtilsPath,
 } from "../../../util/paths";
+
 import { PageData } from "./DocsCrawler";
 
 export class ChromiumCrawler {

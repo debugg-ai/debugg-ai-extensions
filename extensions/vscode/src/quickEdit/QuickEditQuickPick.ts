@@ -208,14 +208,14 @@ export class QuickEdit {
       const { label } = quickPick.selectedItems[0];
       switch (label) {
         case UserPromptLabels.AcceptAll:
-          vscode.commands.executeCommand("debuggai.acceptDiff", path);
+          vscode.commands.executeCommand("debugg-ai.acceptDiff", path);
           break;
         case UserPromptLabels.RejectAll:
-          vscode.commands.executeCommand("debuggai.rejectDiff", path);
+          vscode.commands.executeCommand("debugg-ai.rejectDiff", path);
           break;
         case QuickEditInitialItemLabels.Submit:
           if (quickPick.value) {
-            await vscode.commands.executeCommand("debuggai.rejectDiff", path);
+            await vscode.commands.executeCommand("debugg-ai.rejectDiff", path);
             const newPrompt = quickPick.value;
             appendToHistory(newPrompt, this.context);
             this.handleUserPrompt(newPrompt, path);

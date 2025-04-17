@@ -134,7 +134,7 @@ export class VerticalDiffManager {
 
     this.disableDocumentChangeListener();
 
-    vscode.commands.executeCommand("setContext", "debuggai.diffVisible", false);
+    vscode.commands.executeCommand("setContext", "debugg-ai.diffVisible", false);
   }
 
   async acceptRejectVerticalDiffBlock(
@@ -191,7 +191,7 @@ export class VerticalDiffManager {
     instant: boolean,
     streamId: string,
   ) {
-    vscode.commands.executeCommand("setContext", "debuggai.diffVisible", true);
+    vscode.commands.executeCommand("setContext", "debugg-ai.diffVisible", true);
 
     // Get the current editor fileUri/range
     let editor = vscode.window.activeTextEditor;
@@ -245,7 +245,7 @@ export class VerticalDiffManager {
 
     vscode.commands.executeCommand(
       "setContext",
-      "debuggai.streamingDiff",
+      "debugg-ai.streamingDiff",
       true,
     );
 
@@ -262,7 +262,7 @@ export class VerticalDiffManager {
     } finally {
       vscode.commands.executeCommand(
         "setContext",
-        "debuggai.streamingDiff",
+        "debugg-ai.streamingDiff",
         false,
       );
     }
@@ -277,7 +277,7 @@ export class VerticalDiffManager {
     range?: vscode.Range,
     newCode?: string,
   ): Promise<string | undefined> {
-    vscode.commands.executeCommand("setContext", "debuggai.diffVisible", true);
+    vscode.commands.executeCommand("setContext", "debugg-ai.diffVisible", true);
 
     let editor = vscode.window.activeTextEditor;
 
@@ -412,7 +412,7 @@ export class VerticalDiffManager {
 
     vscode.commands.executeCommand(
       "setContext",
-      "debuggai.streamingDiff",
+      "debugg-ai.streamingDiff",
       true,
     );
 
@@ -456,7 +456,7 @@ export class VerticalDiffManager {
     } finally {
       vscode.commands.executeCommand(
         "setContext",
-        "debuggai.streamingDiff",
+        "debugg-ai.streamingDiff",
         false,
       );
     }
@@ -472,7 +472,7 @@ export class VerticalDiffManager {
     newCode?: string, // new code is provided since we already have the final solution
   ): Promise<string | undefined> {
     // Set context to indicate a diff is visible
-    vscode.commands.executeCommand("setContext", "debuggai.diffVisible", true);
+    vscode.commands.executeCommand("setContext", "debugg-ai.diffVisible", true);
   
     let editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -595,7 +595,7 @@ export class VerticalDiffManager {
     // }
   
     // // Set context to indicate that we are applying a diff.
-    // vscode.commands.executeCommand("setContext", "debuggai.streamingDiff", true);
+    // vscode.commands.executeCommand("setContext", "debugg-ai.streamingDiff", true);
     // // Clear any existing edit decorations.
     // this.editDecorationManager.clear();
   // For an inline edit, we no longer compute prefix and suffix.
@@ -608,7 +608,7 @@ export class VerticalDiffManager {
       editor.selection.active,
     );
 
-    vscode.commands.executeCommand("setContext", "debuggai.streamingDiff", true);
+    vscode.commands.executeCommand("setContext", "debugg-ai.streamingDiff", true);
     this.editDecorationManager.clear();
 
     try {
@@ -657,7 +657,7 @@ export class VerticalDiffManager {
       return undefined;
     } finally {
       // Clear the context flag.
-      vscode.commands.executeCommand("setContext", "debuggai.streamingDiff", false);
+      vscode.commands.executeCommand("setContext", "debugg-ai.streamingDiff", false);
     }
   }
   

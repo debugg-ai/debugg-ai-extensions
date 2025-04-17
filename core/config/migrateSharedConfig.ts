@@ -2,6 +2,7 @@ import { IDE } from "..";
 import { deduplicateArray } from "../util";
 import { GlobalContext } from "../util/GlobalContext";
 import { editConfigJson } from "../util/paths";
+
 import { resolveSerializedConfig } from "./load";
 import { SharedConfigSchema } from "./sharedConfig";
 

@@ -64,8 +64,8 @@ export function union(a: Range, b: Range): Range {
       line: a.start.line,
       character: Math.min(a.start.character, b.start.character),
     };
-  } else if (a.start.line < b.start.line) start = a.start;
-  else start = b.start;
+  } else if (a.start.line < b.start.line) {start = a.start;}
+  else {start = b.start;}
 
   let end: Position;
   if (a.end.line === b.end.line) {
@@ -73,8 +73,8 @@ export function union(a: Range, b: Range): Range {
       line: a.end.line,
       character: Math.max(a.end.character, b.end.character),
     };
-  } else if (a.end.line > b.end.line) end = a.end;
-  else end = b.end;
+  } else if (a.end.line > b.end.line) {end = a.end;}
+  else {end = b.end;}
 
   return {
     start,

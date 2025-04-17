@@ -52,7 +52,7 @@ export const getSnippets = (
       [...payload.rootPathSnippets, ...payload.importDefinitionSnippets],
       helper.prunedCaretWindow,
     )),
-  }
+  };
 
   // Define snippets with their priorities
   const snippetConfigs: {
@@ -107,7 +107,7 @@ export const getSnippets = (
     .filter(({ enabledOrPriority }) => enabledOrPriority)
     .map(({ key, enabledOrPriority, defaultPriority }) => ({
       key,
-      priority: typeof enabledOrPriority === 'number' ? enabledOrPriority : defaultPriority,
+      priority: typeof enabledOrPriority === "number" ? enabledOrPriority : defaultPriority,
     }))
     .sort((a, b) => a.priority - b.priority);
 

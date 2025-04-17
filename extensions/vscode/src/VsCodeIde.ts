@@ -16,18 +16,18 @@ import { getExtensionUri, openEditorAndRevealRange } from "./util/vscode";
 import { VsCodeWebviewProtocol } from "./webviewProtocol";
 
 import type {
-  ContinueRcJson,
-  FileStatsMap,
-  FileType,
-  IDE,
-  IdeInfo,
-  IdeSettings,
-  IndexTag,
-  Location,
-  Problem,
-  RangeInFile,
-  TerminalOptions,
-  Thread,
+    ContinueRcJson,
+    FileStatsMap,
+    FileType,
+    IDE,
+    IdeInfo,
+    IdeSettings,
+    IndexTag,
+    Location,
+    Problem,
+    RangeInFile,
+    TerminalOptions,
+    Thread,
 } from "core";
 
 class VsCodeIde implements IDE {
@@ -263,7 +263,7 @@ class VsCodeIde implements IDE {
       version: vscode.version,
       remoteName: vscode.env.remoteName || "local",
       extensionVersion:
-        vscode.extensions.getExtension("debuggai.continue")?.packageJSON
+        vscode.extensions.getExtension("debugg-ai.debugg-ai")?.packageJSON
           .version,
     });
   }
@@ -315,7 +315,7 @@ class VsCodeIde implements IDE {
   }
 
   async getClipboardContent() {
-    return this.context.workspaceState.get("debuggai.copyBuffer", {
+    return this.context.workspaceState.get("debugg-ai.copyBuffer", {
       text: "",
       copiedAt: new Date("1900-01-01").toISOString(),
     });

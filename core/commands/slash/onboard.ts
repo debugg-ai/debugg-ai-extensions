@@ -1,6 +1,5 @@
 import ignore from "ignore";
 
-import type { FileType, IDE, SlashCommand } from "../..";
 import {
   DEFAULT_IGNORE,
   getGlobalContinueIgArray,
@@ -12,6 +11,8 @@ import {
   getUriPathBasename,
   joinPathsToUri,
 } from "../../util/uri";
+
+import type { FileType, IDE, SlashCommand } from "../..";
 
 const LANGUAGE_DEP_MGMT_FILENAMES = [
   "package.json", // JavaScript (Node.js)

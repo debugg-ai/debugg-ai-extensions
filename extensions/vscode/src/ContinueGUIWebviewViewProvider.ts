@@ -11,7 +11,7 @@ import type { FileEdit } from "core";
 export class DebuggGuiWebviewViewProvider
   implements vscode.WebviewViewProvider
 {
-  public static readonly viewType = "debuggai.debuggaiGUIView";
+  public static readonly viewType = "debugg-ai.debuggaiGUIView";
   public webviewProtocol: VsCodeWebviewProtocol;
 
   public get isReady(): boolean {

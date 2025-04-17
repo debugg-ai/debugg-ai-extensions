@@ -1,6 +1,8 @@
+import { Issue } from "core/debuggAIServer/services/types";
+import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import * as vscode from "vscode";
-import { IssuesService } from "../services/backend/issues";
-import { Issue } from "../services/backend/types";
+
+
 
 /**
  * A class-based notification provider.
@@ -14,7 +16,9 @@ export class NotificationProvider {
   private statusBarItem?: vscode.StatusBarItem;
   private disposables: vscode.Disposable[] = [];
 
-  constructor() {
+  constructor(
+    private debuggAIServerClient: DebuggAIServerClient, 
+  ) {
     // Get the display mode from configuration ("continueNotifications.displayMode")
     this.displayMode = vscode.workspace
       .getConfiguration("continueNotifications")
@@ -29,8 +33,8 @@ export class NotificationProvider {
    */
   public async checkNotifications(projectKey: string): Promise<Issue[]> {
     try {
-      const response = await IssuesService.getAlertLevelIssues(projectKey);
-      return response;
+      const response = await this.debuggAIServerClient.issues?.getAlertLevelIssues(projectKey);
+      return response ?? [];
     } catch (error) {
       vscode.window.showErrorMessage("Error fetching notifications: " + error);
       return [];
@@ -92,11 +96,11 @@ export class NotificationProvider {
     this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     this.statusBarItem.text = `$(alert) ${notifications.length} issue notifications`;
     this.statusBarItem.tooltip = "Click to view issue notifications";
-    this.statusBarItem.command = "debuggai.openNotifications";
+    this.statusBarItem.command = "debugg-ai.openNotifications";
     this.statusBarItem.show();
 
     // Register a command for when the status bar item is clicked.
-    const disposable = vscode.commands.registerCommand("debuggai.openNotifications", async () => {
+    const disposable = vscode.commands.registerCommand("debugg-ai.openNotifications", async () => {
       await this.showQuickPick(notifications);
       if (this.statusBarItem) {
         this.statusBarItem.hide();

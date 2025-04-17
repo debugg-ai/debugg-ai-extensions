@@ -2,6 +2,7 @@
 
 import fs from "fs";
 import path from "path";
+
 import { CodeSnippetsCodebaseIndex } from "../indexing/CodeSnippetsIndex";
 import { testIde, testLLM } from "../test/fixtures";
 import {
@@ -10,6 +11,7 @@ import {
   tearDownTestDir,
   TEST_DIR,
 } from "../test/testDir";
+
 import generateRepoMap from "./generateRepoMap";
 import { getRepoMapFilePath } from "./paths";
 

@@ -1,14 +1,16 @@
 // utils/axiosTransport.ts
-import type {
-    AxiosInstance,
-    AxiosRequestConfig,
-    AxiosResponse,
-} from "axios";
 import axios from "axios";
+
 import {
-    objToCamelCase,
-    objToSnakeCase,
+  objToCamelCase,
+  objToSnakeCase,
 } from "../../util/objectNaming";
+
+import type {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+} from "axios";
   
   /** Constructor options that come from the top‑level client */
   export interface AxiosTransportOptions {

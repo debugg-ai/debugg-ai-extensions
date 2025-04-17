@@ -100,7 +100,7 @@ export class VsCodeMessenger {
     });
 
     this.onWebview("toggleDevTools", (msg) => {
-      vscode.commands.executeCommand("debuggai.viewLogs");
+      vscode.commands.executeCommand("debugg-ai.viewLogs");
     });
     this.onWebview("reloadWindow", (msg) => {
       vscode.commands.executeCommand("workbench.action.reloadWindow");
@@ -109,12 +109,12 @@ export class VsCodeMessenger {
       vscode.commands.executeCommand("workbench.action.focusActiveEditorGroup");
     });
     this.onWebview("toggleFullScreen", (msg) => {
-      vscode.commands.executeCommand("debuggai.toggleFullScreen");
+      vscode.commands.executeCommand("debugg-ai.toggleFullScreen");
     });
 
     this.onWebview("acceptDiff", async ({ data: { filepath, streamId } }) => {
       await vscode.commands.executeCommand(
-        "debuggai.acceptDiff",
+        "debugg-ai.acceptDiff",
         filepath,
         streamId,
       );
@@ -122,7 +122,7 @@ export class VsCodeMessenger {
 
     this.onWebview("rejectDiff", async ({ data: { filepath, streamId } }) => {
       await vscode.commands.executeCommand(
-        "debuggai.rejectDiff",
+        "debugg-ai.rejectDiff",
         filepath,
         streamId,
       );
@@ -433,7 +433,7 @@ export class VsCodeMessenger {
       );
       vscode.commands.executeCommand(
         "setContext",
-        "debuggai.isSignedInToControlPlane",
+        "debugg-ai.isSignedInToControlPlane",
         false,
       );
     });

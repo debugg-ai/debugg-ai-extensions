@@ -1,8 +1,9 @@
-import { jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
+import { jest } from "@jest/globals";
 import Parser from "web-tree-sitter";
+
 import { Position } from "../../../..";
 import { testIde } from "../../../../test/fixtures";
 import { getAst, getTreePathAtCursor } from "../../../util/ast";

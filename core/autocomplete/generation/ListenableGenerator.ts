@@ -3,7 +3,7 @@ export class ListenableGenerator<T> {
   private _buffer: T[] = [];
   private _listeners: Set<(value: T) => void> = new Set();
   private _isEnded = false;
-  private _abortController: AbortController
+  private _abortController: AbortController;
 
   constructor(
     source: AsyncGenerator<T>,

@@ -19,7 +19,7 @@ const isValidClipboardSnippet = (
 };
 
 export const isValidSnippet = (snippet: AutocompleteSnippet): boolean => {
-  if (snippet.content.trim() === "") return false;
+  if (snippet.content.trim() === "") {return false;}
 
   if (snippet.type === AutocompleteSnippetType.Clipboard) {
     return isValidClipboardSnippet(snippet);

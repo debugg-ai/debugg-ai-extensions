@@ -2,11 +2,11 @@ import { ConfigResult, parseConfigYaml } from "@continuedev/config-yaml";
 
 import { ControlPlaneClient } from "../../control-plane/client.js";
 import { ContinueConfig, IDE, IdeSettings } from "../../index.js";
-import { ProfileDescription } from "../ProfileLifecycleManager.js";
-
 import { getPrimaryConfigFilePath } from "../../util/paths.js";
 import { localPathToUri } from "../../util/pathToUri.js";
 import { getUriPathBasename } from "../../util/uri.js";
+import { ProfileDescription } from "../ProfileLifecycleManager.js";
+
 import doLoadConfig from "./doLoadConfig.js";
 import { IProfileLoader } from "./IProfileLoader.js";
 

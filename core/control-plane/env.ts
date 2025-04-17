@@ -1,4 +1,5 @@
 import * as fs from "node:fs";
+
 import { IdeSettings } from "..";
 import {
   getLocalEnvironmentDotFilePath,
@@ -9,58 +10,69 @@ export interface ControlPlaneEnv {
   DEFAULT_CONTROL_PLANE_PROXY_URL: string;
   CONTROL_PLANE_URL: string;
   AUTH_TYPE: string;
-  WORKOS_CLIENT_ID: string;
+  OAUTH_CLIENT_ID: string;
+  OAUTH_CLIENT_SECRET: string;
   APP_URL: string;
 }
 
-export const EXTENSION_NAME = "continue";
+export const EXTENSION_NAME = "debuggai";
 
-const WORKOS_CLIENT_ID_PRODUCTION = "client_01J0FW6XN8N2XJAECF7NE0Y65J";
-const WORKOS_CLIENT_ID_STAGING = "client_01J0FW6XCPMJMQ3CG51RB4HBZQ";
+// const OAUTH_CLIENT_ID_PRODUCTION = "client_01J0FW6XN8N2XJAECF7NE0Y65J";
+// const OAUTH_CLIENT_ID_STAGING = "client_01J0FW6XCPMJMQ3CG51RB4HBZQ";
+const CLIENT_ID = "itQpxtiloI1uvgMilBrRKyCN3ppQol2wH1TP7184";    
+const CLIENT_SECRET_DEV = "AiHgQ1XukD3UEgsnqkI7BjjRN5fIoKiH0KolMLJsXB2rXUaXrZNJ5aPYUzBIMPBByRJIj6ZZQ2A1FLRLan55qcEVgBeHzpKcHtUtnxSjiiaqi3pPX5uBn7nBvN1Zxp66";
+const CLIENT_SECRET_PROD = "AiHgQ1XukD3UEgsnqkI7BjjRN5fIoKiH0KolMLJsXB2rXUaXrZNJ5aPYUzBIMPBByRJIj6ZZQ2A1FLRLan55qcEVgBeHzpKcHtUtnxSjiiaqi3pPX5uBn7nBvN1Zxp66";
 
-const WORKOS_ENV_ID_PRODUCTION = "continue";
-const WORKOS_ENV_ID_STAGING = "continue-staging";
+const OUATH_ENV_ID = "debugg-ai";
+const OUATH_ENV_ID_STAGING = "debugg-ai-staging";
+const OUATH_ENV_ID_TEST = "debugg-ai-test";
+
 
 export const PRODUCTION_ENV: ControlPlaneEnv = {
   DEFAULT_CONTROL_PLANE_PROXY_URL:
     "https://control-plane-api-service-i3dqylpbqa-uc.a.run.app/",
   CONTROL_PLANE_URL:
     "https://control-plane-api-service-i3dqylpbqa-uc.a.run.app/",
-  AUTH_TYPE: WORKOS_ENV_ID_PRODUCTION,
-  WORKOS_CLIENT_ID: WORKOS_CLIENT_ID_PRODUCTION,
-  APP_URL: "https://app.continue.dev/",
+  AUTH_TYPE: OUATH_ENV_ID,
+  OAUTH_CLIENT_ID: CLIENT_ID,
+  OAUTH_CLIENT_SECRET: CLIENT_SECRET_PROD,
+  APP_URL: "https://app.debugg.ai/",
 };
 
 const PRODUCTION_HUB_ENV: ControlPlaneEnv = {
-  DEFAULT_CONTROL_PLANE_PROXY_URL: "https://api.continue.dev/",
-  CONTROL_PLANE_URL: "https://api.continue.dev/",
-  AUTH_TYPE: WORKOS_ENV_ID_PRODUCTION,
-  WORKOS_CLIENT_ID: WORKOS_CLIENT_ID_PRODUCTION,
-  APP_URL: "https://hub.continue.dev/",
+  DEFAULT_CONTROL_PLANE_PROXY_URL: "https://api.debugg.ai/",
+  CONTROL_PLANE_URL: "https://api.debugg.ai/",
+  AUTH_TYPE: OUATH_ENV_ID,
+  OAUTH_CLIENT_ID: CLIENT_ID,
+  OAUTH_CLIENT_SECRET: CLIENT_SECRET_PROD,
+  APP_URL: "https://hub.debugg.ai/",
 };
 
 const STAGING_ENV: ControlPlaneEnv = {
-  DEFAULT_CONTROL_PLANE_PROXY_URL: "https://api.continue-stage.tools/",
-  CONTROL_PLANE_URL: "https://api.continue-stage.tools/",
-  AUTH_TYPE: WORKOS_ENV_ID_STAGING,
-  WORKOS_CLIENT_ID: WORKOS_CLIENT_ID_STAGING,
-  APP_URL: "https://hub.continue-stage.tools/",
+  DEFAULT_CONTROL_PLANE_PROXY_URL: "https://api.st.debugg.ai/",
+  CONTROL_PLANE_URL: "https://api.st.debugg.ai/",
+  AUTH_TYPE: OUATH_ENV_ID_STAGING,
+  OAUTH_CLIENT_ID: CLIENT_ID,
+  OAUTH_CLIENT_SECRET: CLIENT_SECRET_DEV,
+  APP_URL: "https://hub.st.debugg.ai/",
 };
 
 const TEST_ENV: ControlPlaneEnv = {
-  DEFAULT_CONTROL_PLANE_PROXY_URL: "https://api-test.continue.dev/",
-  CONTROL_PLANE_URL: "https://api-test.continue.dev/",
-  AUTH_TYPE: WORKOS_ENV_ID_STAGING,
-  WORKOS_CLIENT_ID: WORKOS_CLIENT_ID_STAGING,
-  APP_URL: "https://app-test.continue.dev/",
+  DEFAULT_CONTROL_PLANE_PROXY_URL: "https://debuggai-backend.ngrok.app/",
+  CONTROL_PLANE_URL: "https://debuggai-backend.ngrok.app/",
+  AUTH_TYPE: OUATH_ENV_ID_TEST,
+  OAUTH_CLIENT_ID: CLIENT_ID,
+  OAUTH_CLIENT_SECRET: CLIENT_SECRET_DEV,
+  APP_URL: "https://app-test.debugg.ai/",
 };
 
 const LOCAL_ENV: ControlPlaneEnv = {
-  DEFAULT_CONTROL_PLANE_PROXY_URL: "http://localhost:3001/",
-  CONTROL_PLANE_URL: "http://localhost:3001/",
-  AUTH_TYPE: WORKOS_ENV_ID_STAGING,
-  WORKOS_CLIENT_ID: WORKOS_CLIENT_ID_STAGING,
-  APP_URL: "http://localhost:3000/",
+  DEFAULT_CONTROL_PLANE_PROXY_URL: "http://localhost:81/",
+  CONTROL_PLANE_URL: "http://localhost:81/",
+  AUTH_TYPE: OUATH_ENV_ID_TEST,
+  OAUTH_CLIENT_ID: CLIENT_ID,
+  OAUTH_CLIENT_SECRET: CLIENT_SECRET_DEV,
+  APP_URL: "http://localhost:81/",
 };
 
 export async function enableHubContinueDev() {

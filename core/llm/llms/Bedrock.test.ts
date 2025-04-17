@@ -1,7 +1,9 @@
 import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
-import Bedrock from "./Bedrock.js";
+
 import { ChatMessage, Chunk, CompletionOptions, UserChatMessage } from "../../index.js";
+
+import Bedrock from "./Bedrock.js";
 
 // Mock AWS SDK
 jest.mock("@aws-sdk/client-bedrock-runtime", () => ({
@@ -49,7 +51,7 @@ class TestBedrock extends Bedrock {
           type: "function",
           function: {
             name: "test_tool",
-            arguments: '{"arg1":"value1"}'
+            arguments: "{\"arg1\":\"value1\"}"
           }
         }],
       };
@@ -173,7 +175,7 @@ describe("Bedrock", () => {
             type: "function",
             function: {
               name: "test_tool",
-              arguments: '{"arg1":"value1"}'
+              arguments: "{\"arg1\":\"value1\"}"
             }
           }],
         },
@@ -325,7 +327,7 @@ describe("Bedrock", () => {
           type: "function" as const,
           function: {
             name: "test_tool",
-            arguments: '{"arg":"value"}',
+            arguments: "{\"arg\":\"value\"}",
           },
         }],
       };

@@ -194,7 +194,7 @@ Continue 暴露一个 API ，从第三方 VSCode 扩展注册上下文提供者�
 
 ```json
 {
-  "extensionDependencies": ["debuggai.continue"]
+  "extensionDependencies": ["debugg-ai.debugg-ai"]
 }
 ```
 
@@ -240,7 +240,7 @@ class MyCustomProvider implements IContextProvider {
 const customProvider = new MyCustomProvider();
 
 // get Continue extension using vscode API
-const continueExt = vscode.extensions.getExtension("debuggai.continue");
+const continueExt = vscode.extensions.getExtension("debugg-ai.debugg-ai");
 
 // get the API from the extension
 const continueApi = continueExt?.exports;

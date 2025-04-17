@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+
 import { ContextItem, ContinueSDK, IContextProvider } from "../..";
 
 function createContextItem(item: ContextItem, provider: IContextProvider) {

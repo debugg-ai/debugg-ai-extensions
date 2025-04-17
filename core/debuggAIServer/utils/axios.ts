@@ -1,12 +1,12 @@
-import axios from 'axios';
+import axios from "axios";
 
 
 const axiosServices = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:81',
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:81",
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Authorization': `Token 6f960ed60c88b5af7d1d7ecfabeee53f5068dc4d`,
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "Authorization": "Token 6f960ed60c88b5af7d1d7ecfabeee53f5068dc4d",
   },
 });
 
@@ -31,7 +31,7 @@ axiosServices.interceptors.response.use(
     if (error) {
       // error = objToCamelCase(error);
     }
-    return Promise.reject((error.response && error.response.data) || 'Wrong Services');
+    return Promise.reject((error.response && error.response.data) || "Wrong Services");
   }
 );
 

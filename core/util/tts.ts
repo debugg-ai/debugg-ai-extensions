@@ -3,8 +3,8 @@ import os from "node:os";
 
 import { removeCodeBlocksAndTrim } from ".";
 
-import type { IMessenger } from "../protocol/messenger";
 import type { FromCoreProtocol, ToCoreProtocol } from "../protocol";
+import type { IMessenger } from "../protocol/messenger";
 
 // The amount of time before a process is declared
 // a zombie after executing .kill()

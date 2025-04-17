@@ -1,6 +1,6 @@
 // highlight.ts
+import { Level } from 'core/debuggAIServer/types';
 import * as vscode from 'vscode';
-import { Level } from '../services/backend/types';
 
 // Keep track of active decorations
 let activeDecorations: vscode.TextEditorDecorationType[] = [];

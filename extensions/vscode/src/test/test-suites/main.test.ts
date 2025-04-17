@@ -14,10 +14,10 @@ describe("Extension Test Suite", () => {
 
   test("Get the default model from webview", async () => {
     const continueExtensionApi =
-      vscode.extensions.getExtension("debuggai.continue");
+      vscode.extensions.getExtension("debugg-ai.debugg-ai");
     const extension: VsCodeExtension = continueExtensionApi?.exports.extension;
     await new Promise((resolve) => setTimeout(resolve, 400));
-    await vscode.commands.executeCommand("debuggai.focusContinueInput");
+    await vscode.commands.executeCommand("debugg-ai.focusContinueInput");
     await new Promise((resolve) => setTimeout(resolve, 400));
     const title = await (
       await extension.webviewProtocolPromise

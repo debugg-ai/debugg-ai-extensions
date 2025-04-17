@@ -1,5 +1,5 @@
+import { Issue } from 'core/debuggAIServer/types';
 import * as vscode from 'vscode';
-import { Issue } from '../../services/backend/types';
 
 /**
  * Determines the range to replace.
@@ -46,7 +46,7 @@ export async function applySuggestedEdit(newCode: string, providedRange?: vscode
   const replaceRange = determineReplaceRange(editor, providedRange);
 
   // Optionally, update context before applying the edit.
-  await vscode.commands.executeCommand("setContext", "debuggai.applyEditInProgress", true);
+  await vscode.commands.executeCommand("setContext", "debugg-ai.applyEditInProgress", true);
 
   try {
     const success = await editor.edit(editBuilder => {
@@ -62,7 +62,7 @@ export async function applySuggestedEdit(newCode: string, providedRange?: vscode
     vscode.window.showErrorMessage(`Error applying edit: ${e}`);
     return false;
   } finally {
-    await vscode.commands.executeCommand("setContext", "debuggai.applyEditInProgress", false);
+    await vscode.commands.executeCommand("setContext", "debugg-ai.applyEditInProgress", false);
   }
 }
 

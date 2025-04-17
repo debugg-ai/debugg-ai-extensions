@@ -6,6 +6,12 @@ import {
   getParserForFile,
   getQueryForFile,
 } from "../util/treeSitter";
+import {
+  findUriInDirs,
+  getLastNPathParts,
+  getLastNUriRelativePathParts,
+  getUriPathBasename,
+} from "../util/uri";
 
 import { DatabaseConnection, SqliteDb, tagToString } from "./refreshIndex";
 import {
@@ -23,12 +29,6 @@ import type {
   IndexTag,
   IndexingProgressUpdate,
 } from "../";
-import {
-  findUriInDirs,
-  getLastNPathParts,
-  getLastNUriRelativePathParts,
-  getUriPathBasename,
-} from "../util/uri";
 
 type SnippetChunk = ChunkWithoutID & { title: string; signature: string };
 

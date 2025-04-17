@@ -43,7 +43,7 @@ describe.skip("Chat Templates", () => {
         { role: "user", content: "Tell me a joke." },
       ];
       const prompt = llama2TemplateMessages(messages);
-      const expectedPrompt = `[INST] Tell me a joke. [/INST]`;
+      const expectedPrompt = "[INST] Tell me a joke. [/INST]";
       expect(prompt).toBe(expectedPrompt);
     });
 
@@ -53,7 +53,7 @@ describe.skip("Chat Templates", () => {
         { role: "user", content: "What is the time?" },
       ];
       const prompt = llama2TemplateMessages(messages);
-      const expectedPrompt = `[INST] What is the time? [/INST]`;
+      const expectedPrompt = "[INST] What is the time? [/INST]";
       expect(prompt).toBe(expectedPrompt);
     });
 
@@ -69,7 +69,7 @@ describe.skip("Chat Templates", () => {
         { role: "user", content: "Hello" },
       ];
       const prompt = llama2TemplateMessages(messages);
-      const expectedPrompt = `[INST] Hello [/INST]`;
+      const expectedPrompt = "[INST] Hello [/INST]";
       expect(prompt).toBe(expectedPrompt);
     });
   });

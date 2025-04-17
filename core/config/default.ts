@@ -1,4 +1,5 @@
 import {
+  CollectionVectorMetric,
   ContextProviderWithParams,
   ModelDescription,
   SerializedContinueConfig,
@@ -78,10 +79,27 @@ export const defaultSlashCommandsJetBrains = [
   },
 ];
 
+const defaultVectorDatabaseOpts = {
+  provider: "astradb",
+  apiKey: "AstraCS:kAnWaLElxFqnZOYTTbKzFguI:d30a895f46d7ff5c52eccf9aa74def9e3aeaebc2e200a591e416a516b4e595e1",
+  endpoint: "https://1e17d4f9-5e55-499f-9fab-9a6834f1bf65-us-east-2.apps.astra.datastax.com",
+  keyspace: "default_keyspace",
+  metric: "cosine" as CollectionVectorMetric,
+};
+
+const defaultEmbeddingsProvider = {
+  provider: "openai",
+  apiKey: "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",
+  model: "text-embedding-3-small",
+  maxEmbeddingChunkSize: 512,
+};
+
 export const defaultConfig: SerializedContinueConfig = {
   models: [],
   contextProviders: defaultContextProvidersVsCode,
   slashCommands: defaultSlashCommandsVscode,
+  embeddingsProvider: defaultEmbeddingsProvider,
+  vectorDatabaseOpts: defaultVectorDatabaseOpts,
   data: [],
 };
 

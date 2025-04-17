@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { CompletionProvider } from "./autocomplete/CompletionProvider";
 import { ConfigHandler } from "./config/ConfigHandler";
 import { SYSTEM_PROMPT_DOT_FILE } from "./config/getSystemPromptDotFile";
+import { isLocalAssistantFile } from "./config/loadLocalAssistants";
 import {
   setupBestConfig,
   setupLocalConfig,
@@ -23,6 +24,8 @@ import { streamDiffLines } from "./edit/streamDiffLines";
 import { CodebaseIndexer, PauseToken } from "./indexing/CodebaseIndexer";
 import DocsService from "./indexing/docs/DocsService";
 import { getAllSuggestedDocs } from "./indexing/docs/suggestions";
+import { shouldIgnore } from "./indexing/shouldIgnore";
+import { walkDirCache } from "./indexing/walkDir";
 import Ollama from "./llm/llms/Ollama";
 import { createNewPromptFileV2 } from "./promptFiles/v2/createNewPromptFile";
 import { callTool } from "./tools/callTool";
@@ -44,9 +47,7 @@ import {
   type IndexingProgressUpdate,
 } from ".";
 
-import { isLocalAssistantFile } from "./config/loadLocalAssistants";
-import { shouldIgnore } from "./indexing/shouldIgnore";
-import { walkDirCache } from "./indexing/walkDir";
+
 import type { FromCoreProtocol, ToCoreProtocol } from "./protocol";
 import type { IMessenger, Message } from "./protocol/messenger";
 
@@ -176,8 +177,8 @@ export class Core {
 
     void ideSettingsPromise.then((ideSettings) => {
       const debuggAIServerClient = new DebuggAIServerClient(
-        ideSettings.remoteConfigServerUrl,
-        ideSettings.userToken,
+        this.configHandler,
+        this.ide
       );
       debuggAIServerClientResolve(debuggAIServerClient);
 
@@ -1015,6 +1016,10 @@ export class Core {
     on("didChangeSelectedProfile", async (msg) => {
       await this.configHandler.setSelectedProfile(msg.data.id);
       await this.configHandler.reloadConfig();
+      const client = await this.debuggAIServerClientPromise;
+      if (client) {
+        client.updateSessionInfo();
+      }
     });
 
     on("didChangeSelectedOrg", async (msg) => {
@@ -1033,6 +1038,10 @@ export class Core {
       await this.configHandler.updateControlPlaneSessionInfo(
         msg.data.sessionInfo,
       );
+      const client = await this.debuggAIServerClientPromise;
+      if (client) {
+        client.updateSessionInfo(msg.data.sessionInfo);
+      }
     });
     on("auth/getAuthUrl", async (msg) => {
       const url = await getAuthUrlForTokenPage(

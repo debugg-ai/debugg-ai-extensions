@@ -1,9 +1,10 @@
-import { jest } from "@jest/globals";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "path";
 
-import { ContinueServerClient } from "../continueServer/stubs/client.js";
+import { jest } from "@jest/globals";
+
+import { DebuggAIServerClient } from "../debuggAIServer/stubs/client.js";
 import { testConfigHandler, testIde } from "../test/fixtures.js";
 import {
   addToTestDir,
@@ -13,14 +14,13 @@ import {
   TEST_DIR_PATH,
 } from "../test/testDir.js";
 import { getIndexSqlitePath } from "../util/paths.js";
-
 import { localPathToUri } from "../util/pathToUri.js";
+
 import { CodebaseIndexer, PauseToken } from "./CodebaseIndexer.js";
 import { getComputeDeleteAddRemove } from "./refreshIndex.js";
 import { TestCodebaseIndex } from "./TestCodebaseIndex.js";
 import { CodebaseIndex } from "./types.js";
 import { walkDir, walkDirCache } from "./walkDir.js";
-
 jest.useFakeTimers();
 
 const TEST_TS = `\
@@ -63,7 +63,10 @@ class TestCodebaseIndexer extends CodebaseIndexer {
 // the individual CodebaseIndex classes
 describe("CodebaseIndexer", () => {
   const pauseToken = new PauseToken(false);
-  const continueServerClient = new ContinueServerClient(undefined, undefined);
+  const continueServerClient = new DebuggAIServerClient(
+    testConfigHandler,
+    testIde,
+  );
   const codebaseIndexer = new TestCodebaseIndexer(
     testConfigHandler,
     testIde,
@@ -77,10 +80,10 @@ describe("CodebaseIndexer", () => {
     setUpTestDir();
 
     execSync("git init", { cwd: TEST_DIR_PATH });
-    execSync('git config user.email "test@example.com"', {
+    execSync("git config user.email \"test@example.com\"", {
       cwd: TEST_DIR_PATH,
     });
-    execSync('git config user.name "Test"', { cwd: TEST_DIR_PATH });
+    execSync("git config user.name \"Test\"", { cwd: TEST_DIR_PATH });
   });
 
   afterAll(async () => {

@@ -16,7 +16,7 @@ export const createReposService = (
 ): ReposService => ({
   async upsertVectorCollection(collectionName, directory, branch, artifactId) {
     console.log("upsertVectorCollection - ", collectionName, directory, branch, artifactId);
-    await tx.post("/api/v1/collections/upsert", {
+    await tx.post("/api/v1/collections/upsert/", {
       collectionName,
       directory,
       branch,
@@ -26,6 +26,6 @@ export const createReposService = (
 
   async deleteVectorCollection(collectionName) {
     console.log("deleteVectorCollection - ", collectionName);
-    await tx.delete(`/api/v1/collections/${collectionName}`);
+    await tx.delete(`/api/v1/collections/${collectionName}/`);
   },
 });

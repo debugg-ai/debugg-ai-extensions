@@ -1,16 +1,16 @@
 import Handlebars from "handlebars";
 
 import { CompletionOptions } from "../..";
+import { getUriPathBasename } from "../../util/uri";
 import { AutocompleteLanguageInfo } from "../constants/AutocompleteLanguageInfo";
+import { SnippetPayload } from "../snippets";
 import { HelperVars } from "../util/HelperVars";
 
-import { SnippetPayload } from "../snippets";
 import {
   AutocompleteTemplate,
   getTemplateForModel,
 } from "./AutocompleteTemplate";
 import { getSnippets } from "./filtering";
-import { getUriPathBasename } from "../../util/uri";
 import { formatSnippets } from "./formatting";
 import { getStopTokens } from "./getStopTokens";
 

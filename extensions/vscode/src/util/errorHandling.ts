@@ -35,11 +35,11 @@ export function handleLLMError(error: any): boolean {
     if (val === "Download Ollama") {
       vscode.env.openExternal(vscode.Uri.parse("https://ollama.ai/download"));
     } else if (val === "Start Ollama") {
-      vscode.commands.executeCommand("debuggai.startLocalOllama");
+      vscode.commands.executeCommand("debugg-ai.startLocalOllama");
     } else if (val === "Install Model" && error.llm) {
       //Eventually, we might be able to support installing models for other LLM providers than Ollama
       vscode.commands.executeCommand(
-        "debuggai.installModel",
+        "debugg-ai.installModel",
         modelName,
         error.llm,
       );

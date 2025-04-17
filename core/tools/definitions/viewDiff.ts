@@ -1,5 +1,4 @@
 import { Tool } from "../..";
-
 import { BuiltInToolNames } from "../builtIn";
 
 export const viewDiffTool: Tool = {

@@ -103,7 +103,7 @@ export class VsCodeExtension {
     // Sidebar
     context.subscriptions.push(
       vscode.window.registerWebviewViewProvider(
-        "debuggai.debuggaiGUIView",
+        "debugg-ai.debuggaiGUIView",
         this.sidebar,
         {
           webviewOptions: { retainContextWhenHidden: true },
@@ -111,22 +111,6 @@ export class VsCodeExtension {
       ),
     );
     resolveWebviewProtocol(this.sidebar.webviewProtocol);
-
-    // Error file decoration provider
-    // This is used to highlight files with errors in the sidebar
-    this.errorFileDecorationProvider = new ErrorFileDecorationProvider();
-    context.subscriptions.push(
-      vscode.window.registerFileDecorationProvider(this.errorFileDecorationProvider)
-    );
-
-    this.inlineIssueHintsProvider = new OptionsInlayHintsProvider();
-    // Register the inlay hints provider
-    context.subscriptions.push(
-      vscode.languages.registerInlayHintsProvider(
-        ['*'], // Register for all languages, or specify specific ones like ['typescript', 'javascript']
-        this.inlineIssueHintsProvider
-      )
-    );
 
     // Config Handler with output channel
     const outputChannel = vscode.window.createOutputChannel(
@@ -275,6 +259,22 @@ export class VsCodeExtension {
       this.fileSearch,
     );
 
+    // Error file decoration provider
+    // This is used to highlight files with errors in the sidebar
+    this.errorFileDecorationProvider = new ErrorFileDecorationProvider();
+    context.subscriptions.push(
+      vscode.window.registerFileDecorationProvider(this.errorFileDecorationProvider)
+    );
+
+    this.inlineIssueHintsProvider = new OptionsInlayHintsProvider(this.core.debuggAIServerClientPromise);
+    // Register the inlay hints provider
+    context.subscriptions.push(
+      vscode.languages.registerInlayHintsProvider(
+        ['*'], // Register for all languages, or specify specific ones like ['typescript', 'javascript']
+        this.inlineIssueHintsProvider
+      )
+    );
+
     // Commands
     registerAllCommands(
       context,
@@ -352,7 +352,7 @@ export class VsCodeExtension {
       if (e.provider.id === env.AUTH_TYPE) {
         vscode.commands.executeCommand(
           "setContext",
-          "debuggai.isSignedInToControlPlane",
+          "debugg-ai.isSignedInToControlPlane",
           true,
         );
 
@@ -371,7 +371,7 @@ export class VsCodeExtension {
       } else {
         vscode.commands.executeCommand(
           "setContext",
-          "debuggai.isSignedInToControlPlane",
+          "debugg-ai.isSignedInToControlPlane",
           false,
         );
 

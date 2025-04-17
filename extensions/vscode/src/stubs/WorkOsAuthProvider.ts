@@ -385,7 +385,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
         const url = new URL("https://api.workos.com/user_management/authorize");
         const params = {
           response_type: "code",
-          client_id: controlPlaneEnv.WORKOS_CLIENT_ID,
+          client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
           redirect_uri: this.redirectUri,
           state: stateId,
           code_challenge: codeChallenge,
@@ -483,7 +483,7 @@ export class WorkOsAuthProvider implements AuthenticationProvider, Disposable {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          client_id: controlPlaneEnv.WORKOS_CLIENT_ID,
+          client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
           code_verifier: codeVerifier,
           grant_type: "authorization_code",
           code: token,

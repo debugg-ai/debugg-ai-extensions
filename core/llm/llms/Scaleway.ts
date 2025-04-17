@@ -1,7 +1,9 @@
-import OpenAI from "./OpenAI";
+import { ChatCompletionCreateParams } from "openai/resources/index";
 
 import { LLMOptions, CompletionOptions, ChatMessage } from "../../index.js";
-import { ChatCompletionCreateParams } from "openai/resources/index";
+
+import OpenAI from "./OpenAI";
+
 
 
 class Scaleway extends OpenAI {

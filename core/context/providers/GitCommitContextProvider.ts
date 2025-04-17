@@ -1,3 +1,5 @@
+import { fileURLToPath} from "node:url";
+
 import {
     ContextItem,
     ContextProviderDescription,
@@ -6,7 +8,6 @@ import {
     LoadSubmenuItemsArgs,
   } from "../../index.js";
 import { BaseContextProvider } from "../index.js";
-import { fileURLToPath} from "node:url";
 
 class GitCommitContextProvider extends BaseContextProvider {
   static description: ContextProviderDescription = {
@@ -27,7 +28,7 @@ class GitCommitContextProvider extends BaseContextProvider {
           description: query,
           content: (await extras.ide.subprocess(`git --no-pager log --pretty=format:"%H,%h,%an,%ae,%ad,%P,%s,%b" -p -n ${lastXCommitsDepth}`, topLevelDir))[0],
           }
-        ]
+        ];
       }
       else{
         return [
@@ -36,7 +37,7 @@ class GitCommitContextProvider extends BaseContextProvider {
             description: `commit ${query}`,
             content: (await extras.ide.subprocess(`git --no-pager show --pretty=format:"%H,%h,%an,%ae,%ad,%P,%s,%b" ${query}`, topLevelDir))[0],
           }
-        ]
+        ];
       }
     }catch(err){
       return [];
@@ -54,7 +55,7 @@ class GitCommitContextProvider extends BaseContextProvider {
       const recentCommits = [{ id: `last ${lastXCommitsDepth} commits`, title: `last ${lastXCommitsDepth} commits`, description: "recent commits" }];
       const allCommits = gitResult
       .trim()
-      .split('\n')
+      .split("\n")
       .map(line => {
         const [hash, message] = line.split("\0");
         return {

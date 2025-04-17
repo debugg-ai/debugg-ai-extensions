@@ -68,7 +68,7 @@ export function processTestCase({
     if (tillPos < 0) {
         tillPos = cursorPos;
     } else {
-        original = original.replace(tillMarker, "")
+        original = original.replace(tillMarker, "");
     }
 
     // Calculate currentText based on what's between cursor and till marker

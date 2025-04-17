@@ -1,5 +1,7 @@
 import os from "node:os";
 
+import { AnalyticsConfig } from "../index.js";
+
 import ContinueProxyAnalyticsProvider from "./analytics/ContinueProxyAnalyticsProvider.js";
 import {
   ControlPlaneProxyInfo,
@@ -8,7 +10,6 @@ import {
 import LogStashAnalyticsProvider from "./analytics/LogStashAnalyticsProvider.js";
 import PostHogAnalyticsProvider from "./analytics/PostHogAnalyticsProvider.js";
 import { ControlPlaneClient } from "./client.js";
-import { AnalyticsConfig } from "../index.js";
 
 function createAnalyticsProvider(
   config: AnalyticsConfig,

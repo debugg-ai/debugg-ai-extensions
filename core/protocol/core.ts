@@ -1,11 +1,12 @@
 import { ConfigResult, ModelRole } from "@continuedev/config-yaml";
+import { DevDataLogEvent } from "@continuedev/config-yaml";
 
 import { AutocompleteInput } from "../autocomplete/util/types";
 import { ProfileDescription } from "../config/ConfigHandler";
 import { OrganizationDescription } from "../config/ProfileLifecycleManager";
 import { SharedConfigSchema } from "../config/sharedConfig";
+import { GlobalContextModelSelections } from "../util/GlobalContext";
 
-import { DevDataLogEvent } from "@continuedev/config-yaml";
 import type {
   BrowserSerializedContinueConfig,
   ChatMessage,
@@ -28,7 +29,7 @@ import type {
   SiteIndexingConfig,
   ToolCall,
 } from "../";
-import { GlobalContextModelSelections } from "../util/GlobalContext";
+
 
 export type OnboardingModes = "Local" | "Best" | "Custom" | "Quickstart";
 

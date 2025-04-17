@@ -365,7 +365,7 @@ class Ollama extends BaseLLM implements ModelInstaller {
             if ("error" in j) {
               throw new Error(j.error);
             }
-            j.response ??= ''
+            j.response ??= "";
             yield j.response;
           } catch (e) {
             throw new Error(`Error parsing Ollama response: ${e} ${chunk}`);

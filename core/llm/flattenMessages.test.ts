@@ -1,4 +1,5 @@
 import { ChatMessage } from "..";
+
 import { flattenMessages } from "./countTokens";
 
 describe("flattenMessages", () => {

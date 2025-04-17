@@ -2,11 +2,11 @@
 export function stringToCamelCase(str: string): string {
     return str
         .toLowerCase()
-        .split('_')
+        .split("_")
         .map((s, i) =>
             i === 0 ? s : s.slice(0, 1).toUpperCase() + s.slice(1, s.length)
         )
-        .join('');
+        .join("");
 }
 
 // Function to handle converting a string to snake_case
@@ -22,13 +22,13 @@ export function objToCamelCase(obj: any): any {
 
     if (Array.isArray(obj)) {
         return obj.map((entry) =>
-            typeof entry !== 'object' ? entry : objToCamelCase(entry)
+            typeof entry !== "object" ? entry : objToCamelCase(entry)
         );
     }
 
     const newObj = Object.entries(obj).reduce((acc: any, [key, value]) => {
         const newKey = stringToCamelCase(key);
-        const newValue = typeof value !== 'object' ? value : objToCamelCase(value);
+        const newValue = typeof value !== "object" ? value : objToCamelCase(value);
         acc[newKey] = newValue;
         return acc;
     }, {});
@@ -48,13 +48,13 @@ export function objToSnakeCase(obj: any): any {
 
     if (Array.isArray(obj)) {
         return obj.map((entry) =>
-            typeof entry !== 'object' ? entry : objToSnakeCase(entry)
+            typeof entry !== "object" ? entry : objToSnakeCase(entry)
         );
     }
 
     const newObj = Object.entries(obj).reduce((acc: any, [key, value]) => {
         const newKey = stringToSnakeCase(key);
-        const newValue = typeof value !== 'object' ? value : objToSnakeCase(value);
+        const newValue = typeof value !== "object" ? value : objToSnakeCase(value);
         acc[newKey] = newValue;
         return acc;
     }, {});

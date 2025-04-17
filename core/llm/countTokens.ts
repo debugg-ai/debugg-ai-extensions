@@ -1,8 +1,8 @@
 import { Tiktoken, encodingForModel as _encodingForModel } from "js-tiktoken";
 
 import { ChatMessage, MessageContent, MessagePart } from "../index.js";
-
 import { renderChatMessage } from "../util/messageContent.js";
+
 import {
   AsyncEncoder,
   GPTAsyncEncoder,

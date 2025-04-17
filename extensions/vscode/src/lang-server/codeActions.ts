@@ -33,7 +33,7 @@ class ContinueQuickFixProvider implements vscode.CodeActionProvider {
     );
 
     quickFix.command = {
-      command: "debuggai.quickFix",
+      command: "debugg-ai.quickFix",
       title: "Continue Quick Fix",
       arguments: [surroundingRange, diagnostic.message],
     };

@@ -2,19 +2,19 @@ export function removeQuotesAndEscapes(input: string): string {
   let output = input.trim();
 
   // Replace smart quotes
-  output = output.replaceAll("“", '"');
-  output = output.replaceAll("”", '"');
+  output = output.replaceAll("“", "\"");
+  output = output.replaceAll("”", "\"");
   output = output.replaceAll("‘", "'");
   output = output.replaceAll("’", "'");
 
   // Remove escapes
-  output = output.replaceAll('\\"', '"');
+  output = output.replaceAll("\\\"", "\"");
   output = output.replaceAll("\\'", "'");
   output = output.replaceAll("\\n", "\n");
   output = output.replaceAll("\\t", "\t");
   output = output.replaceAll("\\\\", "\\");
   while (
-    (output.startsWith('"') && output.endsWith('"')) ||
+    (output.startsWith("\"") && output.endsWith("\"")) ||
     (output.startsWith("'") && output.endsWith("'"))
   ) {
     output = output.slice(1, -1);
@@ -177,7 +177,7 @@ export function dedent(strings: TemplateStringsArray, ...values: any[]) {
 
   // Calculate minimum indentation (excluding empty lines)
   let minIndent = lines.reduce((min: any, line: any) => {
-    if (line.trim() === "") return min;
+    if (line.trim() === "") {return min;}
     let match = line.match(/^(\s*)/);
     let indent = match ? match[1].length : 0;
     return min === null ? indent : Math.min(min, indent);

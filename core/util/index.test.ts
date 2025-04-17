@@ -320,9 +320,9 @@ ${code}
 
 describe("removeQuotesAndEscapes", () => {
   it("should remove surrounding double quotes and unescape characters", () => {
-    const input = '"Hello \\"World\\""';
+    const input = "\"Hello \\\"World\\\"\"";
     const output = removeQuotesAndEscapes(input);
-    expect(output).toBe('Hello "World"');
+    expect(output).toBe("Hello \"World\"");
   });
 
   it("should remove surrounding single quotes and unescape characters", () => {

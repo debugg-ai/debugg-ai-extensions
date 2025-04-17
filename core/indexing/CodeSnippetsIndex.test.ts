@@ -1,14 +1,15 @@
 import { jest } from "@jest/globals";
 
 import { testIde } from "../test/fixtures";
+
+
+import { CodeSnippetsCodebaseIndex } from "./CodeSnippetsIndex";
+import { DatabaseConnection, SqliteDb } from "./refreshIndex";
 import {
   insertMockChunks,
   mockPathAndCacheKey,
   updateIndexAndAwaitGenerator,
 } from "./test/indexing";
-
-import { CodeSnippetsCodebaseIndex } from "./CodeSnippetsIndex";
-import { DatabaseConnection, SqliteDb } from "./refreshIndex";
 import { IndexResultType } from "./types";
 
 describe.skip("CodeSnippetsCodebaseIndex", () => {

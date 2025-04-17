@@ -1200,6 +1200,8 @@ export interface SerializedContinueConfig {
   analytics?: AnalyticsConfig;
   docs?: SiteIndexingConfig[];
   data?: DataDestination[];
+  vectorDatabaseOpts?: VectorDatabaseIndexOpts;
+  deploymentEnv?: string;
 }
 
 export type ConfigMergeType = "merge" | "overwrite";
@@ -1254,6 +1256,7 @@ export interface Config {
   analytics?: AnalyticsConfig;
   data?: DataDestination[];
   vectorDatabaseOpts?: VectorDatabaseIndexOpts;
+  deploymentEnv?: string;
 }
 
 // in the actual Continue source code
@@ -1278,6 +1281,7 @@ export interface ContinueConfig {
   selectedModelByRole: Record<ModelRole, ILLM | null>;
   data?: DataDestination[];
   vectorDatabaseOpts?: VectorDatabaseIndexOpts;
+  deploymentEnv?: string; // Set to test local api calls
 }
 
 export interface BrowserSerializedContinueConfig {
@@ -1300,6 +1304,8 @@ export interface BrowserSerializedContinueConfig {
   tabAutocompleteOptions?: Partial<TabAutocompleteOptions>;
   modelsByRole: Record<ModelRole, ModelDescription[]>;
   selectedModelByRole: Record<ModelRole, ModelDescription | null>;
+  vectorDatabaseOpts?: VectorDatabaseIndexOpts;
+  deploymentEnv?: string;
 }
 
 // DOCS SUGGESTIONS AND PACKAGE INFO

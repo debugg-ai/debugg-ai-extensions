@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 
 import { Session } from "..";
+
 import { NEW_SESSION_TITLE } from "./constants";
 import historyManager from "./history";
 import { getSessionFilePath } from "./paths";

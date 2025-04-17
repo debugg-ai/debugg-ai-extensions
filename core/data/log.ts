@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
 import {
   allDevEventNames,
@@ -9,8 +10,8 @@ import {
 } from "@continuedev/config-yaml";
 import { fetchwithRequestOptions } from "@continuedev/fetch";
 import * as URI from "uri-js";
-import { fileURLToPath } from "url";
 import { AnyZodObject } from "zod";
+
 import { Core } from "../core.js";
 import { IdeInfo, IdeSettings } from "../index.js";
 import { getDevDataFilePath } from "../util/paths.js";

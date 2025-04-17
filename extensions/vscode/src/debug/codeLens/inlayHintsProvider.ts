@@ -1,7 +1,7 @@
 // myInlayHintsProvider.ts
+import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
+import { Issue, IssueSuggestion, LogOverview } from 'core/debuggAIServer/types';
 import * as vscode from 'vscode';
-import { getIssuesInFile } from '../../services/backend/files';
-import { Issue, IssueSuggestion, LogOverview } from '../../services/backend/types';
 import { clearDecorations, highlightInlayLine } from '../highlightLine';
 import { getFixMarkdown, getIssueMarkdown, getMarkdownStructure } from './structure';
 
@@ -16,6 +16,14 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
     private cache = new Map<string, { timestamp: number; hints: vscode.InlayHint[] }>();
     // Time-to-live for cache in milliseconds (e.g., 1000ms = 1 seconds)
     private cacheTTL = 5000;
+    private debuggAIServerClientPromise: Promise<DebuggAIServerClient>; 
+    private debuggAIServerClient: DebuggAIServerClient | undefined; 
+
+    constructor(
+        debuggAIServerClientPromise: Promise<DebuggAIServerClient>, 
+    ) {
+        this.debuggAIServerClientPromise = debuggAIServerClientPromise;
+    }
 
     // Called by VS Code whenever inlay hints are needed for a document range
     public async provideInlayHints(
@@ -83,17 +91,17 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
 
             console.log(issue); 
             // Create inlay hints for 3 separate clickable items
-            inlayHints.push(this.createHint("Resolve", fmtdOverview, "debuggai.markResolved", document.uri, vsLineNumber, hintPosition, issue));
+            inlayHints.push(this.createHint("Resolve", fmtdOverview, "debugg-ai.markResolved", document.uri, vsLineNumber, hintPosition, issue));
             if (issue.solution) {
                 const solutionMarkdown = getFixMarkdown(title || '-', issue.solution);
-                inlayHints.push(this.createHint("Fix", solutionMarkdown, "debuggai.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
+                inlayHints.push(this.createHint("Fix", solutionMarkdown, "debugg-ai.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
             }
             if (suggestion) {
                 const suggestionMarkdown = this.getSuggestionMarkdown(suggestion);
-                inlayHints.push(this.createHint("Suggested Fix", suggestionMarkdown, "debuggai.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
-                inlayHints.push(this.createHint("Test Coverage", suggestion.message, "debuggai.showTestCoverage", document.uri, vsLineNumber, hintPosition, issue));
+                inlayHints.push(this.createHint("Suggested Fix", suggestionMarkdown, "debugg-ai.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
+                inlayHints.push(this.createHint("Test Coverage", suggestion.message, "debugg-ai.showTestCoverage", document.uri, vsLineNumber, hintPosition, issue));
             } else {
-                // inlayHints.push(this.createHint("Error", title, "debuggai.showOverview", document.uri, vsLineNumber, hintPosition, level));
+                // inlayHints.push(this.createHint("Error", title, "debugg-ai.showOverview", document.uri, vsLineNumber, hintPosition, level));
             }
 
 
@@ -101,7 +109,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
             const earlierEndColumn = earlierLineText.length;
             const earlierHintPosition = new vscode.Position(vsLineNumber - 1, earlierEndColumn);
             lineNumbersUser.push(vsLineNumber);
-            // inlayHints.push(this.createHint("Runtime: 47ms", '47 runs and 0 failures', "debuggai.showTestCoverage", document.uri, vsLineNumber - 1, earlierHintPosition, level));
+            // inlayHints.push(this.createHint("Runtime: 47ms", '47 runs and 0 failures', "debugg-ai.showTestCoverage", document.uri, vsLineNumber - 1, earlierHintPosition, level));
 
         }
         // vscode.commands.executeCommand('continue.showSnippetPreview', 'console.log("Hello from snippet!")');
@@ -176,10 +184,25 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
     private async getIssuesInDocument(document: vscode.TextDocument): Promise<Issue[]> {
         // Implement this to return actual line numbers where you want the buttons to appear
         // This could come from your diagnostic system, test coverage data, etc.
-        const issues = await getIssuesInFile({
-            filePath: document.uri.fsPath
-        });
-        return issues; 
+        console.log("Getting issues in document...");
+        this.debuggAIServerClient = await this.debuggAIServerClientPromise;
+        try {
+            const { repoName, repoPath, branchName } = await this.debuggAIServerClient.getRepoInfo(document.uri.fsPath);
+
+            const issues = await this.debuggAIServerClient.issues?.getIssuesInFile(
+                document.uri.fsPath,
+                repoName,
+                branchName,
+                {
+                    repoPath,
+                }
+            );
+            return issues ?? [];
+        } catch (e) {
+            console.error("Error getting repo info:", e);
+            return [];
+        }
+        return [];
     }
 
     // Returns Markdown as a string

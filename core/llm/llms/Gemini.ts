@@ -10,6 +10,7 @@ import { findLast } from "../../util/findLast.js";
 import { renderChatMessage } from "../../util/messageContent.js";
 import { BaseLLM } from "../index.js";
 import { streamResponse } from "../stream.js";
+
 import {
   GeminiChatContentPart,
   GeminiChatRequestBody,
@@ -242,7 +243,7 @@ class Gemini extends BaseLLM {
               }
               // Helper function to recursively clean JSON Schema objects
               const cleanJsonSchema = (schema: any): any => {
-                if (!schema || typeof schema !== "object") return schema;
+                if (!schema || typeof schema !== "object") {return schema;}
 
                 if (Array.isArray(schema)) {
                   return schema.map(cleanJsonSchema);

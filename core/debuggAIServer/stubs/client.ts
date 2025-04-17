@@ -1,30 +1,91 @@
+import { ConfigHandler } from "../../config/ConfigHandler.js";
+import { ControlPlaneSessionInfo } from "../../control-plane/client.js";
+import { IDE } from "../../index.js";
+import { IndexesService } from "../services/indexes.js";
+import { createIssuesService, IssuesService } from "../services/issues.js";
+import { createReposService, ReposService } from "../services/repos.js";
+import { AxiosTransport } from "../utils/axiosTransport.js";
+
 import type {
   ArtifactType,
   EmbeddingsCacheResponse,
   IDebuggAIServerClient,
 } from "../interface.js";
-import { IndexesService } from "../services/indexes.js";
-import { createReposService, ReposService } from "../services/repos.js";
-import { AxiosTransport } from "../utils/axiosTransport.js";
 
 
 export class DebuggAIServerClient implements IDebuggAIServerClient {
-  private readonly tx: AxiosTransport;
+  private tx: AxiosTransport | undefined;
+  private accessToken: string | undefined;
   url: URL | undefined;
 
   // Public “sub‑APIs”
-  readonly repos: ReposService;
+  repos: ReposService | undefined;
+  issues: IssuesService | undefined;
 
-  constructor(serverUrl: string | undefined, private readonly userToken?: string) {
-    // Validate that the server URL starts with http:// or https://
-    if (!serverUrl || !/^https?:\/\//.test(serverUrl)) {
-      throw new Error("Invalid DebuggAI server URL");
-    }
+  constructor(
+    private readonly configHandler: ConfigHandler,
+    private readonly ide: IDE,
+    private readonly userToken?: string,
+  ) {
+    this.init();
+  }
+
+  private async init() {
+    const serverUrl = await this.getServerUrl();
+    console.log("Server URL:", serverUrl);
+
     this.url = new URL(serverUrl);
-    // Create axios transport instance
-    this.tx = new AxiosTransport({ baseUrl: serverUrl, token: userToken ?? "" });
-    // wire up services
+    this.accessToken = await this.getAccessToken();
+    this.tx = new AxiosTransport({ baseUrl: serverUrl, token: this.accessToken });
     this.repos = createReposService(this.tx);
+    this.issues = createIssuesService(this.tx);
+  }
+  
+  public async updateSessionInfo(sessionInfo?: ControlPlaneSessionInfo) {
+    console.log("Updating Debugg AI client session info...", sessionInfo);
+    this.init();
+  }
+
+  private async getAccessToken(): Promise<string> {
+    const accessToken =
+      await this.configHandler.controlPlaneClient.getAccessToken();
+    if (!accessToken) {
+      throw new Error("No access token found");
+    }
+    return accessToken;
+  }
+
+  /**
+   * Get the server URL based on the deployment environment
+   * @returns The server URL
+   */
+  private async getServerUrl(): Promise<string> {
+    const { config } = await this.configHandler.loadConfig();
+    const env = config?.deploymentEnv ?? "local";
+    const localUrl = "http://localhost:81";
+    const prodUrl = "https://api.debugg.ai";
+
+    return env === "production" ? prodUrl : localUrl;
+  }
+
+  public async getRepoInfo(filePath: string): Promise<{
+    repoName: string;
+    repoPath: string;
+    branchName: string;
+  }> {
+    const repoName = await this.ide.getRepoName(filePath);
+    if (!repoName) {
+      throw new Error("No repo name found for file");
+    }
+    const repoPath = await this.ide.getGitRootPath(filePath);
+    if (!repoPath) {
+      throw new Error("No repo path found for file");
+    }
+    const branchName = await this.ide.getBranch(filePath);
+    if (!branchName) {
+      throw new Error("No branch name found for file");
+    }
+    return { repoName, repoPath, branchName };
   }
 
   getUserToken(): string | undefined {

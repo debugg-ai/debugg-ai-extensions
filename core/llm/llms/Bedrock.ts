@@ -129,7 +129,7 @@ class Bedrock extends BaseLLM {
 
         if (chunk.contentBlockDelta?.delta) {
 
-          const delta: any = chunk.contentBlockDelta.delta
+          const delta: any = chunk.contentBlockDelta.delta;
 
           // Handle text content
           if (chunk.contentBlockDelta.delta.text) {
@@ -166,7 +166,7 @@ class Bedrock extends BaseLLM {
         }
 
         if (chunk.contentBlockStart?.start) {
-          const start: any = chunk.contentBlockStart.start
+          const start: any = chunk.contentBlockStart.start;
           if (start.redactedReasoning) {
             yield { role: "thinking", content: "", redactedThinking: start.redactedReasoning.data };
             continue;

@@ -4,6 +4,7 @@ import { RunResult } from "sqlite3";
 
 import { IContinueServerClient } from "../../continueServer/interface.js";
 import { Chunk, IndexTag, IndexingProgressUpdate } from "../../index.js";
+import { getUriPathBasename } from "../../util/uri.js";
 import { DatabaseConnection, SqliteDb, tagToString } from "../refreshIndex.js";
 import {
   IndexResultType,
@@ -14,7 +15,6 @@ import {
 } from "../types.js";
 
 import { chunkDocument, shouldChunk } from "./chunk.js";
-import { getUriPathBasename } from "../../util/uri.js";
 
 export class ChunkCodebaseIndex implements CodebaseIndex {
   relativeExpectedTime: number = 1;

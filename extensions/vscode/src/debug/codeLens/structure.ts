@@ -1,4 +1,4 @@
-import { Issue, IssueSolution, LogOverview, SnippetUpdate } from "../../services/backend/types";
+import { Issue, IssueSolution, LogOverview, SnippetUpdate } from "core/debuggAIServer/types";
 
 export function getMarkdownStructure(
     title: string,

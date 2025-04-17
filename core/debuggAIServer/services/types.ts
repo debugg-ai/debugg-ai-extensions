@@ -12,9 +12,9 @@ export interface Issue {
     title?: string;
     message?: string;
     environment: string;
-    status: 'open' | 'ongoing' | 'resolved' | 'archived';
+    status: "open" | "ongoing" | "resolved" | "archived";
     level: Level;
-    priority: 'low' | 'medium' | 'high' | 'alert';
+    priority: "low" | "medium" | "high" | "alert";
     lineNumber: number;
     columnNumber: number;
     eventsCount: number;
@@ -79,7 +79,7 @@ export interface PaginatedIssueSuggestionResponse extends PaginatedResponse<Issu
 }
 
 
-export type Level = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'FATAL' | 'METRIC';
+export type Level = "DEBUG" | "INFO" | "WARNING" | "ERROR" | "FATAL" | "METRIC";
 
 
 export interface LogOverview {
