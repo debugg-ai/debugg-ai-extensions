@@ -87,9 +87,9 @@ export class DebuggGuiWebviewViewProvider
     console.log("vscMediaUrl", vscMediaUrl);
 
     console.log('attempting to load index.js')
-    // const inDevelopmentMode =
-    //   context?.extensionMode === vscode.ExtensionMode.Development;
-    const inDevelopmentMode = true;
+    const inDevelopmentMode =
+      context?.extensionMode === vscode.ExtensionMode.Development;
+    // const inDevelopmentMode = true;
     if (!inDevelopmentMode) {
       scriptUri = panel.webview
         .asWebviewUri(vscode.Uri.joinPath(extensionUri, "gui/assets/index.js"))

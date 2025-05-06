@@ -14,7 +14,7 @@ export function highlightInlayLine(
   level: Level
 ) {
   // Clear previous decorations
-  clearDecorations();
+  // clearDecorations();
 
   const decorationType = vscode.window.createTextEditorDecorationType({
     textDecoration: "underline wavy red",

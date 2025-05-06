@@ -3,6 +3,8 @@ const fs = require("fs");
 
 const flags = process.argv.slice(2);
 
+// helpful for debugging
+// code --install-extension debugg-ai-1.0.4.vsix --force
 const esbuildConfig = {
   entryPoints: ["src/extension.ts"],
   bundle: true,
@@ -10,8 +12,7 @@ const esbuildConfig = {
   external: [
     "vscode", 
     "esbuild", 
-    "./xhr-sync-worker.js",
-    "pkce-challenge",
+    "./xhr-sync-worker.js"
   ],
   format: "cjs",
   platform: "node",

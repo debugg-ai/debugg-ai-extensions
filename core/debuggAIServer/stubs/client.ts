@@ -1,7 +1,8 @@
 import { ConfigHandler } from "../../config/ConfigHandler.js";
 import { ControlPlaneSessionInfo } from "../../control-plane/client.js";
 import { IDE } from "../../index.js";
-import { IndexesService } from "../services/indexes.js";
+import { CoverageService, createCoverageService } from "../services/coverage.js";
+import { createIndexesService, IndexesService } from "../services/indexes.js";
 import { createIssuesService, IssuesService } from "../services/issues.js";
 import { createReposService, ReposService } from "../services/repos.js";
 import { AxiosTransport } from "../utils/axiosTransport.js";
@@ -21,11 +22,13 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   // Public “sub‑APIs”
   repos: ReposService | undefined;
   issues: IssuesService | undefined;
+  indexes: IndexesService | undefined;
+  coverage: CoverageService | undefined;
 
   constructor(
     private readonly configHandler: ConfigHandler,
     private readonly ide: IDE,
-    private readonly userToken?: string,
+    private userToken?: string,
   ) {
     this.init();
   }
@@ -36,14 +39,22 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
 
     this.url = new URL(serverUrl);
     this.accessToken = await this.getAccessToken();
+    this.userToken = this.accessToken;
     this.tx = new AxiosTransport({ baseUrl: serverUrl, token: this.accessToken });
     this.repos = createReposService(this.tx);
     this.issues = createIssuesService(this.tx);
+    this.indexes = createIndexesService(this.tx);
+    this.coverage = createCoverageService(this.tx);
+
   }
   
   public async updateSessionInfo(sessionInfo?: ControlPlaneSessionInfo) {
     console.log("Updating Debugg AI client session info...", sessionInfo);
     this.init();
+  }
+
+  public async getUserId(): Promise<string | undefined> {
+    return await this.configHandler.controlPlaneClient.userId;
   }
 
   private async getAccessToken(): Promise<string> {
@@ -60,30 +71,32 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
    * @returns The server URL
    */
   private async getServerUrl(): Promise<string> {
-    const { config } = await this.configHandler.loadConfig();
-    const env = config?.deploymentEnv ?? "local";
-    const localUrl = "http://localhost:81";
-    const prodUrl = "https://api.debugg.ai";
+    return await this.configHandler.controlPlaneClient.getBaseApiUrl();
 
-    return env === "production" ? prodUrl : localUrl;
+  }
+
+  public async getRepoName(filePath: string): Promise<string | undefined> {
+    return await this.ide.getRepoName(filePath);
   }
 
   public async getRepoInfo(filePath: string): Promise<{
-    repoName: string;
-    repoPath: string;
-    branchName: string;
+    repoName: string | undefined;
+    repoPath: string | undefined;
+    branchName: string | undefined;
   }> {
     const repoName = await this.ide.getRepoName(filePath);
     if (!repoName) {
-      throw new Error("No repo name found for file");
+     console.debug("No repo name found for file");
     }
-    const repoPath = await this.ide.getGitRootPath(filePath);
+    let repoPath = await this.ide.getGitRootPath(filePath);
     if (!repoPath) {
-      throw new Error("No repo path found for file");
+      console.debug("No repo path found for file");
+    } else{
+      repoPath = repoPath?.replace('file://', "");
     }
     const branchName = await this.ide.getBranch(filePath);
     if (!branchName) {
-      throw new Error("No branch name found for file");
+      console.debug("No branch name found for file");
     }
     return { repoName, repoPath, branchName };
   }
@@ -125,11 +138,13 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
       );
     }
 
+    // If no keys are provided, return an empty object
     if (keys.length === 0) {
       return {
         files: {},
       };
     }
+    console.log("Getting from index cache for keys:", keys, "and artifactId:", artifactId, "and repoName:", repoName);
     const url = new URL("indexing/cache", this.url);
 
     const userToken = this.userToken;
@@ -137,7 +152,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
       throw new Error("No user token provided");
     }
     try {
-      const data = await IndexesService.getIndexes({
+      const data = await this.indexes?.getIndexes({
         accessToken: userToken,
         projectKey: repoName ?? "NONE",
         keys,
@@ -145,7 +160,9 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
         repo: repoName ?? "NONE",
       });
 
-      return data?.[0];
+      return data?.[0] ?? {
+        files: {},
+      };
     } catch (e) {
       console.warn("Failed to retrieve from remote cache", e);
       return {

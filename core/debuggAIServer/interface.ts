@@ -1,7 +1,9 @@
 import { Chunk } from "../index.js";
 
+import { IndexesService } from "./services/indexes.js";
 import { IssuesService } from "./services/issues.js";
 import { ReposService } from "./services/repos.js";
+
 export interface EmbeddingsCacheChunk {
   vector: number[];
   startLine: number;
@@ -25,9 +27,12 @@ export interface IDebuggAIServerClient {
   url: URL | undefined;
   repos: ReposService | undefined;
   issues: IssuesService | undefined;
+  indexes: IndexesService | undefined;
+  getUserId(): Promise<string | undefined>;
   getUserToken(): string | undefined;
   getConfig(): Promise<{ configJson: string }>;
-  getRepoInfo(filePath: string): Promise<{ repoName: string; repoPath: string; branchName: string }>;
+  getRepoName(filePath: string): Promise<string | undefined>;
+  getRepoInfo(filePath: string): Promise<{ repoName: string | undefined; repoPath: string | undefined; branchName: string | undefined }>;
   getFromIndexCache<T extends ArtifactType>(
     keys: string[],
     artifactId: T,

@@ -45,6 +45,7 @@ import { pullErrorsAndHighlight } from "./debug/pullErrors";
 import { showSnippetWebview } from "./debug/webviews/snippetWebview";
 import { DebuggGuiWebviewViewProvider } from "./DebuggGUIWebviewViewProvider";
 import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
+import ValidatorRunner from "./test/runner/validator";
 import { post } from "./util/axiosNaming";
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
 
@@ -1259,6 +1260,112 @@ const getCommandsMap: (
         if (errorFiles) {
           errorFileDecorationProvider.updateErrorFiles(errorFiles.map(f => f.filePath));
         }
+      },
+      "debugg-ai.runTestsFile": async () => {
+        captureCommandTelemetry("debugg-ai.runTestsFile");
+        vscode.window.showInformationMessage("Running tests...");
+        // Call the class that runs tests
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showWarningMessage("No file open.");
+          return;
+        }
+        const filePath = editor.document.uri.fsPath;
+        const testRunner = new ValidatorRunner();
+        const res = await testRunner.runTests(filePath);
+
+        // Show the failed tests in a popup
+        if (!res.ok) {
+          // 1) echo to an OutputChannel
+          const ch = vscode.window.createOutputChannel('Test run');
+          ch.appendLine(res.stdout || res.stderr);
+          ch.appendLine("--------------------------------");
+          ch.appendLine("Failed tests - ");
+          ch.appendLine(res.failures.map((f) => f.message).join("\n"));
+          ch.show(true);
+
+          console.log("Failed tests - ", res.stdout || res.stderr);
+        
+          // 2) send to a language server / web-view / telemetry
+          // sendToServer(res);
+          const client = await debuggAIServerClientPromise;
+          const { repoName, repoPath, branchName } = await client.getRepoInfo(editor.document.uri.fsPath);
+          if (!repoName || !repoPath || !branchName) {
+            console.debug("No repo name, path, or branch name found for file");
+          }
+          // const filePath = editor.document.uri.fsPath;
+          const curFileUri = vscode.Uri.file(filePath);
+          // Read the file contents
+          const fileContents = await vscode.workspace.fs.readFile(curFileUri);
+          const coverage = await client.coverage?.logFailedRun(
+            fileContents,
+            filePath,
+            repoName ?? "",
+            branchName ?? "",
+            {
+              repoPath,
+              testFailures: res.stderr,
+            }
+          );
+        }
+      },
+      /**
+       * Create a tests file for the given file.
+       */
+      "debugg-ai.createTestsFile": async () => {
+        captureCommandTelemetry("debugg-ai.createTestsFile");
+        vscode.window.showInformationMessage("Creating tests file...");
+        // Get the current open file, request tests
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showWarningMessage("No file open.");
+          return;
+        }
+        try {
+          const client = await debuggAIServerClientPromise;
+          const { repoName, repoPath, branchName } = await client.getRepoInfo(editor.document.uri.fsPath);
+          if (!repoName || !repoPath || !branchName) {
+            console.debug("No repo name, path, or branch name found for file");
+          }
+          const filePath = editor.document.uri.fsPath;
+          const curFileUri = vscode.Uri.file(filePath);
+          // Read the file contents
+          const fileContents = await vscode.workspace.fs.readFile(curFileUri);
+          const coverage = await client.coverage?.createCoverage(
+            fileContents,
+            filePath,
+            repoName ?? "",
+            branchName ?? "",
+            {
+              repoPath,
+            }
+          );
+          console.log("Coverage - ", coverage);
+
+          if (coverage) {
+            // Add a new file to the workspace
+            // const testFileName = coverage.testFilePath.split("/").pop();
+            // const mainFilePath = filePath.split("/").slice(0, -1).join("/");
+            const testFilePath = `${repoPath}/${coverage.testFilePath}`;
+            const newFileUri = vscode.Uri.file(testFilePath);
+            // const newFile = await vscode.workspace.openTextDocument(newFileUri);
+            // // Add the coverage to the file
+            // const editor = await vscode.window.showTextDocument(newFile);
+            // await editor.edit(editBuilder => {
+            //   editBuilder.insert(new vscode.Position(0, 0), coverage.testFileContents);
+            // });
+
+            // First, actually create/write the file
+            await vscode.workspace.fs.writeFile(newFileUri, Buffer.from(coverage.testFileContent, 'utf8'));
+
+            // Now open the newly created file
+            const newFile = await vscode.workspace.openTextDocument(newFileUri);
+            const editor = await vscode.window.showTextDocument(newFile);
+          }
+        } catch (e) {
+          console.error("Error getting repo info:", e);
+        }
+
       },
     };
   };

@@ -7,6 +7,7 @@ export interface ReposService {
     directory: string,
     branch: string,
     artifactId: string,
+    repoName?: string,
   ): Promise<void>;
   deleteVectorCollection(collectionName: string): Promise<void>;
 }
@@ -14,14 +15,21 @@ export interface ReposService {
 export const createReposService = (
   tx: AxiosTransport,
 ): ReposService => ({
-  async upsertVectorCollection(collectionName, directory, branch, artifactId) {
-    console.log("upsertVectorCollection - ", collectionName, directory, branch, artifactId);
-    await tx.post("/api/v1/collections/upsert/", {
-      collectionName,
-      directory,
-      branch,
-      artifactId,
-    });
+  async upsertVectorCollection(collectionName, directory, branch, artifactId, repoName) {
+    console.log("upsertVectorCollection - ", collectionName, directory, branch, artifactId, repoName);
+    try {
+      const response = await tx.post("/api/v1/collections/upsert/", {
+        collectionName,
+        directory,
+        branch,
+        artifactId,
+        repoName,
+      });
+      console.log("upsertVectorCollection response - ", response);
+    } catch (error) {
+      console.error("Error upserting vector collection", error);
+      throw error;
+    }
   },
 
   async deleteVectorCollection(collectionName) {

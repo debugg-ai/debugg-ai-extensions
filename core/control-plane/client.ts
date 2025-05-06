@@ -66,6 +66,11 @@ export class ControlPlaneClient {
     return (await this.sessionInfoPromise)?.accessToken;
   }
 
+  async getBaseApiUrl(): Promise<string> {
+    const env = await getControlPlaneEnv(this.ideSettingsPromise);
+    return env.CONTROL_PLANE_URL;
+  }
+
   private async request(path: string, init: RequestInit): Promise<Response> {
     const accessToken = await this.getAccessToken();
     if (!accessToken) {

@@ -278,20 +278,21 @@ export class ConfigHandler {
   }
 
   private async reloadHubAssistants() {
-    const selectedOrgId = await this.getSelectedOrgId();
-    const newFullSlugsList =
-      await this.controlPlaneClient.listAssistantFullSlugs(selectedOrgId);
+    console.log("reloadHubAssistants");
+    // const selectedOrgId = await this.getSelectedOrgId();
+    // const newFullSlugsList =
+    //   await this.controlPlaneClient.listAssistantFullSlugs(selectedOrgId);
 
-    if (newFullSlugsList) {
-      const shouldReload = this.fullSlugsListsDiffer(
-        newFullSlugsList,
-        this.lastFullSlugsList,
-      );
-      if (shouldReload) {
-        await this.loadAssistantsForSelectedOrg();
-      }
-      this.lastFullSlugsList = newFullSlugsList;
-    }
+    // if (newFullSlugsList) {
+    //   const shouldReload = this.fullSlugsListsDiffer(
+    //     newFullSlugsList,
+    //     this.lastFullSlugsList,
+    //   );
+    //   if (shouldReload) {
+    //     await this.loadAssistantsForSelectedOrg();
+    //   }
+    //   this.lastFullSlugsList = newFullSlugsList;
+    // }
   }
 
   private async fetchControlPlaneProfiles() {

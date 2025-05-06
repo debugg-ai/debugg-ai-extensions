@@ -4,8 +4,8 @@ import {
   lightGray,
   vscForeground,
 } from "../../components";
-import { getPlatform, isJetBrains } from "../../util";
 import { ToolTip } from "../../components/gui/Tooltip";
+import { getPlatform, isJetBrains } from "../../util";
 
 const GridDiv = styled.div`
   display: grid;
@@ -75,6 +75,16 @@ function KeyboardShortcut(props: KeyboardShortcutProps) {
 }
 
 const vscodeShortcuts: KeyboardShortcutProps[] = [
+  {
+    mac: "⌥ T",
+    windows: "Alt T",
+    description: "Create Tests For File",
+  },
+  {
+    mac: "⌥ R",
+    windows: "Alt R",
+    description: "Run Tests For File",
+  },
   {
     mac: "⌘ '",
     windows: "⌃ '",

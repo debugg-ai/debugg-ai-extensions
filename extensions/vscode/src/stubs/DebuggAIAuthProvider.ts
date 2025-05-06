@@ -20,24 +20,13 @@ import {
     workspace
 } from "vscode";
 
+import axios from "axios";
 import { PromiseAdapter, promiseFromEvent } from "./promiseUtils";
 import { SecretStorage } from "./SecretStorage";
 import { UriEventHandler } from "./uriHandler"; // same helper you used for WorkOS
 
 /* ── CONFIG ──────────────────────────────────────────────────*/
-const AUTH_TYPE = "debuggai";
 const AUTH_NAME = "DebuggAI";
-
-const BASE_URL = "https://auth.debugg.ai";
-const API_BASE_URL = "https://debuggai-backend.ngrok.app";
-const LOGIN_URL = `${BASE_URL}`;
-const TOKEN_ENDPOINT = `${API_BASE_URL}/api/v1/o/token/`;          // POST code→tokens
-const TOKEN_REFRESH_ENDPOINT = `${API_BASE_URL}/api/v1/o/token/`;
-const USERINFO_ENDPOINT = `${API_BASE_URL}/api/v1/users/me/`;
-
-// const CLIENT_ID = "itQpxtiloI1uvgMilBrRKyCN3ppQol2wH1TP7184";    
-// const CLIENT_SECRET = "AiHgQ1XukD3UEgsnqkI7BjjRN5fIoKiH0KolMLJsXB2rXUaXrZNJ5aPYUzBIMPBByRJIj6ZZQ2A1FLRLan55qcEVgBeHzpKcHtUtnxSjiiaqi3pPX5uBn7nBvN1Zxp66";
-// whatever your backend expects
 
 const enableControlServerBeta = workspace
     .getConfiguration(EXTENSION_NAME)
@@ -50,6 +39,15 @@ const controlPlaneEnv = getControlPlaneEnvSync(
 console.log("Control plane env:", controlPlaneEnv);
 
 const SESSIONS_SECRET_KEY = `${controlPlaneEnv.AUTH_TYPE}.sessions`;
+
+
+const BASE_URL = controlPlaneEnv.OUATH_URL;
+const API_BASE_URL = controlPlaneEnv.CONTROL_PLANE_URL;
+const LOGIN_URL = `${BASE_URL}`;
+const TOKEN_ENDPOINT = `${API_BASE_URL}/api/v1/o/token/`;          // POST code→tokens
+const TOKEN_REFRESH_ENDPOINT = `${API_BASE_URL}/api/v1/o/token/`;
+const USERINFO_ENDPOINT = `${API_BASE_URL}/api/v1/users/me/`;
+
 
 /* ────────────────────────────────────────────────────────────
    UTILITIES
@@ -286,17 +284,27 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
             client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
             client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
         });
-        const { access_token: access, refresh_token: refresh } = await fetchWithQueryParams<{ access_token: string, refresh_token: string }>(TOKEN_REFRESH_ENDPOINT, {
+        const response = await axios.post(TOKEN_REFRESH_ENDPOINT, {
             grant_type: "refresh_token",
             refresh_token: refreshToken,
             client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
             client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
+        }, {
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
         });
-        console.log("Refreshed session... with access token:", access);
+        // const { access_token: access, refresh_token: refresh } = await fetchWithQueryParams<{ access_token: string, refresh_token: string }>(TOKEN_REFRESH_ENDPOINT, {
+        //     grant_type: "refresh_token",
+        //     refresh_token: refreshToken,
+        //     client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
+        //     client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
+        // });
+        console.log("Refreshed session... with access token:", response.data?.access_token);
         return {
-            accessToken: access,
-            refreshToken: refresh,
-            expiresInMs: jwtLifetime(access),
+            accessToken: response.data?.access_token,
+            refreshToken: response.data?.refresh_token,
+            expiresInMs: jwtLifetime(response.data?.access_token),
         };
     }
 
@@ -377,31 +385,6 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
             resolve(uri.query);
         };
 
-    /**
-    * Get the user info from WorkOS
-    * @param token
-    * @returns
-    */
-    private async getUserInfo(token: string, codeVerifier: string) {
-        const resp = await fetch(
-            `${API_BASE_URL}/api/v1/o/authorize/`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
-                    code_verifier: codeVerifier,
-                    grant_type: "authorization_code",
-                    code: token,
-                }),
-            },
-        );
-        const text = await resp.text();
-        const data = JSON.parse(text);
-        return data;
-    }
 }
 
 

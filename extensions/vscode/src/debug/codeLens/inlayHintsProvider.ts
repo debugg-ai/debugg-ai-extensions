@@ -16,11 +16,11 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
     private cache = new Map<string, { timestamp: number; hints: vscode.InlayHint[] }>();
     // Time-to-live for cache in milliseconds (e.g., 1000ms = 1 seconds)
     private cacheTTL = 5000;
-    private debuggAIServerClientPromise: Promise<DebuggAIServerClient>; 
-    private debuggAIServerClient: DebuggAIServerClient | undefined; 
+    private debuggAIServerClientPromise: Promise<DebuggAIServerClient>;
+    private debuggAIServerClient: DebuggAIServerClient | undefined;
 
     constructor(
-        debuggAIServerClientPromise: Promise<DebuggAIServerClient>, 
+        debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
     ) {
         this.debuggAIServerClientPromise = debuggAIServerClientPromise;
     }
@@ -65,7 +65,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
         const issues = await this.getIssuesInDocument(document);
         const lineNumbersUser: number[] = [];
         for (const issue of issues) {
-            const { suggestions, overview, lineNumber, title, message } = issue;
+            const { suggestions, overview, lineNumber, title, codeSingleLine, message } = issue;
             const suggestion = suggestions?.[0];
             const vsLineNumber = lineNumber ? lineNumber - 1 : 0;
             const level = overview?.level;
@@ -74,41 +74,48 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
             if (!vsLineNumber || vsLineNumber >= document.lineCount) {
                 continue;
             }
-            if (lineNumbersUser.includes(vsLineNumber)) {
+            if (lineNumbersUser.includes(vsLineNumber) || !codeSingleLine) {
                 continue;
             }
+            const targetLine = this.relocateLine(document, vsLineNumber, codeSingleLine);
+
+            if (targetLine === undefined) {
+              // Line vanished/changed too much – skip decoration
+              continue;
+            }
+            
             // Highlight the line containing the inlay hints
             if (editor && document.uri === editor.document.uri) {
-                highlightInlayLine(editor, lineNumber || 0, level || 'INFO');
+                highlightInlayLine(editor, targetLine + 1, level || 'INFO');
             }
 
             // We'll place the hints at the start of the line above
-            const lineText = document.lineAt(vsLineNumber).text;
+            const lineText = document.lineAt(targetLine).text;
             const endColumn = lineText.length;
-            const hintPosition = new vscode.Position(vsLineNumber, endColumn);
+            const hintPosition = new vscode.Position(targetLine, endColumn);
 
             const fmtdOverview = this.getIssueMarkdown(issue);
 
-            console.log(issue); 
+            console.log(issue);
             // Create inlay hints for 3 separate clickable items
-            inlayHints.push(this.createHint("Resolve", fmtdOverview, "debugg-ai.markResolved", document.uri, vsLineNumber, hintPosition, issue));
+            inlayHints.push(this.createHint("Resolve", fmtdOverview, "debugg-ai.markResolved", document.uri, targetLine, hintPosition, issue));
             if (issue.solution) {
                 const solutionMarkdown = getFixMarkdown(title || '-', issue.solution);
-                inlayHints.push(this.createHint("Fix", solutionMarkdown, "debugg-ai.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
+                inlayHints.push(this.createHint("Fix", solutionMarkdown, "debugg-ai.applySuggestedFix", document.uri, targetLine, hintPosition, issue));
+                inlayHints.push(this.createHint("Test Coverage", "Show Test Coverage", "debugg-ai.showTestCoverage", document.uri, targetLine, hintPosition, issue));
             }
             if (suggestion) {
                 const suggestionMarkdown = this.getSuggestionMarkdown(suggestion);
-                inlayHints.push(this.createHint("Suggested Fix", suggestionMarkdown, "debugg-ai.applySuggestedFix", document.uri, vsLineNumber, hintPosition, issue));
-                inlayHints.push(this.createHint("Test Coverage", suggestion.message, "debugg-ai.showTestCoverage", document.uri, vsLineNumber, hintPosition, issue));
+                inlayHints.push(this.createHint("Suggested Fix", suggestionMarkdown, "debugg-ai.applySuggestedFix", document.uri, targetLine, hintPosition, issue));
+                inlayHints.push(this.createHint("Test Coverage", suggestion.message, "debugg-ai.showTestCoverage", document.uri, targetLine, hintPosition, issue));
             } else {
                 // inlayHints.push(this.createHint("Error", title, "debugg-ai.showOverview", document.uri, vsLineNumber, hintPosition, level));
             }
 
-
-            const earlierLineText = document.lineAt(vsLineNumber - 1).text;
+            const earlierLineText = document.lineAt(targetLine - 1).text;
             const earlierEndColumn = earlierLineText.length;
-            const earlierHintPosition = new vscode.Position(vsLineNumber - 1, earlierEndColumn);
-            lineNumbersUser.push(vsLineNumber);
+            const earlierHintPosition = new vscode.Position(targetLine - 1, earlierEndColumn);
+            lineNumbersUser.push(targetLine);
             // inlayHints.push(this.createHint("Runtime: 47ms", '47 runs and 0 failures', "debugg-ai.showTestCoverage", document.uri, vsLineNumber - 1, earlierHintPosition, level));
 
         }
@@ -188,7 +195,10 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
         this.debuggAIServerClient = await this.debuggAIServerClientPromise;
         try {
             const { repoName, repoPath, branchName } = await this.debuggAIServerClient.getRepoInfo(document.uri.fsPath);
-
+            if (!repoName || !repoPath || !branchName) {
+                console.debug("No repo name, path, or branch name found for file");
+                return [];
+            }
             const issues = await this.debuggAIServerClient.issues?.getIssuesInFile(
                 document.uri.fsPath,
                 repoName,
@@ -197,6 +207,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
                     repoPath,
                 }
             );
+            console.log("Issue count in document - ", issues?.length);
             return issues ?? [];
         } catch (e) {
             console.error("Error getting repo info:", e);
@@ -224,4 +235,47 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
             return suggestion.message;
         }
     }
+
+    /**
+     * Find the line number that still matches `needle` after the document changed.
+     *
+     * @param doc           Active text document
+     * @param originalLine  The line number you stored when the error was first reported
+     * @param needle        The exact line of code you captured (trimmed)
+     * @param maxOffset     How far up/down we are willing to look (defaults to 50 lines)
+     * @return              A new line number, or `undefined` if the line disappeared
+     */
+    private relocateLine(
+        doc: vscode.TextDocument,
+        originalLine: number,
+        needle: string,
+        maxOffset = 50
+    ): number | undefined {
+        const cleanNeedle = needle.trim();
+
+        // Still identical at the old spot?  Quick-exit.
+        if (
+            originalLine >= 0 &&
+            originalLine < doc.lineCount &&
+            doc.lineAt(originalLine).text.trim() === cleanNeedle
+        ) {
+            return originalLine;
+        }
+
+        // Walk one step down, one step up, then two down, two up, etc.
+        for (let offset = 1; offset <= maxOffset; offset++) {
+            const down = originalLine + offset;
+            if (down < doc.lineCount && doc.lineAt(down).text.trim() === cleanNeedle) {
+                return down;
+            }
+            const up = originalLine - offset;
+            if (up >= 0 && doc.lineAt(up).text.trim() === cleanNeedle) {
+                return up;
+            }
+        }
+
+        // Not found nearby – probably removed or heavily edited.
+        return undefined;
+    }
+
 }

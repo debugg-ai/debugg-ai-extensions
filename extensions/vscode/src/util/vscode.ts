@@ -22,7 +22,7 @@ export function getNonce() {
 }
 
 export function getExtensionUri(): vscode.Uri {
-  return vscode.extensions.getExtension("debugg-ai.debuggai")!.extensionUri;
+  return vscode.extensions.getExtension("debugg-ai.debugg-ai")!.extensionUri;
 }
 
 export function getViewColumnOfFile(

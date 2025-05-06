@@ -61,9 +61,23 @@ export const createIssuesService = (tx: AxiosTransport): IssuesService => ({
 
     try {
       const serverUrl = "api/v1/suggestions/for_project/";
+      console.log('Branch name - ', branchName, ' repo name - ', repoName, ' repo path - ', params?.repoPath);
 
+      let relativePath = filePath;
       // Convert absolute path to relative path
-      const relativePath = filePath.replace(params?.repoPath + "/", "");
+      if (params?.repoPath) {
+        relativePath = filePath.replace(params?.repoPath + "/", "");
+      } else {
+        console.log("No repo path found for file");
+        // split based on the repo name
+        const repoBaseName = repoName.split("/")[-1];  // typically the form of 'userName/repoName'
+        const splitPath = filePath.split(repoBaseName);
+        if (splitPath.length === 2) {  // if the repo name is in the path & only once, otherwise unclear how to handle
+          relativePath = splitPath[1];
+        } else {
+          relativePath = filePath;
+        }
+      }
       console.log("GET_ISSUES_IN_FILE: Full path - ", filePath, ". Relative path - ", relativePath);
       const fileParams = {
         ...params,

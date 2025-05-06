@@ -2,7 +2,7 @@
   "name": "debugg-ai",
   "icon": "media/icon.png",
   "author": "Debugg Inc",
-  "version": "1.0.1",
+  "version": "1.0.6",
   "repository": {
     "type": "git",
     "url": "https://github.com/debugg-ai/debugg-ai-extensions"
@@ -20,7 +20,7 @@
   "license": "Apache-2.0",
   "displayName": "Debugg AI",
   "pricing": "Free",
-  "description": "Quickly find, track and squash bugs in your codebase.",
+  "description": "AI QA engineer that builds & runs test suites to highlight bugs as you code.",
   "publisher": "debugg-ai",
   "engines": {
     "vscode": "^1.70.0",
@@ -354,6 +354,18 @@
         "category": "Debugg AI",
         "title": "Apply Suggested Fix",
         "group": "Debugg AI"
+      },
+      {
+        "command": "debugg-ai.runTestsFile",
+        "category": "Debugg AI",
+        "title": "Run Tests For File",
+        "group": "Debugg AI"
+      },
+      {
+        "command": "debugg-ai.createTestsFile",
+        "category": "Debugg AI",
+        "title": "Create Tests For File",
+        "group": "Debugg AI"
       }
     ],
     "keybindings": [
@@ -445,6 +457,16 @@
         "command": "debugg-ai.applyCodeFromChat",
         "mac": "alt+a",
         "key": "alt+a"
+      },
+      {
+        "command": "debugg-ai.runTestsFile",
+        "mac": "alt+r",
+        "key": "alt+r"
+      },
+      {
+        "command": "debugg-ai.createTestsFile",
+        "mac": "alt+t",
+        "key": "alt+t"
       }
     ],
     "submenus": [
@@ -639,6 +661,7 @@
     "e2e:ci:run": "npm run e2e:compile && npm run e2e:copy-vsix && npm run e2e:install-vsix && npm run e2e:install-extensions && CONTINUE_GLOBAL_DIR=e2e/test-continue npm run e2e:test",
     "e2e:ci:run-yaml": "npm run e2e:compile && npm run e2e:copy-vsix && npm run e2e:install-vsix && npm run e2e:install-extensions && CONTINUE_GLOBAL_DIR=e2e/test-continue-yaml npm run e2e:test"
   },
+  "extensionDependencies": ["ms-python.python"],
   "devDependencies": {
     "@biomejs/biome": "1.6.4",
     "@nestjs/common": "^8.4.7",
@@ -677,6 +700,7 @@
     "@reduxjs/toolkit": "^1.9.3",
     "@types/node-fetch": "^2.6.11",
     "@types/uuid": "^9.0.8",
+    "@vscode/python-extension": "^1.0.5",
     "@vscode/ripgrep": "^1.15.9",
     "@vscode/test-electron": "^2.3.9",
     "axios": "^1.2.5",
@@ -705,7 +729,7 @@
     "ncp": "^2.0.0",
     "node-fetch": "^3.3.2",
     "node-machine-id": "^1.1.12",
-    "pkce-challenge": "^2.2.0",
+    "pkce-challenge": "^5.0.0",
     "posthog-node": "^3.6.3",
     "react-markdown": "^8.0.7",
     "react-redux": "^8.0.5",

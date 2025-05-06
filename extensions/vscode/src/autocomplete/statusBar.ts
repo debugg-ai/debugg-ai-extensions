@@ -4,8 +4,8 @@ import * as vscode from "vscode";
 
 import { Battery } from "../util/battery";
 import {
-    CONTINUE_WORKSPACE_KEY,
-    getContinueWorkspaceConfig,
+  CONTINUE_WORKSPACE_KEY,
+  getContinueWorkspaceConfig,
 } from "../util/workspaceConfig";
 
 export enum StatusBarStatus {
@@ -47,20 +47,20 @@ const statusBarItemText = (
   error?: boolean,
 ) => {
   if (error) {
-    return "$(alert) Continue (FATAL ERROR)";
+    return "$(alert) Debugg AI (FATAL ERROR)";
   }
 
   switch (status) {
     case undefined:
       if (loading) {
-        return "$(loading~spin) Continue";
+        return "$(loading~spin) Debugg AI";
       }
     case StatusBarStatus.Disabled:
-      return "$(circle-slash) Continue";
+      return "$(circle-slash) Debugg AI";
     case StatusBarStatus.Enabled:
-      return "$(check) Continue";
+      return "$(check) Debugg AI";
     case StatusBarStatus.Paused:
-      return "$(debug-pause) Continue";
+      return "$(debug-pause) Debugg AI";
   }
 };
 

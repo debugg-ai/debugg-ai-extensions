@@ -30,6 +30,7 @@ export interface Issue {
     status: "open" | "ongoing" | "resolved" | "archived";
     level: Level;
     priority: "low" | "medium" | "high" | "alert";
+    codeSingleLine: string | undefined;
     lineNumber: number;
     columnNumber: number;
     eventsCount: number;
@@ -144,6 +145,19 @@ export interface Index<T extends ArtifactType> {
     name: string;
     description: string;
     embeddings: EmbeddingsCacheResponse<T>;
+    timestamp: string;
+    lastMod: string;
+}
+
+export interface CoverageResponse {
+    uuid: string;
+    company: string;
+    filePath: string;
+    repoName: string;
+    branchName: string;
+    testFilePath: string;
+    testFileContent: string;
+    coverage: null;
     timestamp: string;
     lastMod: string;
 }

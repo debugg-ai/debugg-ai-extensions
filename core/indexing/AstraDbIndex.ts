@@ -72,6 +72,14 @@ interface AstraRow {
     startLine: number;
     endLine: number;
     contents: string;
+    metadata: {
+        filePath: string | undefined;
+        absPath: string | undefined;
+        relativePath: string | undefined;
+        startLine: number | undefined;
+        endLine: number | undefined;
+        fileExtension: string | undefined;
+    };
     $vector: number[];  // Simple number array instead of DataAPIVector
 }
 
@@ -155,25 +163,35 @@ export class AstraDbIndex implements CodebaseIndex {
      *   • must start with a letter
      * To preserve functional parity we deterministically hash long/invalid names.
     */
-    private tableNameForTag(tag: IndexTag) {
+    private async tableNameForTag(tag: IndexTag) {
         const raw = tagToString(tag);
         // 1) replace illegal chars with underscore
-        let name = raw.replace(/[^A-Za-z0-9_]/g, "_");
+        let name = raw.replace('file:///', '').replace(/[^A-Za-z0-9_]/g, "_");
 
-        // 2) ensure non‑empty & starts with letter
-        if (!name || !/^[A-Za-z]/.test(name)) {
-            name = `c_${name}`;
+        // Make sure we also update the remote server with the new index
+        let userId: string | undefined = undefined;
+        if (this.debuggAIServerClient) {
+            userId = await this.debuggAIServerClient.getUserId();
         }
 
+        // Combine user id with raw tag name
+        let combinedName = raw;
+        if (userId) {
+            combinedName = `${userId}_${raw}`;
+        }
+
+        // Hash the combined name
+        const hashId = createHash("sha1").update(combinedName).digest("hex").slice(0, 8);
+        name = `c${hashId}_${name}`;
+    
         // 3) truncate & append hash if over 48 chars
         if (name.length > 48) {
-            const hash = createHash("sha1").update(raw).digest("hex").slice(0, 8);
-            // keep first 39 chars so total ≤ 48 with underscore + 8‑char hash
-            name = `${name.slice(0, 39)}_${hash}`;
+            name = `${name.slice(0, 47)}`;
         }
         console.log("tableNameForTag tag - ", tag, " -> ", name);
         return name;
     }
+
     private async createSqliteCacheTable(db: DatabaseConnection) {
         await db.exec(`CREATE TABLE IF NOT EXISTS lance_db_cache (
       uuid TEXT PRIMARY KEY,
@@ -265,7 +283,7 @@ export class AstraDbIndex implements CodebaseIndex {
         }
     }
 
-    private createAstraRows(chunkMap: ChunkMap, embeddings: number[][]): AstraRow[] {
+    private createAstraRows(chunkMap: ChunkMap, embeddings: number[][], tag: IndexTag): AstraRow[] {
         const rows: AstraRow[] = [];
         let idx = 0;
         for (const [, { item, chunks }] of chunkMap) {
@@ -277,6 +295,14 @@ export class AstraDbIndex implements CodebaseIndex {
                     startLine: chunk.startLine,
                     endLine: chunk.endLine,
                     contents: chunk.content,
+                    metadata: {
+                        filePath: item.path,
+                        absPath: item.path.replace('file://', ''),
+                        relativePath: item.path.replace('file://', '').replace(tag.directory || '', ''),
+                        startLine: chunk.startLine,
+                        endLine: chunk.endLine,
+                        fileExtension: item.path.split('.').pop() ?? '',
+                    },
                     $vector: embeddings[idx],
                 } as AstraRow);
                 idx++;
@@ -285,7 +311,7 @@ export class AstraDbIndex implements CodebaseIndex {
         return rows;
     }
 
-    private async computeRows(items: PathAndCacheKey[]): Promise<AstraRow[]> {
+    private async computeRows(items: PathAndCacheKey[], tag: IndexTag): Promise<AstraRow[]> {
         const chunkMap = await this.collectChunks(items);
         const allChunks = Array.from(chunkMap.values()).flatMap(({ chunks }) => chunks);
         const embeddings = await this.getEmbeddings(allChunks);
@@ -307,7 +333,7 @@ export class AstraDbIndex implements CodebaseIndex {
                 embeddings.splice(i, 1);
             }
         }
-        return this.createAstraRows(chunkMap, embeddings);
+        return this.createAstraRows(chunkMap, embeddings, tag);
     }
 
     /* --------------------------------------------------------------------------
@@ -322,7 +348,7 @@ export class AstraDbIndex implements CodebaseIndex {
         const sqlite = await SqliteDb.get();
         await this.createSqliteCacheTable(sqlite);
 
-        const collectionName = this.tableNameForTag(tag);
+        const collectionName = await this.tableNameForTag(tag);
         const db = this.db;
 
         // Ensure collection exists (creates if missing)
@@ -352,7 +378,7 @@ export class AstraDbIndex implements CodebaseIndex {
             status: "indexing",
         };
 
-        const computedRows = await this.computeRows(results.compute);
+        const computedRows = await this.computeRows(results.compute, tag);
 
         // Write to local cache first (mirrors old behaviour)
         await this.insertRows(sqlite, computedRows);
@@ -385,6 +411,14 @@ export class AstraDbIndex implements CodebaseIndex {
                     startLine: row.startLine,
                     endLine: row.endLine,
                     contents: row.contents,
+                    metadata: {
+                        filePath: row.path,
+                        absPath: row.path.replace('file://', ''),
+                        relativePath: row.path.replace('file://', '').replace(tag.directory || '', ''),
+                        startLine: row.startLine,
+                        endLine: row.endLine,
+                        fileExtension: row.path.split('.').pop() ?? '',
+                    },
                     $vector: JSON.parse(row.vector),
                 }));
                 const coll = await ensureCollection(docs[0].$vector.length);
@@ -431,7 +465,8 @@ export class AstraDbIndex implements CodebaseIndex {
         try {
             // Make sure we also update the remote server with the new index
             if (this.debuggAIServerClient) {
-                await this.debuggAIServerClient.repos?.upsertVectorCollection(collectionName, tag.directory, tag.branch, this.artifactId);
+                const repoName = await this.debuggAIServerClient.getRepoName(tag.directory);
+                await this.debuggAIServerClient.repos?.upsertVectorCollection(collectionName, tag.directory, tag.branch, this.artifactId, repoName);
             }
         } catch (err) {
             console.error("Error upserting vector collection", err);
@@ -461,7 +496,7 @@ export class AstraDbIndex implements CodebaseIndex {
         let hits: { _distance: number; doc: AstraRow }[] = [];
 
         for (const tag of tags) {
-            const collName = this.tableNameForTag({ ...tag, artifactId: this.artifactId });
+            const collName = await this.tableNameForTag({ ...tag, artifactId: this.artifactId });
             const collections = await db.listCollections();
             if (!collections.some((c) => c.name === collName)) {continue;}
             const coll = db.collection<AstraRow>(collName);

@@ -21,7 +21,7 @@ DebuggAI super‑charges engineers with an AI‑powered application‑monitoring
 <a href="https://docs.debugg.ai" target="_blank">
   <img src="https://img.shields.io/badge/docs-debuggai-%235D0E41" height="22" />
 </a>
-<a href="https://marketplace.visualstudio.com/items?itemName=debugg-ai.debuggai" target="_blank">
+<a href="https://marketplace.visualstudio.com/items?itemName=debugg-ai.debugg-ai" target="_blank">
   <img src="https://img.shields.io/visual-studio-marketplace/v/debugg-ai.debuggai?color=007ACC&label=VS Code" height="22" />
 </a>
 <a href="https://plugins.jetbrains.com/plugin/22707-debuggai" target="_blank">

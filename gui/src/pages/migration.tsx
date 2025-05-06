@@ -29,7 +29,7 @@ function MigrationPage() {
           migration walkthrough
         </a>
         , and if you have any questions please reach out to us on{" "}
-        <a href="https://discord.gg/Y83xkG3uUW" target="_blank">
+        <a href="https://discord.gg/frJsD2Vx" target="_blank">
           Discord
         </a>
         .

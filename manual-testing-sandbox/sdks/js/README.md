@@ -222,7 +222,7 @@ app.listen(3000, () => {
 If you have any questions or need personalized support:
 
 - **Email**: support@debugg.ai 
-- **Slack**: Join our Slack community at [DebuggAI Slack Channel](https://example.com/slack-invite)  
+- **Discord**: Join our Discord community at [DebuggAI Discord Server](https://discord.gg/frJsD2Vx)  
 - **Documentation**: [Official DebuggAI Docs](https://docs.debugg.ai)
 
 ---

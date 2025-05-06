@@ -14,7 +14,13 @@ export type MarkCompleteCallback = (
 ) => Promise<void>;
 
 export interface CodebaseIndex {
+  /**
+   * Unique identifier for the index type
+   */
   artifactId: string;
+  /**
+   * Relative expected time for indexing operations
+   */
   relativeExpectedTime: number;
   update(
     tag: IndexTag,

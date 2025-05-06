@@ -1,7 +1,7 @@
 import { jest } from "@jest/globals";
 
 import { IndexTag } from "../..";
-import { IContinueServerClient } from "../../continueServer/interface";
+import { IDebuggAIServerClient } from "../../debuggAIServer/interface";
 import { testIde } from "../../test/fixtures";
 import { addToTestDir, TEST_DIR } from "../../test/testDir";
 import { ChunkCodebaseIndex } from "../chunk/ChunkCodebaseIndex";
@@ -32,15 +32,11 @@ export const mockTag: IndexTag = {
 
 export const mockTagString = tagToString(mockTag);
 
-export const testContinueServerClient = {
+export const testDebuggAIServerClient = {
   connected: false,
   getFromIndexCache: jest.fn(),
-} as unknown as IContinueServerClient;
+} as unknown as IDebuggAIServerClient;
 
-const mockContinueServerClient = {
-  connected: false,
-  getFromIndexCache: jest.fn(),
-} as unknown as IContinueServerClient;
 
 const mockResults: RefreshIndexResults = {
   compute: [],
@@ -56,7 +52,7 @@ const mockMarkComplete = jest
 export async function insertMockChunks() {
   const index = new ChunkCodebaseIndex(
     testIde.readFile.bind(testIde),
-    mockContinueServerClient,
+    testDebuggAIServerClient,
     1000,
   );
 

@@ -7,7 +7,7 @@ import {
   mockFileContents,
   mockFilename,
   mockPathAndCacheKey,
-  testContinueServerClient,
+  testDebuggAIServerClient,
   updateIndexAndAwaitGenerator,
 } from "../test/indexing";
 import { IndexResultType } from "../types";
@@ -31,7 +31,7 @@ describe("ChunkCodebaseIndex", () => {
   beforeAll(async () => {
     index = new ChunkCodebaseIndex(
       testIde.readFile.bind(testIde),
-      testContinueServerClient,
+      testDebuggAIServerClient,
       1000,
     );
 
