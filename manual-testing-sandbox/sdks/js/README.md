@@ -1,6 +1,9 @@
 # DebuggAI SDK
 
-A powerful application monitoring and logging SDK that helps you capture, analyze, and debug your application logs in real time. DebuggAI leverages cutting-edge AI to provide instant suggestions and automatically push fixes to your pull requests. 
+A powerful logging SDK that helps you capture, analyze, and debug your application logs in real time. 
+
+DebuggAI super‑charges engineers with an AI‑powered custom QA Engineer personalized to every user that _finds_ and _fixes_ bugs while your app runs locally, in production, or in CI. DebuggAI's Agent works with you in the background to generate, run, and improve your test suites to ensure that every PR is ready to go. Stop waiting for problems to pop up and build robust code without the big headache of managing your tests.
+
 
 [Learn more on our website](https://debugg.ai) or get started now with a [free account](https://app.debugg.ai).
 
@@ -209,11 +212,6 @@ app.listen(3000, () => {
 - **Auto-Fix PRs Not Created**  
   Check your repository settings, and confirm you have granted appropriate permissions (e.g., GitHub personal access token or similar) to let DebuggAI push code.
 
----
-
-## License
-
-[BSD-3-Clause](LICENSE)
 
 ---
 
@@ -225,7 +223,23 @@ If you have any questions or need personalized support:
 - **Discord**: Join our Discord community at [DebuggAI Discord Server](https://discord.gg/frJsD2Vx)  
 - **Documentation**: [Official DebuggAI Docs](https://docs.debugg.ai)
 
+
 ---
 
+## 📜 License & Credits
 
-Happy debugging! If you found DebuggAI helpful, consider giving this repo a ⭐ on GitHub.
+* **Code:** [MIT](LICENSE) © 2025 Debugg, Inc.
+* **Foundation:** proudly built on open-source technology.
+
+---
+
+## Attribution
+
+We at Debugg AI want to thank the open-source community for their contributions. Particularly Sentry for the work on this SDK. DebuggAI is building the first fully AI QA Engineer that can automatically generate test suites and highlight issues in your app, but Sentry continues to be a great option for Application Monitoring. Use both for the best results!
+
+---
+
+<div align="center">
+  <sub>Made with ❤️ and too many stack traces in San Francisco.</sub>
+</div>
+```
