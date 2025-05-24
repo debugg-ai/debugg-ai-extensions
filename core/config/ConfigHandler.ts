@@ -4,7 +4,7 @@ import {
   ControlPlaneClient,
   ControlPlaneSessionInfo,
 } from "../control-plane/client.js";
-import { getControlPlaneEnv, useHub } from "../control-plane/env.js";
+import { getControlPlaneEnv } from "../control-plane/env.js";
 import {
   BrowserSerializedContinueConfig,
   ContinueConfig,
@@ -296,41 +296,40 @@ export class ConfigHandler {
   }
 
   private async fetchControlPlaneProfiles() {
-    if (await useHub(this.ideSettingsPromise)) {
-      clearInterval(this.platformProfilesRefreshInterval);
-      await this.loadAssistantsForSelectedOrg();
+    // if (await useHub(this.ideSettingsPromise)) {
+    //   clearInterval(this.platformProfilesRefreshInterval);
+    //   await this.loadAssistantsForSelectedOrg();
 
-      // Every 5 seconds we ask the platform whether there are any assistant updates in the last 5 seconds
-      // If so, we do the full (more expensive) reload
-      this.platformProfilesRefreshInterval = setInterval(
-        this.reloadHubAssistants.bind(this),
-        PlatformProfileLoader.RELOAD_INTERVAL,
-      );
-    } else {
-      try {
-        const workspaces = await this.controlPlaneClient.listWorkspaces();
-        const profiles = await this.getAllLocalProfiles();
-        workspaces.forEach((workspace) => {
-          const profileLoader = new ControlPlaneProfileLoader(
-            workspace.id,
-            workspace.name,
-            this.controlPlaneClient,
-            this.ide,
-            this.ideSettingsPromise,
-            this.writeLog,
-            this.reloadConfig.bind(this),
-          );
+    //   // Every 5 seconds we ask the platform whether there are any assistant updates in the last 5 seconds
+    //   // If so, we do the full (more expensive) reload
+    //   this.platformProfilesRefreshInterval = setInterval(
+    //     this.reloadHubAssistants.bind(this),
+    //     PlatformProfileLoader.RELOAD_INTERVAL,
+    //   );
+    // } else {
+    try {
+      const workspaces = await this.controlPlaneClient.listWorkspaces();
+      const profiles = await this.getAllLocalProfiles();
+      workspaces.forEach((workspace) => {
+        const profileLoader = new ControlPlaneProfileLoader(
+          workspace.id,
+          workspace.name,
+          this.controlPlaneClient,
+          this.ide,
+          this.ideSettingsPromise,
+          this.writeLog,
+          this.reloadConfig.bind(this),
+        );
 
-          profiles.push(new ProfileLifecycleManager(profileLoader, this.ide));
-        });
+        profiles.push(new ProfileLifecycleManager(profileLoader, this.ide));
+      });
 
-        await this.updateAvailableProfiles(profiles);
-      } catch (e: any) {
-        console.error("Failed to load profiles: ", e);
-        await this.loadLocalProfilesOnly();
-      }
+      await this.updateAvailableProfiles(profiles);
+    } catch (e: any) {
+      console.error("Failed to load profiles: ", e);
+      await this.loadLocalProfilesOnly();
     }
-  }
+}
 
   async getPersistedSelectedProfileId(): Promise<string | null> {
     const workspaceId = await this.getWorkspaceId();

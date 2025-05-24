@@ -45,6 +45,7 @@ import { OptionsInlayHintsProvider } from "../debug/codeLens/inlayHintsProvider"
 import { DebuggGuiWebviewViewProvider } from "../DebuggGUIWebviewViewProvider";
 import type { VsCodeWebviewProtocol } from "../webviewProtocol";
 
+
 export class VsCodeExtension {
   // Currently some of these are public so they can be used in testing (test/test-suites)
 
@@ -275,6 +276,28 @@ export class VsCodeExtension {
       )
     );
 
+    // Download the ngrok binary
+    // - better to do when we run command so don't overwhelm
+    // initialization.
+    // let version = '';
+    // const ngrokPromise = async () => {
+    //   await downloadBinary();
+    //   try {
+    //     version = await getVersion({ binPath });
+    //   } catch (e) {
+    //     // Version will just be empty string
+    //     version = '';
+    //   }
+    //   return version;
+    // }
+    // ngrokPromise().then((r) => {
+    //   console.log("Ngrok version - ", r);
+    //   version = r;
+    // });
+
+    // context.subscriptions.push(createStatusBarItem(`debugg-ai.stopNgrok`, version));
+
+
     // Commands
     registerAllCommands(
       context,
@@ -375,6 +398,7 @@ export class VsCodeExtension {
           false,
         );
 
+        vscode.window.showInformationMessage("You have been logged out of DebuggAI");
         if (e.provider.id === "github") {
           this.configHandler.reloadConfig();
         }
@@ -408,8 +432,7 @@ export class VsCodeExtension {
 
     // Register a content provider for the readonly virtual documents
     const documentContentProvider = new (class
-      implements vscode.TextDocumentContentProvider
-    {
+      implements vscode.TextDocumentContentProvider {
       // emitter and its event
       onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
       onDidChange = this.onDidChangeEmitter.event;

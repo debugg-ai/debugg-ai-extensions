@@ -22,7 +22,6 @@ import {
 import CodeToEditCard from "../../components/CodeToEditCard";
 import FeedbackDialog from "../../components/dialogs/FeedbackDialog";
 import FreeTrialOverDialog from "../../components/dialogs/FreeTrialOverDialog";
-import { ExploreHubCard } from "../../components/ExploreHubCard";
 import { useFindWidget } from "../../components/find/FindWidget";
 import TimelineItem from "../../components/gui/TimelineItem";
 import ChatIndexingPeeks from "../../components/indexing/ChatIndexingPeeks";
@@ -33,8 +32,7 @@ import ThinkingBlockPeek from "../../components/mainInput/ThinkingBlockPeek";
 import { TutorialCard } from "../../components/mainInput/TutorialCard";
 import AssistantSelect from "../../components/modelSelection/platform/AssistantSelect";
 import {
-  OnboardingCard,
-  useOnboardingCard,
+  useOnboardingCard
 } from "../../components/OnboardingCard";
 import { PlatformOnboardingCard } from "../../components/OnboardingCard/platform/PlatformOnboardingCard";
 import PageHeader from "../../components/PageHeader";
@@ -175,6 +173,7 @@ export function Chat() {
     selectIsSingleRangeEditOrInsertion,
   );
   const lastSessionId = useAppSelector((state) => state.session.lastSessionId);
+  const allSessionMetadata = useAppSelector((state) => state.session.allSessionMetadata);
   const useHub = useAppSelector(selectUseHub);
   const hasDismissedExploreDialog = useAppSelector(
     (state) => state.ui.hasDismissedExploreDialog,
@@ -330,246 +329,245 @@ export function Chat() {
 
   return (
     <>
-      {showPageHeader && (
-        <PageHeader
-          title={isInEditMode ? "Edit Mode" : ""}
-          onTitleClick={
-            isInEditMode
-              ? async () => {
-                  await dispatch(
-                    loadLastSession({ saveCurrentSession: false }),
-                  );
-                  dispatch(exitEditMode());
-                }
-              : undefined
-          }
-          rightContent={useHub && <AssistantSelect />}
-        />
-      )}
-
-      {widget}
-
-      {!!showSessionTabs && <TabBar />}
-
-      <StepsDiv
-        ref={stepsDivRef}
-        className={`overflow-y-scroll ${showPageHeader ? "" : "pt-[8px]"} ${showScrollbar ? "thin-scrollbar" : "no-scrollbar"} ${history.length > 0 ? "flex-1" : ""}`}
-      >
-        {highlights}
-        {history.map((item, index: number) => (
-          <div
-            key={item.message.id}
-            style={{
-              minHeight: index === history.length - 1 ? "25vh" : 0,
-            }}
-          >
-            <ErrorBoundary
-              FallbackComponent={fallbackRender}
-              onReset={() => {
-                dispatch(newSession());
-              }}
-            >
-              {item.message.role === "user" ? (
-                <>
-                  {isInEditMode && index === 0 && <CodeToEditCard />}
-                  <ContinueInputBox
-                    isEditMode={isInEditMode}
-                    onEnter={(editorState, modifiers) =>
-                      sendInput(editorState, modifiers, index)
-                    }
-                    isLastUserInput={isLastUserInput(index)}
-                    isMainInput={false}
-                    editorState={item.editorState}
-                    contextItems={item.contextItems}
-                    inputId={item.message.id}
-                  />
-                </>
-              ) : item.message.role === "tool" ? (
-                <ToolOutput
-                  contextItems={item.contextItems}
-                  toolCallId={item.message.toolCallId}
-                />
-              ) : item.message.role === "assistant" &&
-                item.message.toolCalls &&
-                item.toolCallState ? (
-                <div>
-                  {item.message.toolCalls?.map((toolCall, i) => {
-                    return (
-                      <div key={i}>
-                        <ToolCallDiv
-                          toolCallState={item.toolCallState!}
-                          toolCall={toolCall}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : item.message.role === "thinking" ? (
-                <ThinkingBlockPeek
-                  content={renderChatMessage(item.message)}
-                  redactedThinking={item.message.redactedThinking}
-                  index={index}
-                  prevItem={index > 0 ? history[index - 1] : null}
-                  inProgress={index === history.length - 1}
-                  signature={item.message.signature}
-                />
-              ) : (
-                <div className="thread-message">
-                  <TimelineItem
-                    item={item}
-                    iconElement={
-                      false ? (
-                        <CodeBracketSquareIcon width="16px" height="16px" />
-                      ) : false ? (
-                        <ExclamationTriangleIcon
-                          width="16px"
-                          height="16px"
-                          color="red"
-                        />
-                      ) : (
-                        <ChatBubbleOvalLeftIcon width="16px" height="16px" />
-                      )
-                    }
-                    open={
-                      typeof stepsOpen[index] === "undefined"
-                        ? false
-                          ? false
-                          : true
-                        : stepsOpen[index]!
-                    }
-                    onToggle={() => {}}
-                  >
-                    <StepContainer
-                      index={index}
-                      isLast={index === history.length - 1}
-                      item={item}
-                    />
-                  </TimelineItem>
-                </div>
-              )}
-            </ErrorBoundary>
-          </div>
-        ))}
-      </StepsDiv>
-      <div className={`relative`}>
-        <div className="absolute -top-8 right-2 z-30">
-          {ttsActive && (
-            <StopButton
-              className=""
-              onClick={() => {
-                ideMessenger.post("tts/kill", undefined);
-              }}
-            >
-              ■ Stop TTS
-            </StopButton>
-          )}
-          {isStreaming && (
-            <StopButton
-              onClick={() => {
-                dispatch(setInactive());
-                dispatch(clearLastEmptyResponse());
-              }}
-            >
-              {getMetaKeyLabel()} ⌫ Cancel
-            </StopButton>
-          )}
+      {allSessionMetadata.length === 0 && (
+        <div className="mx-2 mt-10">
+          <PlatformOnboardingCard isDialog={false} />
         </div>
-
-        {toolCallState?.status === "generated" && <ToolCallButtons />}
-
-        {isInEditMode && history.length === 0 && <CodeToEditCard />}
-
-        {isInEditMode && history.length > 0 ? null : (
-          <ContinueInputBox
-            isMainInput
-            isEditMode={isInEditMode}
-            isLastUserInput={false}
-            onEnter={(editorState, modifiers, editor) =>
-              sendInput(editorState, modifiers, undefined, editor)
+      )}
+      {allSessionMetadata.length > 0 && (
+      <>
+        {showPageHeader && (
+          <PageHeader
+            title={isInEditMode ? "Edit Mode" : ""}
+            onTitleClick={
+              isInEditMode
+                ? async () => {
+                    await dispatch(
+                      loadLastSession({ saveCurrentSession: false }),
+                    );
+                    dispatch(exitEditMode());
+                  }
+                : undefined
             }
-            inputId={"main-editor"}
+            rightContent={useHub && <AssistantSelect />}
           />
         )}
 
-        <div
-          style={{
-            pointerEvents: isStreaming ? "none" : "auto",
-          }}
+        {widget}
+
+        {!!showSessionTabs && <TabBar />}
+
+        <StepsDiv
+          ref={stepsDivRef}
+          className={`overflow-y-scroll ${showPageHeader ? "" : "pt-[8px]"} ${showScrollbar ? "thin-scrollbar" : "no-scrollbar"} ${history.length > 0 ? "flex-1" : ""}`}
         >
-          <div className="flex flex-row items-center justify-between pb-1 pl-0.5 pr-2">
-            <div className="xs:inline hidden">
-              {history.length === 0 && lastSessionId && !isInEditMode && (
-                <div className="xs:inline hidden">
-                  <NewSessionButton
-                    onClick={async () => {
-                      await dispatch(
-                        loadLastSession({
-                          saveCurrentSession: true,
-                        }),
+          {highlights}
+          {history.map((item, index: number) => (
+            <div
+              key={item.message.id}
+              style={{
+                minHeight: index === history.length - 1 ? "25vh" : 0,
+              }}
+            >
+              <ErrorBoundary
+                FallbackComponent={fallbackRender}
+                onReset={() => {
+                  dispatch(newSession());
+                }}
+              >
+                {item.message.role === "user" ? (
+                  <>
+                    {isInEditMode && index === 0 && <CodeToEditCard />}
+                    <ContinueInputBox
+                      isEditMode={isInEditMode}
+                      onEnter={(editorState, modifiers) =>
+                        sendInput(editorState, modifiers, index)
+                      }
+                      isLastUserInput={isLastUserInput(index)}
+                      isMainInput={false}
+                      editorState={item.editorState}
+                      contextItems={item.contextItems}
+                      inputId={item.message.id}
+                    />
+                  </>
+                ) : item.message.role === "tool" ? (
+                  <ToolOutput
+                    contextItems={item.contextItems}
+                    toolCallId={item.message.toolCallId}
+                  />
+                ) : item.message.role === "assistant" &&
+                  item.message.toolCalls &&
+                  item.toolCallState ? (
+                  <div>
+                    {item.message.toolCalls?.map((toolCall, i) => {
+                      return (
+                        <div key={i}>
+                          <ToolCallDiv
+                            toolCallState={item.toolCallState!}
+                            toolCall={toolCall}
+                          />
+                        </div>
                       );
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <ArrowLeftIcon className="h-3 w-3" />
-                    Last Session
-                  </NewSessionButton>
-                </div>
-              )}
+                    })}
+                  </div>
+                ) : item.message.role === "thinking" ? (
+                  <ThinkingBlockPeek
+                    content={renderChatMessage(item.message)}
+                    redactedThinking={item.message.redactedThinking}
+                    index={index}
+                    prevItem={index > 0 ? history[index - 1] : null}
+                    inProgress={index === history.length - 1}
+                    signature={item.message.signature}
+                  />
+                ) : (
+                  <div className="thread-message">
+                    <TimelineItem
+                      item={item}
+                      iconElement={
+                        false ? (
+                          <CodeBracketSquareIcon width="16px" height="16px" />
+                        ) : false ? (
+                          <ExclamationTriangleIcon
+                            width="16px"
+                            height="16px"
+                            color="red"
+                          />
+                        ) : (
+                          <ChatBubbleOvalLeftIcon width="16px" height="16px" />
+                        )
+                      }
+                      open={
+                        typeof stepsOpen[index] === "undefined"
+                          ? false
+                            ? false
+                            : true
+                          : stepsOpen[index]!
+                      }
+                      onToggle={() => {}}
+                    >
+                      <StepContainer
+                        index={index}
+                        isLast={index === history.length - 1}
+                        item={item}
+                      />
+                    </TimelineItem>
+                  </div>
+                )}
+              </ErrorBoundary>
             </div>
-            <ConfigErrorIndicator />
+          ))}
+        </StepsDiv>
+        <div className={`relative`}>
+          <div className="absolute -top-8 right-2 z-30">
+            {ttsActive && (
+              <StopButton
+                className=""
+                onClick={() => {
+                  ideMessenger.post("tts/kill", undefined);
+                }}
+              >
+                ■ Stop TTS
+              </StopButton>
+            )}
+            {isStreaming && (
+              <StopButton
+                onClick={() => {
+                  dispatch(setInactive());
+                  dispatch(clearLastEmptyResponse());
+                }}
+              >
+                {getMetaKeyLabel()} ⌫ Cancel
+              </StopButton>
+            )}
           </div>
 
-          {hasPendingApplies && isSingleRangeEditOrInsertion && (
-            <AcceptRejectAllButtons
-              pendingApplyStates={pendingApplyStates}
-              onAcceptOrReject={async (outcome) => {
-                if (outcome === "acceptDiff") {
-                  await dispatch(
-                    loadLastSession({
-                      saveCurrentSession: false,
-                    }),
-                  );
-                  dispatch(exitEditMode());
-                }
-              }}
+          {toolCallState?.status === "generated" && <ToolCallButtons />}
+
+          {isInEditMode && history.length === 0 && <CodeToEditCard />}
+
+          {isInEditMode && history.length > 0 ? null : (
+            <ContinueInputBox
+              isMainInput
+              isEditMode={isInEditMode}
+              isLastUserInput={false}
+              onEnter={(editorState, modifiers, editor) =>
+                sendInput(editorState, modifiers, undefined, editor)
+              }
+              inputId={"main-editor"}
             />
           )}
 
-          {!hasDismissedExploreDialog && <ExploreDialogWatcher />}
+          <div
+            style={{
+              pointerEvents: isStreaming ? "none" : "auto",
+            }}
+          >
+            <div className="flex flex-row items-center justify-between pb-1 pl-0.5 pr-2">
+              <div className="xs:inline hidden">
+                {history.length === 0 && lastSessionId && !isInEditMode && (
+                  <div className="xs:inline hidden">
+                    <NewSessionButton
+                      onClick={async () => {
+                        await dispatch(
+                          loadLastSession({
+                            saveCurrentSession: true,
+                          }),
+                        );
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <ArrowLeftIcon className="h-3 w-3" />
+                      Last Session
+                    </NewSessionButton>
+                  </div>
+                )}
+              </div>
+              <ConfigErrorIndicator />
+            </div>
 
-          {history.length === 0 && (
-            <>
-              {onboardingCard.show && (
-                <div className="mx-2 mt-10">
-                  {useHub ? (
+            {hasPendingApplies && isSingleRangeEditOrInsertion && (
+              <AcceptRejectAllButtons
+                pendingApplyStates={pendingApplyStates}
+                onAcceptOrReject={async (outcome) => {
+                  if (outcome === "acceptDiff") {
+                    await dispatch(
+                      loadLastSession({
+                        saveCurrentSession: false,
+                      }),
+                    );
+                    dispatch(exitEditMode());
+                  }
+                }}
+              />
+            )}
+
+            {!hasDismissedExploreDialog && <ExploreDialogWatcher />}
+
+            {history.length === 0 && (
+              <>
+                {onboardingCard.show && (
+                  <div className="mx-2 mt-10">
                     <PlatformOnboardingCard isDialog={false} />
-                  ) : (
-                    <OnboardingCard isDialog={false} />
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
 
-              {showTutorialCard !== false && !onboardingCard.show && (
-                <div className="flex w-full justify-center">
-                  <TutorialCard onClose={closeTutorialCard} />
-                </div>
-              )}
-
-              {!onboardingCard.show && showTutorialCard === false && (
-                <div className="mx-2 mt-10">
-                  <ExploreHubCard />
-                </div>
-              )}
-            </>
-          )}
+                {showTutorialCard !== false && !onboardingCard.show && (
+                  <div className="flex w-full justify-center">
+                    <TutorialCard onClose={closeTutorialCard} />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div
-        className={`${history.length === 0 ? "h-full" : ""} flex flex-col justify-end`}
-      >
-        <ChatIndexingPeeks />
-      </div>
+        <div
+          className={`${history.length === 0 ? "h-full" : ""} flex flex-col justify-end`}
+        >
+          <ChatIndexingPeeks />
+        </div>
+      </>
+      )}
     </>
   );
 }

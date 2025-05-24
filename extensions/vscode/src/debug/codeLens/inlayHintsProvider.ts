@@ -15,7 +15,7 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
     // Cache mapping document URI to {timestamp, hints}
     private cache = new Map<string, { timestamp: number; hints: vscode.InlayHint[] }>();
     // Time-to-live for cache in milliseconds (e.g., 1000ms = 1 seconds)
-    private cacheTTL = 5000;
+    private cacheTTL = 10000;
     private debuggAIServerClientPromise: Promise<DebuggAIServerClient>;
     private debuggAIServerClient: DebuggAIServerClient | undefined;
 
@@ -52,7 +52,8 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
         }
 
         // Update the cache
-        this.cache.set(cacheKey, { timestamp: now, hints });
+        const endTime = Date.now();
+        this.cache.set(cacheKey, { timestamp: endTime, hints });
         return hints;
     }
 

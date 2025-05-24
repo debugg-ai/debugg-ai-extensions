@@ -161,3 +161,36 @@ export interface CoverageResponse {
     timestamp: string;
     lastMod: string;
 }
+
+export interface E2eTest {
+    id: string;
+    timeStamp: string;
+    lastModified: string;
+    project: number;
+    host?: number | null;
+    name: string;
+    description?: string | null;
+    agent?: number | null;
+    agentTaskDescription?: string | null;
+    testScript: string; // path or URL
+    createdBy?: number | null;
+}
+
+export type E2eRunStatus = 'pending' | 'running' | 'completed';
+export type E2eRunOutcome = 'pending' | 'skipped' | 'unknown' | 'pass' | 'fail';
+export type E2eRunType = 'generate' | 'run';
+
+export interface E2eRun {
+  id: string;
+  timeStamp: string;
+  lastModified: string;
+  key: string;
+  runType: E2eRunType;
+  test?: number | null;
+  status: E2eRunStatus;
+  outcome: E2eRunOutcome;
+  conversations: number[]; // array of Conversation IDs
+  startedBy?: number | null;
+  runOnHost?: number | null;
+  targetUrl?: string | null;
+}

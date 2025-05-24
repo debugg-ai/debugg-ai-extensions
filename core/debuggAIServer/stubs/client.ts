@@ -2,6 +2,7 @@ import { ConfigHandler } from "../../config/ConfigHandler.js";
 import { ControlPlaneSessionInfo } from "../../control-plane/client.js";
 import { IDE } from "../../index.js";
 import { CoverageService, createCoverageService } from "../services/coverage.js";
+import { createE2esService, E2esService } from "../services/e2es.js";
 import { createIndexesService, IndexesService } from "../services/indexes.js";
 import { createIssuesService, IssuesService } from "../services/issues.js";
 import { createReposService, ReposService } from "../services/repos.js";
@@ -24,6 +25,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   issues: IssuesService | undefined;
   indexes: IndexesService | undefined;
   coverage: CoverageService | undefined;
+  e2es: E2esService | undefined;
 
   constructor(
     private readonly configHandler: ConfigHandler,
@@ -45,7 +47,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.issues = createIssuesService(this.tx);
     this.indexes = createIndexesService(this.tx);
     this.coverage = createCoverageService(this.tx);
-
+    this.e2es = createE2esService(this.tx);
   }
   
   public async updateSessionInfo(sessionInfo?: ControlPlaneSessionInfo) {

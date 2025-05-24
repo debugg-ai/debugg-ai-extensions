@@ -7,6 +7,7 @@ import { extractMinimalStackTraceInfo } from "core/util/extractMinimalStackTrace
 import { Telemetry } from "core/util/posthog";
 import * as vscode from "vscode";
 
+import { kill } from 'ngrok';
 import { getExtensionVersion } from "./util/util";
 
 async function dynamicImportAndActivate(context: vscode.ExtensionContext) {
@@ -45,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 }
 
-export function deactivate() {
+export async function deactivate() {
   Telemetry.capture(
     "deactivate",
     {
@@ -55,4 +56,5 @@ export function deactivate() {
   );
 
   Telemetry.shutdownPosthogClient();
+  await kill();
 }

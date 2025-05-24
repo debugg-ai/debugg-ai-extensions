@@ -30,7 +30,7 @@ const AUTH_NAME = "DebuggAI";
 
 const enableControlServerBeta = workspace
     .getConfiguration(EXTENSION_NAME)
-    .get<boolean>("enableContinueForTeams", false);
+    .get<boolean>("enableDebuggAiForTeams", false);
 
 const controlPlaneEnv = getControlPlaneEnvSync(
     true ? "production" : "none",
@@ -263,9 +263,12 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
                 final.push({ ...s, ...newS });
             } catch (e) {
                 console.log("Refresh failed, moving on", e);
-                final.push(s);
+                if (controlPlaneEnv.AUTH_TYPE === 'debugg-ai-test') {
+                    final.push(s);
+                } else {
+                    this._sessionChangeEmitter.fire({ added: [], removed: [s], changed: [] });
+                }
                 // console.debug("Refresh failed, dropping session:", e);
-                // this._sessionChangeEmitter.fire({ added: [], removed: [s], changed: [] });
             }
         }
         await this._storeSessions(final);

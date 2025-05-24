@@ -45,7 +45,9 @@ import { pullErrorsAndHighlight } from "./debug/pullErrors";
 import { showSnippetWebview } from "./debug/webviews/snippetWebview";
 import { DebuggGuiWebviewViewProvider } from "./DebuggGUIWebviewViewProvider";
 import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
+import E2eTestRunner from "./test/e2e-agents/e2eRunner";
 import ValidatorRunner from "./test/runner/validator";
+import { start } from "./tunnels/ngrok";
 import { post } from "./util/axiosNaming";
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
 
@@ -1367,7 +1369,61 @@ const getCommandsMap: (
         }
 
       },
-    };
+      "debugg-ai.runE2eTestGenerator": async () => {
+        captureCommandTelemetry("debugg-ai.runE2eTestGenerator");
+        vscode.window.showInformationMessage("Running E2E test generator...");
+
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showWarningMessage("No file open.");
+          return;
+        }
+        // Configure the runner & pre-emptively ensure we have the ngrok binary
+        const e2eTestRunner = new E2eTestRunner();
+        await e2eTestRunner.configureNgrok();
+
+        const filePath = editor.document.uri.fsPath;
+        const client = await debuggAIServerClientPromise;
+        const { repoName, repoPath, branchName } = await client.getRepoInfo(editor.document.uri.fsPath);
+        if (!repoName || !repoPath || !branchName) {
+          console.debug("No repo name, path, or branch name found for file");
+        }
+        // const filePath = editor.document.uri.fsPath;
+        const curFileUri = vscode.Uri.file(filePath);
+        // Read the file contents
+        const fileContents = await vscode.workspace.fs.readFile(curFileUri);
+        const e2eRun = await client.e2es?.createE2eTest(
+          fileContents,
+          filePath,
+          repoName ?? "",
+          branchName ?? "",
+          {
+            repoPath
+          }
+        );
+        console.log("E2E run - ", e2eRun);
+        if (!e2eRun) {
+          vscode.window.showWarningMessage("Failed to create E2E test.");
+          return;
+        }
+        await e2eTestRunner.runTests(e2eRun, client);
+      },
+      "debugg-ai.startTunnel": async (port: number, domain: string) => {
+        captureCommandTelemetry("debugg-ai.startTunnel");
+
+        const e2eTestRunner = new E2eTestRunner();
+        await e2eTestRunner.configureNgrok();
+        // Start the tunnel
+        await start({
+          addr: port,
+          hostname: domain,
+          onLogEvent: (data: any) => {
+              console.log(`${port} | ${domain} | ngrok log: ${data}`);
+          },
+        });
+
+      }
+    }
   };
 
 const registerCopyBufferSpy = (

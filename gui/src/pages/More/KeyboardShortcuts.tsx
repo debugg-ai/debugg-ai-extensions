@@ -73,8 +73,7 @@ function KeyboardShortcut(props: KeyboardShortcutProps) {
     </div>
   );
 }
-
-const vscodeShortcuts: KeyboardShortcutProps[] = [
+const debuggVsShortcuts: KeyboardShortcutProps[] = [
   {
     mac: "⌥ T",
     windows: "Alt T",
@@ -85,6 +84,9 @@ const vscodeShortcuts: KeyboardShortcutProps[] = [
     windows: "Alt R",
     description: "Run Tests For File",
   },
+];
+
+const vscodeShortcuts: KeyboardShortcutProps[] = [
   {
     mac: "⌘ '",
     windows: "⌃ '",
@@ -211,6 +213,21 @@ const jetbrainsShortcuts: KeyboardShortcutProps[] = [
 
 function KeyboardShortcuts() {
   return (
+    <>
+    <GridDiv>
+      {debuggVsShortcuts.map(
+        (shortcut, i) => {
+          return (
+            <KeyboardShortcut
+              key={i}
+              mac={shortcut.mac}
+              windows={shortcut.windows}
+              description={shortcut.description}
+            />
+          );
+        },
+      )}
+    </GridDiv>
     <GridDiv>
       {(isJetBrains() ? jetbrainsShortcuts : vscodeShortcuts).map(
         (shortcut, i) => {
@@ -225,6 +242,7 @@ function KeyboardShortcuts() {
         },
       )}
     </GridDiv>
+    </>
   );
 }
 
