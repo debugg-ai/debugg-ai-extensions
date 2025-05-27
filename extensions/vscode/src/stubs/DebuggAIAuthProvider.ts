@@ -30,7 +30,7 @@ const AUTH_NAME = "DebuggAI";
 
 const enableControlServerBeta = workspace
     .getConfiguration(EXTENSION_NAME)
-    .get<boolean>("enableDebuggAiForTeams", false);
+    .get<boolean>("enableContinueForTeams", false);
 
 const controlPlaneEnv = getControlPlaneEnvSync(
     true ? "production" : "none",

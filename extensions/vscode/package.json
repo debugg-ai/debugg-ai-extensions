@@ -368,6 +368,12 @@
         "group": "Debugg AI"
       },
       {
+        "command": "debugg-ai.createNewE2eTest",
+        "category": "Debugg AI",
+        "title": "Create New E2E Test",
+        "group": "Debugg AI"
+      },
+      {
         "command": "debugg-ai.runE2eTestGenerator",
         "category": "Debugg AI",
         "title": "Run E2E Test",

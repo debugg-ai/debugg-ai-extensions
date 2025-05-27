@@ -1379,11 +1379,11 @@ const getCommandsMap: (
           return;
         }
         // Configure the runner & pre-emptively ensure we have the ngrok binary
-        const e2eTestRunner = new E2eTestRunner();
+        const client = await debuggAIServerClientPromise;
+        const e2eTestRunner = new E2eTestRunner(client);
         await e2eTestRunner.configureNgrok();
 
         const filePath = editor.document.uri.fsPath;
-        const client = await debuggAIServerClientPromise;
         const { repoName, repoPath, branchName } = await client.getRepoInfo(editor.document.uri.fsPath);
         if (!repoName || !repoPath || !branchName) {
           console.debug("No repo name, path, or branch name found for file");
@@ -1392,7 +1392,7 @@ const getCommandsMap: (
         const curFileUri = vscode.Uri.file(filePath);
         // Read the file contents
         const fileContents = await vscode.workspace.fs.readFile(curFileUri);
-        const e2eRun = await client.e2es?.createE2eTest(
+        const e2eRun = await client.e2es?.createE2eRun(
           fileContents,
           filePath,
           repoName ?? "",
@@ -1406,13 +1406,30 @@ const getCommandsMap: (
           vscode.window.showWarningMessage("Failed to create E2E test.");
           return;
         }
-        await e2eTestRunner.runTests(e2eRun, client);
+        await e2eTestRunner.runTests(e2eRun);
+      },
+      "debugg-ai.createNewE2eTest": async () => {
+        captureCommandTelemetry("debugg-ai.createNewE2eTest");
+        const getTestDescription = async () => {
+          const testDescription = await vscode.window.showInputBox({
+            prompt: 'Provide a description for the new E2E test',
+          });
+          return testDescription;
+        };
+        const client = await debuggAIServerClientPromise;
+        const e2eTestRunner = new E2eTestRunner(client);
+        const testDescription = await getTestDescription();
+        if (!testDescription) {
+          vscode.window.showWarningMessage("No test description provided.");
+          return;
+        }
+        await e2eTestRunner.createNewE2eTest(testDescription);
       },
       "debugg-ai.startTunnel": async (port: number, domain: string) => {
         captureCommandTelemetry("debugg-ai.startTunnel");
 
-        const e2eTestRunner = new E2eTestRunner();
-        await e2eTestRunner.configureNgrok();
+        const client = await debuggAIServerClientPromise;
+        const e2eTestRunner = new E2eTestRunner(client);
         // Start the tunnel
         await start({
           addr: port,

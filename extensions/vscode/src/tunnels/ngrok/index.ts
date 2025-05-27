@@ -2,7 +2,7 @@ import { existsSync, promises } from 'fs';
 import { join } from 'path';
 
 import { isError } from './error';
-import { hideStatusBarItem, showStatusBarItem } from './statusBarItem';
+import { hideStatusBarItem } from './statusBarItem';
 
 const { readFile } = promises;
 
@@ -129,28 +129,28 @@ export const start = async (options?: Ngrok.Options) => {
       tunnel.binPath = binPath;
       try {
         const url = await connect(tunnel);
-        showStatusBarItem();
-        const action = await window.showInformationMessage(
-          `ngrok is forwarding ${url}.`,
-          'Copy to clipboard',
-          'Open in browser',
-          'Show QR code'
-        );
-        switch (action) {
-          case 'Copy to clipboard':
-            await env.clipboard.writeText(url);
-            window.showInformationMessage(`Copied "${url}" to your clipboard.`);
-            break;
-          case 'Open in browser':
-            env.openExternal(Uri.parse(url));
-            break;
-        }
+        // showStatusBarItem();
+        // const action = await window.showInformationMessage(
+        //   `ngrok is forwarding ${url}.`,
+        //   'Copy to clipboard',
+        //   'Open in browser',
+        //   'Show QR code'
+        // );
+        // switch (action) {
+        //   case 'Copy to clipboard':
+        //     await env.clipboard.writeText(url);
+        //     window.showInformationMessage(`Copied "${url}" to your clipboard.`);
+        //     break;
+        //   case 'Open in browser':
+        //     env.openExternal(Uri.parse(url));
+        //     break;
+        // }
       } catch (error) {
         window.showErrorMessage(`There was an error starting your tunnel.`);
         console.error(error);
       }
     } catch (error) {
-      window.showErrorMessage(`There was an error starting your tunnel.`);
+      window.showErrorMessage(`There was an error finding the bin path.`);
       console.error(error);
     }
   }
@@ -287,7 +287,7 @@ export const downloadBinary = () => {
           );
         } catch (error) {
           window.showErrorMessage(
-            `Can't update ngrok binary. The extension may not work correctly.`
+            `Can't update local tunnel configuration. The tests may not work correctly.`
           );
           console.error(error);
         }

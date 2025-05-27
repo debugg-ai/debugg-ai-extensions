@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setDialogMessage(
         <ConfirmationDialog
           confirmText="Yes, log out"
-          text="Are you sure you want to log out of Continue?"
+          text="Are you sure you want to log out of Debugg AI?"
           onConfirm={() => {
             ideMessenger.post("logoutOfControlPlane", undefined);
           }}
