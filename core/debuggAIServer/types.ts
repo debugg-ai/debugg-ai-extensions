@@ -21,6 +21,27 @@ export interface AxiosResponse<T> {
     config: AxiosRequestConfig;
 }
 
+export interface Message {
+    uuid: string;
+    sender: string;
+    role: string;
+    content: string;
+    cleanedTickedContent: string | null;
+    jsonContent: Record<string, any> | null;
+    timestamp: string;
+    lastMod: string;
+}
+
+export interface Conversation {
+    uuid: string;
+    creatorUuid: string;
+    user: number;
+    company: number;
+    messages: Message[];
+    timestamp: string;
+    lastMod: string;
+}
+
 export interface Issue {
     uuid: string;
     project: number;
@@ -182,18 +203,27 @@ export type E2eRunStatus = 'pending' | 'running' | 'completed';
 export type E2eRunOutcome = 'pending' | 'skipped' | 'unknown' | 'pass' | 'fail';
 export type E2eRunType = 'generate' | 'run';
 
+export interface E2eRunMetrics {
+  executionTime: number;
+  numSteps: number;
+}
+
+
 export interface E2eRun {
   id: number;
   uuid: string;
-  timeStamp: string;
+  timestamp: string;
   lastModified: string;
   key: string;
   runType: E2eRunType;
   test?: E2eTest | null;
   status: E2eRunStatus;
   outcome: E2eRunOutcome;
-  conversations?: number[]; // array of Conversation IDs
+  conversations?: Conversation[]; // array of Conversations
   startedBy?: number | null;
   runOnHost?: number | null;
   targetUrl?: string | null;
+  runGif?: string | null;  // Url to the gif file containing the run
+  runJson?: string | null;  // Url to the json file containing the run data
+  metrics?: E2eRunMetrics | null;
 }

@@ -3,6 +3,8 @@ import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
 import { E2eRun } from 'core/debuggAIServer/types';
 import * as vscode from 'vscode';
 import { downloadBinary, start, stop } from '../../tunnels/ngrok';
+import { RunResultFormatter } from '../terminal/resultsFormatter';
+import { fetchAndOpenGif } from './recordingHandler';
 
 // test-runner.ts
 export interface FailureDetail {
@@ -20,6 +22,25 @@ export interface RunResult {
     stderr: string;
 }
 
+export type StepAction = {
+    input_text: {
+        index: number;
+        text: string;
+    } | {
+        click_element_by_index: {
+            index: number;
+        };
+    };
+};
+
+export interface StepMessageContent {
+    currentState: {
+        evaluationPreviousGoal: string;
+        memory: string;
+        nextGoal: string;
+    };
+    action: StepAction[];
+}
 
 async function startTunnel(localPort: number, domain: string) {
     try {
@@ -183,6 +204,10 @@ export class E2eTestRunner {
         );
         run.enqueued(testItem);
 
+        let stopped = false;
+        let lastStep = 0;
+        const formatter = new RunResultFormatter(run);
+
         // Poll every second for completion
         const interval = setInterval(async () => {
             const updatedRun = await this.client.e2es?.getE2eRun(e2eRun.id);
@@ -190,36 +215,67 @@ export class E2eTestRunner {
 
             console.log(`📡 Polled E2E run status: ${updatedRun.status}`);
 
+            // Update with the latest step status
+            let prevStepMessage = "";
+
+            if (lastStep > 0) {
+                // Need to check for the last step info to see if it was successful or not
+                const prevStep = updatedRun.conversations?.[0]?.messages?.[lastStep - 1];
+                if (prevStep) {
+                    const prevStepMessageContent = prevStep.jsonContent;
+                    if (prevStepMessageContent) {
+                        const prevActionFmt = prevStepMessageContent as StepMessageContent;
+                        prevStepMessage = prevActionFmt.currentState.memory;
+                    }
+                }
+            }
+            // Process the current step
+            const stepMessage = updatedRun.conversations?.[0]?.messages?.[lastStep];
+            if (stepMessage) {
+                const stepMessageContent = stepMessage.jsonContent;
+                if (stepMessageContent) {
+                    const actionFmt = stepMessageContent as StepMessageContent;
+                    const stepMessage = actionFmt.currentState.memory;
+                    const stepStatus = actionFmt.currentState.evaluationPreviousGoal ? actionFmt.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() : "pending";
+                    if (stepStatus && prevStepMessage) {
+                        formatter.updateStep(prevStepMessage, stepStatus as any);
+                    }
+                    if (stepMessage) {
+                        formatter.updateStep(stepMessage, 'pending');
+                    }
+                }
+            }
             if (updatedRun.status === 'completed') {
                 clearInterval(interval);
                 clearTimeout(timeout);
-                await stop(`${e2eRun.key}.ngrok.debugg.ai`);
+                await stop(`https://${e2eRun.key}.ngrok.debugg.ai`);
 
-                const formatted = this.client.e2es?.formatRunResult(updatedRun);
+                formatter.appendToTestRun(updatedRun, run, testItem);  // For test output
+                // formatter.printToTerminal();               // Optional: pretty terminal view
 
-                const message = new vscode.MarkdownString(`**✅ E2E Test Completed**\n\n${formatted}`);
-                message.supportHtml = true;
-                message.isTrusted = true;
-
-                run.appendOutput(formatted + '\n');
-                const duration = new Date().getTime() - new Date(updatedRun.timeStamp).getTime();
-                if (updatedRun.outcome === 'pass') {
-                    run.passed(testItem, duration);
-                } else {
-                    run.failed(testItem, new vscode.TestMessage(formatted ?? ""), duration);
+                // const duration = new Date().getTime() - new Date(updatedRun.timestamp).getTime();
+                // if (updatedRun.outcome === 'pass') {
+                //     run.passed(testItem, duration);
+                // } else {
+                //     run.failed(testItem, new vscode.TestMessage(formatted ?? ""), duration);
+                // }
+                // run.end();
+                if (updatedRun.runGif) {
+                    fetchAndOpenGif(this.repoPath ?? "", updatedRun.runGif, updatedRun.test?.name ?? "", updatedRun.uuid);
                 }
-                run.end();
-            }
+                stopped = true;
+            } 
         }, 5000);
 
         // Timeout safeguard
         const timeout = setTimeout(async () => {
+            if (stopped) return;
             clearInterval(interval);
-            await stop(`${e2eRun.key}.ngrok.debugg.ai`);
-            run.appendOutput(`⏰ E2E test timed out after 5 minutes\n`);
-            run.errored(testItem, new vscode.TestMessage('Timeout after 5 minutes'), 300_000);
+            await stop(`https://${e2eRun.key}.ngrok.debugg.ai`);
+            run.appendOutput(`⏰ E2E test timed out after 15 minutes\n`);
+            run.errored(testItem, new vscode.TestMessage('Timeout after 15 minutes'), 900_000);
             run.end();
-        }, 300_000);
+        }, 900_000);
     }
 
 }

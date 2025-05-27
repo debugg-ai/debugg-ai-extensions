@@ -205,7 +205,7 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
         // const failureOutput = failures.map(f => 
         //     `❌ **${f.testName}**\n> ${f.message}\n${f.location ? `Location: ${f.location}` : ''}`
         // ).join('\n\n');
-        const duration = new Date().getTime() - new Date(result.timeStamp).getTime();
+        const duration = new Date().getTime() - new Date(result.timestamp).getTime();
         return `
     🧪 Test Name: ${result.test?.name}
     🧪 Test Description: ${result.test?.description}

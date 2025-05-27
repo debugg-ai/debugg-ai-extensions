@@ -2,7 +2,6 @@ import { existsSync, promises } from 'fs';
 import { join } from 'path';
 
 import { isError } from './error';
-import { hideStatusBarItem } from './statusBarItem';
 
 const { readFile } = promises;
 
@@ -163,6 +162,8 @@ export const stop = async (tunnel?: string) => {
   }
   try {
     const tunnels = await getActiveTunnels(api);
+    console.log('tunnels', tunnels);
+    console.log('attempting to stop tunnel', tunnel);
     if (tunnels.length > 0) {
       tunnel =
         tunnel ||
@@ -188,17 +189,17 @@ export const stop = async (tunnel?: string) => {
 const closeTunnel = async (tunnel: string, api: NgrokClient) => {
   try {
     await disconnect(tunnel);
-    let message = `ngrok tunnel ${tunnel} disconnected.`;
+    let message = `Debugg AI tunnel disconnected.`;
     if ((await getActiveTunnels(api)).length === 0) {
       await kill();
-      message = `${message} ngrok has been shutdown.`;
-      hideStatusBarItem();
+      message = `${message} DebuggAI test runner completed.`;
+      // hideStatusBarItem();
     }
     window.showInformationMessage(message);
   } catch (error) {
-    window.showErrorMessage(
-      `There was a problem stopping the tunnel ${tunnel}, see the log for details.`
-    );
+    // window.showErrorMessage(
+    //   `There was a problem stopping the tunnel ${tunnel}, see the log for details.`
+    // );
     console.error(error);
   }
 };
@@ -207,14 +208,14 @@ const closeAllTunnels = async () => {
   try {
     await disconnect();
     await kill();
-    window.showInformationMessage(
-      'All ngrok tunnels disconnected. ngrok has been shutdown.'
-    );
-    hideStatusBarItem();
+    // window.showInformationMessage(
+    //   'All ngrok tunnels disconnected. ngrok has been shutdown.'
+    // );
+    // hideStatusBarItem();
   } catch (error) {
-    window.showErrorMessage(
-      'There was an issue closing the ngrok tunnels, check the log for details.'
-    );
+    // window.showErrorMessage(
+    //   'There was an issue closing the ngrok tunnels, check the log for details.'
+    // );
     console.error(error);
   }
 };

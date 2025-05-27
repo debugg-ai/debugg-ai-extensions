@@ -38,6 +38,8 @@ export const createIndexesService = (tx: AxiosTransport): IndexesService => ({
     artifactId: T;
     repo: string;
   }): Promise<EmbeddingsCacheResponse<T>[]> {
+    console.log('TODO: Indexes not implemented. Returning empty array. Getting indexes', params);
+    return [];
     const response = await tx.post("/api/v1/indexes", {
       params,
     }) as AxiosResponse<EmbeddingsCacheResponse<T>[]>;
