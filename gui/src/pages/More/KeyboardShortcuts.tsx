@@ -75,6 +75,16 @@ function KeyboardShortcut(props: KeyboardShortcutProps) {
 }
 const debuggVsShortcuts: KeyboardShortcutProps[] = [
   {
+    mac: "⌘ ⌥ C",
+    windows: "Ctrl ⌃ C",
+    description: "Create New E2e Test",
+  },
+  {
+    mac: "⌘ ⌥ E",
+    windows: "Ctrl ⌃ E",
+    description: "Run E2e Test",
+  },
+  {
     mac: "⌥ T",
     windows: "Alt T",
     description: "Create Tests For File",

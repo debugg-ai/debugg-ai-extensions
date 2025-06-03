@@ -1406,7 +1406,7 @@ const getCommandsMap: (
           vscode.window.showWarningMessage("Failed to create E2E test.");
           return;
         }
-        await e2eTestRunner.runTests(e2eRun);
+        await e2eTestRunner.runTests(e2eRun?.tunnelKey ?? "", e2eRun);
       },
       "debugg-ai.createNewE2eTest": async () => {
         captureCommandTelemetry("debugg-ai.createNewE2eTest");

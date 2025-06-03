@@ -2,7 +2,6 @@ import { useContext } from "react";
 import { Button } from "../../..";
 import { useAuth } from "../../../../context/Auth";
 import { IdeMessengerContext } from "../../../../context/IdeMessenger";
-import { hasPassedFTL } from "../../../../util/freeTrial";
 import DebuggAILogo from "../../../gui/DebuggAILogo";
 import { useOnboardingCard } from "../../hooks";
 
@@ -24,16 +23,6 @@ export default function MainTab({
       }
     });
   }
-
-  function openPastFreeTrialOnboarding() {
-    ideMessenger.post("controlPlane/openUrl", {
-      path: "setup-models",
-      orgSlug: auth.selectedOrganization?.slug,
-    });
-    onboardingCard.close(isDialog);
-  }
-
-  const pastFreeTrialLimit = hasPassedFTL();
 
   return (
     <div className="xs:px-0 flex w-full max-w-full flex-col items-center justify-center px-4 text-center">

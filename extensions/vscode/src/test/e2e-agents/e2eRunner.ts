@@ -42,11 +42,12 @@ export interface StepMessageContent {
     action: StepAction[];
 }
 
-async function startTunnel(localPort: number, domain: string) {
+async function startTunnel(authToken: string, localPort: number, domain: string) {
     try {
         await start({
             addr: localPort,
             hostname: domain,
+            authtoken: authToken,
             onLogEvent: (data: any) => {
                 console.log(`${localPort} | ${domain} | ngrok log: ${data}`);
             },
@@ -127,8 +128,8 @@ export class E2eTestRunner {
         return E2eTestRunner.controller;
     }
 
-    async startTunnel(port: number, url: string): Promise<string> {
-        await startTunnel(port, url);
+    async startTunnel(authToken: string, port: number, url: string): Promise<string> {
+        await startTunnel(authToken, port, url);
         console.log(`Tunnel started at: ${url}`);
         return url;
     }
@@ -137,16 +138,16 @@ export class E2eTestRunner {
      * Run E2E test generator for a single file *quietly* in the background.
      * @param filePath absolute path of the file to test
      */
-    async runTests(e2eRun: E2eRun): Promise<undefined> {
+    async runTests(authToken: string, e2eRun: E2eRun): Promise<undefined> {
         // Start by opening an ngrok tunnel.
         // call the debugg ai endpoint to start running the test
         // retrieve the results when done
         // save files locally somewhere
-        const listener = await startTunnel(3011, `${e2eRun.key}.ngrok.debugg.ai`)
+        const listener = await startTunnel(authToken, 3011, `${e2eRun.key}.ngrok.debugg.ai`)
         console.log(`Tunnel started at: ${listener}`);
 
         const interval = setInterval(async () => {
-            const newE2eRun = await this.client.e2es?.getE2eRun(e2eRun.id);
+            const newE2eRun = await this.client.e2es?.getE2eRun(e2eRun.uuid);
             console.log(`E2E run - ${newE2eRun}`);
             if (newE2eRun?.status === 'completed') {
                 console.log(`E2E run completed - ${newE2eRun}`);
@@ -183,14 +184,15 @@ export class E2eTestRunner {
             vscode.window.showWarningMessage("Failed to create E2E test run.");
             return;
         }
-        return this.handleE2eRun(e2eTest.curRun);
+        const authToken = e2eTest.tunnelKey ?? "";
+        return this.handleE2eRun(authToken, e2eTest.curRun);
     }
 
-    async handleE2eRun(e2eRun: E2eRun): Promise<void> {
+    async handleE2eRun(authToken: string, e2eRun: E2eRun): Promise<void> {
         console.log(`🔧 Handling E2E run - ${e2eRun.uuid}`);
 
         // Start ngrok tunnel
-        await startTunnel(3011, `${e2eRun.key}.ngrok.debugg.ai`);
+        await startTunnel(authToken, 3011, `${e2eRun.key}.ngrok.debugg.ai`);
         console.log(`🌐 Tunnel started at: ${e2eRun.key}.ngrok.debugg.ai`);
 
         // Setup VS Code test run
@@ -210,7 +212,7 @@ export class E2eTestRunner {
 
         // Poll every second for completion
         const interval = setInterval(async () => {
-            const updatedRun = await this.client.e2es?.getE2eRun(e2eRun.id);
+            const updatedRun = await this.client.e2es?.getE2eRun(e2eRun.uuid);
             if (!updatedRun) return;
 
             console.log(`📡 Polled E2E run status: ${updatedRun.status}`);

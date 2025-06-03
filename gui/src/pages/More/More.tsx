@@ -82,21 +82,23 @@ function MorePage() {
               Icon={TableCellsIcon}
               onClick={() => navigate("/stats")}
             />
-
-            <MoreHelpRow
-              title="Contribute to Continue"
-              description="Continue's Open Source project provided the base for our extensions. Join their community to stay up-to-date on the latest developments."
-              Icon={ArrowTopRightOnSquareIcon}
-              onClick={() =>
-                ideMessenger.post("openUrl", "https://discord.gg/vapESyrFmJ")
-              }
-            />
           </div>
         </div>
 
         <div>
           <h3 className="mx-auto mb-1 text-lg">Keyboard shortcuts</h3>
           <KeyboardShortcuts />
+        </div>
+        <div>
+
+          <MoreHelpRow
+            title="Contribute to Continue"
+            description="Continue's Open Source project provided the base for our extensions. Join their community to stay up-to-date on the latest developments."
+            Icon={ArrowTopRightOnSquareIcon}
+            onClick={() =>
+              ideMessenger.post("openUrl", "https://discord.gg/vapESyrFmJ")
+            }
+          />
         </div>
       </div>
     </div>

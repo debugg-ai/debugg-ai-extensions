@@ -6,7 +6,7 @@ dotenv.config()
 
 console.info(process.env.DEBUGG_AI_HOST)
 
-const ENDPOINT = 'http://localhost:81/api/v1/ingest/b3e51bab-a37b-49d9-b07c-af9b8c7c9146/aa1c72c7-45ed-48e6-be1b-83e81cbefb55/'
+const ENDPOINT = 'http://localhost:80/api/v1/ingest/b3e51bab-a37b-49d9-b07c-af9b8c7c9146/aa1c72c7-45ed-48e6-be1b-83e81cbefb55/'
 
 // 1) Simple initialization
 // This starts up pino with our custom transport in a worker thread

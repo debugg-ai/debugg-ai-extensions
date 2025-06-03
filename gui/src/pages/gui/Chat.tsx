@@ -21,7 +21,6 @@ import {
 } from "../../components";
 import CodeToEditCard from "../../components/CodeToEditCard";
 import FeedbackDialog from "../../components/dialogs/FeedbackDialog";
-import FreeTrialOverDialog from "../../components/dialogs/FreeTrialOverDialog";
 import { useFindWidget } from "../../components/find/FindWidget";
 import TimelineItem from "../../components/gui/TimelineItem";
 import ChatIndexingPeeks from "../../components/indexing/ChatIndexingPeeks";
@@ -39,6 +38,7 @@ import PageHeader from "../../components/PageHeader";
 import StepContainer from "../../components/StepContainer";
 import AcceptRejectAllButtons from "../../components/StepContainer/AcceptRejectAllButtons";
 import { TabBar } from "../../components/TabBar/TabBar";
+import { useAuth } from "../../context/Auth";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useTutorialCard } from "../../hooks/useTutorialCard";
 import { useWebviewListener } from "../../hooks/useWebviewListener";
@@ -69,10 +69,6 @@ import {
   getMetaKeyLabel,
   isMetaEquivalentKeyPressed,
 } from "../../util";
-import {
-  FREE_TRIAL_LIMIT_REQUESTS,
-  incrementFreeTrialCount,
-} from "../../util/freeTrial";
 import getMultifileEditPrompt from "../../util/getMultifileEditPrompt";
 import { getLocalStorage, setLocalStorage } from "../../util/localStorage";
 import ConfigErrorIndicator from "./ConfigError";
@@ -139,6 +135,7 @@ function fallbackRender({ error, resetErrorBoundary }: any) {
 }
 
 export function Chat() {
+  const { session } = useAuth();
   const posthog = usePostHog();
   const dispatch = useAppDispatch();
   const ideMessenger = useContext(IdeMessengerContext);
@@ -173,7 +170,6 @@ export function Chat() {
     selectIsSingleRangeEditOrInsertion,
   );
   const lastSessionId = useAppSelector((state) => state.session.lastSessionId);
-  const allSessionMetadata = useAppSelector((state) => state.session.allSessionMetadata);
   const useHub = useAppSelector(selectUseHub);
   const hasDismissedExploreDialog = useAppSelector(
     (state) => state.ui.hasDismissedExploreDialog,
@@ -206,32 +202,6 @@ export function Chat() {
       index?: number,
       editorToClearOnSend?: Editor,
     ) => {
-      if (defaultModel?.provider === "free-trial") {
-        const newCount = incrementFreeTrialCount();
-
-        if (newCount === FREE_TRIAL_LIMIT_REQUESTS) {
-          posthog?.capture("ftc_reached");
-        }
-        if (newCount >= FREE_TRIAL_LIMIT_REQUESTS) {
-          // Show this message whether using platform or not
-          // So that something happens if in new chat
-          ideMessenger.ide.showToast(
-            "error",
-            "You've reached the free trial limit. Please configure a model to continue.",
-          );
-
-          // Card in chat will only show if no history
-          // Also, note that platform card ignore the "Best", always opens to main tab
-          onboardingCard.open("Best");
-
-          // If history, show the dialog, which will automatically close if there is not history
-          if (history.length) {
-            dispatch(setDialogMessage(<FreeTrialOverDialog />));
-            dispatch(setShowDialog(true));
-          }
-          return;
-        }
-      }
 
       if (isSingleRangeEditOrInsertion) {
         handleSingleRangeEditOrInsertion(editorState);
@@ -329,12 +299,12 @@ export function Chat() {
 
   return (
     <>
-      {allSessionMetadata.length === 0 && (
+      {!session?.account.id && (
         <div className="mx-2 mt-10">
           <PlatformOnboardingCard isDialog={false} />
         </div>
       )}
-      {allSessionMetadata.length > 0 && (
+      {session?.account.id && (
       <>
         {showPageHeader && (
           <PageHeader
@@ -545,12 +515,6 @@ export function Chat() {
 
             {history.length === 0 && (
               <>
-                {onboardingCard.show && (
-                  <div className="mx-2 mt-10">
-                    <PlatformOnboardingCard isDialog={false} />
-                  </div>
-                )}
-
                 {showTutorialCard !== false && !onboardingCard.show && (
                   <div className="flex w-full justify-center">
                     <TutorialCard onClose={closeTutorialCard} />

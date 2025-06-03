@@ -29,4 +29,4 @@ I got the following error, can you please help explain how to fix it?
 
 ## Quick fixes
 
-Similarly to the debug action, quick actions transparently inject a prompt into the chat window. When you select “Ask Continue”, the 3 lines above and below the error are sent to the chat followed by the question “How do I fix the following problem in the above code?: [ERROR_MESSAGE]”.
+Similarly to the debug action, quick actions transparently inject a prompt into the chat window. When you select “Ask DebuggAI”, the 3 lines above and below the error are sent to the chat followed by the question “How do I fix the following problem in the above code?: [ERROR_MESSAGE]”.

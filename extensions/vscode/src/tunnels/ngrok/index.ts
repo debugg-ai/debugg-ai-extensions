@@ -251,13 +251,10 @@ export const editSettings = async () => {
   }
 };
 
-export const setAuthToken = async () => {
-  const newAuthToken = await window.showInputBox({
-    prompt: 'Enter your ngrok auth token.',
-  });
-  if (typeof newAuthToken !== 'undefined') {
+export const setAuthToken = async (token: string) => {
+  if (typeof token !== 'undefined') {
     await authtoken({
-      authtoken: newAuthToken,
+      authtoken: token,
       configPath: getConfigPath(),
     });
     return window.showInformationMessage(

@@ -9,7 +9,9 @@
 
 <div align="center">
 
-DebuggAI super‑charges engineers with an AI‑powered application‑monitoring platform that _finds_ and _fixes_ bugs while your app runs locally, in production, or in CI. Get deep contextual insights about how your app is performing, how it's being used, and where the problems are. 
+[DebuggAI](https://debugg.ai) is a Zero-Config, Fully AI-Managed End-to-End Testing platform that allows engineers to focus on the features, not the tests. Our AI agents test UI changes, simulate user behavior, and analyze visual outputs of running web applications — all via natural language and CLI tools. 
+
+
 
 </div>
 
@@ -22,12 +24,12 @@ DebuggAI super‑charges engineers with an AI‑powered application‑monitoring
   <img src="https://img.shields.io/badge/docs-debuggai-%235D0E41" height="22" />
 </a>
 <a href="https://marketplace.visualstudio.com/items?itemName=debugg-ai.debugg-ai" target="_blank">
-  <img src="https://img.shields.io/visual-studio-marketplace/v/debugg-ai.debuggai?color=007ACC&label=VS Code" height="22" />
+  <img src="https://img.shields.io/visual-studio-marketplace/v/debugg-ai.debugg-ai?color=007ACC&label=VS Code" height="22" />
 </a>
-<a href="https://plugins.jetbrains.com/plugin/22707-debuggai" target="_blank">
+<!-- <a href="https://plugins.jetbrains.com/plugin/22707-debuggai" target="_blank">
   <img src="https://img.shields.io/badge/jetbrains-install-%236F6FF7?logo=jetbrains" height="22" />
-</a>
-<a href="https://discord.gg/vapESyrFmJ" target="_blank">
+</a> -->
+<a href="https://discord.gg/65SFr8yJU2" target="_blank">
   <img src="https://img.shields.io/badge/discord-join-debuggai.svg?labelColor=191937&color=6F6FF7&logo=discord" height="22" />
 </a>
 
@@ -40,31 +42,28 @@ DebuggAI super‑charges engineers with an AI‑powered application‑monitoring
 Most AI coding tools focus on **writing** code.  
 DebuggAI focuses on the other 50 % of an engineer’s life: **getting it to run.**
 
-* **1‑line monitoring SDK** — drop‑in client (Node, Python, Go) that captures rich runtime context remotely similar to Sentry or Datadog  
-* **AI Debug Chat** — ask “Why is this `KeyError` happening?” and get a pinpointed answer with links to the offending lines  
-* **Instant Fix Suggestions** — one‑click patches and PRs generated from stack‑trace + context  
-* **Source‑map de‑minification** — readable traces even for bundled / minified front‑end code  
-* **Branch‑aware log search** — slice errors by branch, release, or feature flag to zero in fast  
-* **Works anywhere you code** — VS Code, JetBrains IDEs, or CLI
+* **Zero, and we mean Zero Config** - When you're early in a product's life, you don't want to deal with setting up test pipelines, managing test dbs, environments and so on just so they can change the next week (we certainly didn't). Our tests securely tunnel into the IDE and then browse your app using localhost:3000, for example, so there's literally no additional setup.
+* **Text based End-to-end Tests** - No more xpath nightmares, simply enter a test request like "test the login flow" and let it go.
+* **In IDE Test Reports** - Our e2e tests output results directly in the IDE Test Results panel so you can quickly see what's working and what's not. 
+* **Automated test repair** - Our agents not only rerun previous tests but can reconize the difference between a purposeful change of button positioning and a broken workflow.
+* **Remote browsers by default** - We handle all the browser management and controllers remotely to keep your enviroment uncluttered and focused. 
 
 
 ---
 
-## 📺 Demo - Get Instant Insight Into Runtime Issues
+## 📺 Demo - Get Instant Insight Into Real, Functional Issues
 
 
 ### 🔍 Typical workflows:
 
 1. You use your favorite AI agent to write code
 2. You run your app and it crashes (ah whyyyyy!)
-3. DebuggAI sees the error, grabs the full stack trace + context, and uses it to generate a solution & show you EXACTLY where to look
+3. DebuggAI runs tests to evaluate the changes and provides a full report
 4. You review the solution, edit it locally if needed, and apply it
 
 ### 🔍 How it works
 
-
-![DebuggAI Demo](https://debuggai.s3.us-east-2.amazonaws.com/trimmed-screen%20%281%29.gif)
-
+<div align="center"><img src="https://static-debugg-ai.s3.us-east-2.amazonaws.com/sample-account-creation-flow.gif"/></div>
 
 ---
 
@@ -72,14 +71,16 @@ DebuggAI focuses on the other 50 % of an engineer’s life: **getting it to run
 
 | Feature | Description | Demo |
 |---------|-------------|------|
-| **AI Debug Chat** | Conversational agent with full stack context | ![chat](docs/static/img/chat.gif) |
-| **Inline Fix Suggestions** | Autocomplete patches directly in diff‑view | ![autocomplete](docs/static/img/autocomplete.gif) |
-| **Code Edit Commands** | Select > “Improve error handling” to refactor | ![edit](docs/static/img/edit.gif) |
-| **Debug Actions** | One‑click shortcuts: *Explain Trace*, *Add Test*, *Generate Fix PR* | ![actions](docs/static/img/actions.gif) |
+| **Text Based Test Requests** | Quickly configure and run new tests on app features using simple english. 'Test my login flow' | ![Easy E2Es](media/recordings/text-based-test-design.gif) |
+| **Test Results Suite** | Get sequential and final results directly in Test Results panel | ![Test Results](media/recordings/error-in-test-creation.gif) |
+| **Easy Test Tracking** | Use our web app to view previous runs, rerun others, and more! | ![tracking](media/recordings/view-e2e-tests-in-web-app.gif) |
+| **Secure Local Tunnels** | Our testers connect directly to your localhost servers to reduce overhead | ![tunnels](media/recordings/tunnel-to-local.gif) |
+| **Recording Gif Creation** | Simplify debugging and test review with in IDE recordings after each test | ![actions](media/recordings/gif-recording-creation.gif) |
 
-_(GIFs borrowed from Continue until we finish recording DebuggAI‑specific demos.)_
+
 
 ---
+
 
 ## 🚀 Getting Started
 
@@ -87,37 +88,18 @@ _(GIFs borrowed from Continue until we finish recording DebuggAI‑specific demo
    - [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=debugg-ai.debuggai)  
    - Jetbrains coming soon
 
+2. **Login** 
+   – You can login to your DebuggAI account directly in the extension and then it will automatically connect to your project. ⚡
+        <div align=""><img src="media/debugg-ai-signin-big.png" alt="Login config" width="300"/></div>
 
-2. **Create a project**  
-    - [Sign up & create a project in the DebuggAI app](https://app.debugg.ai)
+3. **Start a test**
+   - Use `⌘ ⇧ P` to open command list and find Debugg AI: Create New E2e Test. Or use the shortcut, `⌘ ⌥ C` (cmd + alt + c).
 
-        ![Create a project](https://debuggai.s3.us-east-2.amazonaws.com/issues-page.png)
 
-3. **Add the SDK** (`npm`, `pip`, etc.)  
+        <div align=""><img src="media/new-e2e-test.png" alt="end to end test creation" width="300"/></div>
+   - A new popup will appear to ask for a decsription and once submitted will begin running immediately. 
 
-   ```bash
-   # Node
-   npm i debugg-ai-sdk
 
-   # Python
-   pip install debugg-ai-sdk
-   ```
-
-4. **Initialize** (one line):
-
-   - Get the initizalization code from the DebuggAI app
-
-        ![Get the initialization code](https://static-debugg-ai.s3.us-east-2.amazonaws.com/debugg-ai-init-code.png)
-
-   - Initialize the SDK
-
-        ```ts
-        // index.ts
-        import { DebuggAiLogger } from "debugg-ai-sdk";
-        const logger = new DebuggAiLogger({ projectKey: "<YOUR_KEY>" });
-        ```
-
-5. **Trigger an error** – head back to the IDE and watch DebuggAI suggest a fix ⚡
 
 Full walkthrough ▶ [docs.debugg.ai/getting-started](https://docs.debugg.ai)
 
@@ -125,7 +107,7 @@ Full walkthrough ▶ [docs.debugg.ai/getting-started](https://docs.debugg.ai)
 
 ## 🛠️ Configuration
 
-You can login to your DebuggAI account directly in the extension and then it will automatically connect to your project.
+We default to assuming your app server is running on localhost:3000. If it is on another port, you need to set the config variable `debugg-ai-server-port`.
 
 
 ---
@@ -160,6 +142,6 @@ A copy of the original license is included in this repository for your convenien
 
 
 <div align="center">
-  <sub>Made with ❤️ and too many stack traces in San Francisco.</sub>
+  <sub>Made with 🩸, 💦, and 😭 in San Francisco.</sub>
 </div>
 

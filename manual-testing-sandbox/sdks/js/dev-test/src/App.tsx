@@ -7,7 +7,7 @@ import viteLogo from '/vite.svg'
 
 const PROJECT_KEY = '2f7142cf-7501-4f2b-96f4-08da17d0d780';
 const COMPANY_KEY = 'b3e51bab-a37b-49d9-b07c-af9b8c7c9146';
-const ENDPOINT = `http://api.localhost:81/api/v1/ingest/${COMPANY_KEY}/${PROJECT_KEY}/`;
+const ENDPOINT = `http://api.localhost:80/api/v1/ingest/${COMPANY_KEY}/${PROJECT_KEY}/`;
 
 // 1) Initialize
 DebuggAiLogger.init({

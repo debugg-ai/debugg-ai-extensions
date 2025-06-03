@@ -2,8 +2,8 @@ import * as fs from "node:fs";
 
 import { IdeSettings } from "..";
 import {
-  getLocalEnvironmentDotFilePath,
-  getStagingEnvironmentDotFilePath,
+    getLocalEnvironmentDotFilePath,
+    getStagingEnvironmentDotFilePath,
 } from "../util/paths";
 
 export interface ControlPlaneEnv {
@@ -74,13 +74,13 @@ const TEST_ENV: ControlPlaneEnv = {
 };
 
 const LOCAL_ENV: ControlPlaneEnv = {
-  DEFAULT_CONTROL_PLANE_PROXY_URL: "http://localhost:81",
-  CONTROL_PLANE_URL: "http://localhost:81",
+  DEFAULT_CONTROL_PLANE_PROXY_URL: "http://localhost:80",
+  CONTROL_PLANE_URL: "http://localhost:80",
   AUTH_TYPE: OUATH_ENV_ID_TEST,
   OUATH_URL: "https://auth.dev.debugg.ai",
   OAUTH_CLIENT_ID: CLIENT_ID,
   OAUTH_CLIENT_SECRET: CLIENT_SECRET_DEV,
-  APP_URL: "http://localhost:81",
+  APP_URL: "http://localhost:80",
 };
 
 export async function enableHubContinueDev() {

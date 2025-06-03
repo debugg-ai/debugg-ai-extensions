@@ -55,7 +55,7 @@ export const createCoverageService = (tx: AxiosTransport): CoverageService => ({
             return response;
 
         } catch (err) {
-            console.error("Error fetching issues in file:", err);
+            console.error("Error creating coverage in file:", err);
             return null;
         }
     },
@@ -104,7 +104,7 @@ export const createCoverageService = (tx: AxiosTransport): CoverageService => ({
             return response;
 
         } catch (err) {
-            console.error("Error fetching issues in file:", err);
+            console.error("Error logging failed run in file:", err);
             return null;
         }
     },
@@ -152,7 +152,7 @@ export const createCoverageService = (tx: AxiosTransport): CoverageService => ({
             return response;
 
         } catch (err) {
-            console.error("Error fetching issues in file:", err);
+            console.error("Error fetching coverage in file:", err);
             return null;
         }
 

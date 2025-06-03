@@ -189,6 +189,7 @@ export interface E2eTest {
     timeStamp: string;
     lastModified: string;
     project: number;
+    tunnelKey?: string | null;
     curRun?: E2eRun | null;
     host?: number | null;
     name: string;
@@ -217,6 +218,7 @@ export interface E2eRun {
   key: string;
   runType: E2eRunType;
   test?: E2eTest | null;
+  tunnelKey?: string | null;
   status: E2eRunStatus;
   outcome: E2eRunOutcome;
   conversations?: Conversation[]; // array of Conversations

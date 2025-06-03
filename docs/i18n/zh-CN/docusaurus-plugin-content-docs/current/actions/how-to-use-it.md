@@ -80,6 +80,6 @@ Write unit tests for the above selected code, following each of these instructio
 
 #### 快速修复
 
-无论何时在你的代码中看到红色/黄色下划线表示错误，你可以把光标放到附近， VS Code 会显示一个灯泡图标。无论点击灯泡，或使用 `cmd/ctrl+.` 快捷键，将会显示一个快速修复的下拉菜单。其中之一是 "Ask Continue" action 。无论单击或再次使用 `cmd/ctrl+.` ， Continue 将尝试帮助解决问题。
+无论何时在你的代码中看到红色/黄色下划线表示错误，你可以把光标放到附近， VS Code 会显示一个灯泡图标。无论点击灯泡，或使用 `cmd/ctrl+.` 快捷键，将会显示一个快速修复的下拉菜单。其中之一是 "Ask DebuggAI" action 。无论单击或再次使用 `cmd/ctrl+.` ， Continue 将尝试帮助解决问题。
 
 ![ask-continue](/img/ask-continue.png)

@@ -20,7 +20,7 @@
   "license": "Apache-2.0",
   "displayName": "Debugg AI",
   "pricing": "Free",
-  "description": "AI QA engineer that builds & runs test suites to highlight bugs as you code.",
+  "description": "Zero-Config, Fully AI-Managed End-to-End Testing So You Don't Have To.",
   "publisher": "debugg-ai",
   "engines": {
     "vscode": "^1.70.0",
@@ -33,6 +33,7 @@
   },
   "categories": [
     "AI",
+    "Testing",
     "Chat",
     "Programming Languages",
     "Education",
@@ -40,6 +41,8 @@
     "Snippets"
   ],
   "keywords": [
+    "e2e",
+    "end-to-end",
     "chatgpt",
     "github",
     "copilot",
@@ -479,6 +482,16 @@
         "command": "debugg-ai.createTestsFile",
         "mac": "alt+t",
         "key": "alt+t"
+      },
+      {
+        "command": "debugg-ai.createNewE2eTest",
+        "mac": "cmd+alt+c",
+        "key": "ctrl+alt+c"
+      },
+      {
+        "command": "debugg-ai.runE2eTestGenerator",
+        "mac": "cmd+alt+e",
+        "key": "ctrl+alt+e"
       }
     ],
     "submenus": [

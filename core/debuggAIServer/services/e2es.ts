@@ -7,8 +7,8 @@ export interface E2esService {
     createE2eTest(description: string, filePath: string, repoName: string, branchName: string, params?: Record<string, any>): Promise<E2eTest | null>;
     runE2eTest(filePath: string, repoName: string, branchName: string, params?: Record<string, any>): Promise<E2eRun | null>;
     createE2eRun(fileContents: Uint8Array, filePath: string, repoName: string, branchName: string, params?: Record<string, any>): Promise<E2eRun | null>;
-    getE2eRun(uuid: number, params?: Record<string, any>): Promise<E2eRun | null>;
-    getE2eTest(uuid: number, params?: Record<string, any>): Promise<E2eTest | null>;
+    getE2eRun(uuid: string, params?: Record<string, any>): Promise<E2eRun | null>;
+    getE2eTest(uuid: string, params?: Record<string, any>): Promise<E2eTest | null>;
     formatRunResult(e2eRun: E2eRun): string;
 }
 
@@ -158,7 +158,7 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
      * Get a E2E run for a given UUID
      */
     async getE2eRun(
-        uuid: number,
+        uuid: string,
         params?: Record<string, any>
     ): Promise<E2eRun | null> {
 
@@ -180,7 +180,7 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
      * Get a E2E test for a given UUID
      */
     async getE2eTest(
-        uuid: number,
+        uuid: string,
         params?: Record<string, any>
     ): Promise<E2eTest | null> {
 

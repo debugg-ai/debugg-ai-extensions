@@ -33,4 +33,4 @@ I got the following error, can you please help explain how to fix it?
 
 ## 快速修复
 
-类似于调试 action ，快速 action 透明地添加提示词到聊天窗口中。当你选择 "Ask Continue" ，错误的上下 3 行会发送给聊天，跟上问题 "How do I fix the following problem in the above code?: [ERROR_MESSAGE]" 。
+类似于调试 action ，快速 action 透明地添加提示词到聊天窗口中。当你选择 "Ask DebuggAI" ，错误的上下 3 行会发送给聊天，跟上问题 "How do I fix the following problem in the above code?: [ERROR_MESSAGE]" 。
