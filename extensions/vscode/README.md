@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- Replace with your own logo -->
-![DebuggAI logo](media/header-comm.jpg)
+![DebuggAI logo](https://static-debugg-ai.s3.us-east-2.amazonaws.com/extension/media/header-comm.png)
 
 </div>
 
@@ -71,11 +71,11 @@ DebuggAI focuses on the other 50 % of an engineer’s life: **getting it to run
 
 | Feature | Description | Demo |
 |---------|-------------|------|
-| **Text Based Test Requests** | Quickly configure and run new tests on app features using simple english. 'Test my login flow' | ![Easy E2Es](media/recordings/text-based-test-design.gif) |
-| **Test Results Suite** | Get sequential and final results directly in Test Results panel | ![Test Results](media/recordings/error-in-test-creation.gif) |
-| **Easy Test Tracking** | Use our web app to view previous runs, rerun others, and more! | ![tracking](media/recordings/view-e2e-tests-in-web-app.gif) |
-| **Secure Local Tunnels** | Our testers connect directly to your localhost servers to reduce overhead | ![tunnels](media/recordings/tunnel-to-local.gif) |
-| **Recording Gif Creation** | Simplify debugging and test review with in IDE recordings after each test | ![actions](media/recordings/gif-recording-creation.gif) |
+| **Text Based Test Requests** | Quickly configure and run new tests on app features using simple english. 'Test my login flow' | ![Easy E2Es](https://static-debugg-ai.s3.us-east-2.amazonaws.com/extension/recordings/text-based-test-design.gif) |
+| **Test Results Suite** | Get sequential and final results directly in Test Results panel | ![Test Results](https://static-debugg-ai.s3.us-east-2.amazonaws.com/extension/recordings/error-in-test-creation.gif) |
+| **Easy Test Tracking** | Use our web app to view previous runs, rerun others, and more! | ![tracking](https://static-debugg-ai.s3.us-east-2.amazonaws.com/extension/recordings/view-e2e-tests-in-web-app.gif) |
+| **Secure Local Tunnels** | Our testers connect directly to your localhost servers to reduce overhead | ![tunnels](https://static-debugg-ai.s3.us-east-2.amazonaws.com/extension/recordings/tunnel-to-local.gif) |
+| **Recording Gif Creation** | Simplify debugging and test review with in IDE recordings after each test | ![actions](https://static-debugg-ai.s3.us-east-2.amazonaws.com/extension/recordings/gif-recording-creation.gif) |
 
 
 
@@ -90,13 +90,13 @@ DebuggAI focuses on the other 50 % of an engineer’s life: **getting it to run
 
 2. **Login** 
    – You can login to your DebuggAI account directly in the extension and then it will automatically connect to your project. ⚡
-        <div align=""><img src="media/debugg-ai-signin-big.png" alt="Login config" width="300"/></div>
+        <div align=""><img src="https://static-debugg-ai.s3.us-east-2.amazonaws.com/extension/media/debugg-ai-signin-big.png" alt="Login config" width="300"/></div>
 
 3. **Start a test**
    - Use `⌘ ⇧ P` to open command list and find Debugg AI: Create New E2e Test. Or use the shortcut, `⌘ ⌥ C` (cmd + alt + c).
 
 
-        <div align=""><img src="media/new-e2e-test.png" alt="end to end test creation" width="300"/></div>
+        <div align=""><img src="https://static-debugg-ai.s3.us-east-2.amazonaws.com/extension/media/new-e2e-test.png" alt="end to end test creation" width="300"/></div>
    - A new popup will appear to ask for a decsription and once submitted will begin running immediately. 
 
 
