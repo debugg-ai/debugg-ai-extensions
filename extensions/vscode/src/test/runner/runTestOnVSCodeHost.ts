@@ -102,7 +102,7 @@ async function main() {
 
     const extensionTestsEnv = {
       NODE_ENV: "test",
-      CONTINUE_GLOBAL_DIR: continueGlobalDir,
+      DEBUGG_AI_GLOBAL_DIR: continueGlobalDir,
     };
 
     setupTestWorkspace();

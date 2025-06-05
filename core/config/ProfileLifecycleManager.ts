@@ -1,14 +1,14 @@
 import {
-  ConfigResult,
-  ConfigValidationError,
-  FullSlug,
+    ConfigResult,
+    ConfigValidationError,
+    FullSlug,
 } from "@continuedev/config-yaml";
 
 import {
-  BrowserSerializedContinueConfig,
-  ContinueConfig,
-  IContextProvider,
-  IDE,
+    BrowserSerializedDebuggAiConfig,
+    DebuggAiConfig,
+    IContextProvider,
+    IDE,
 } from "../index.js";
 
 import { finalToBrowserConfig } from "./load.js";
@@ -32,9 +32,9 @@ export interface OrganizationDescription {
 }
 
 export class ProfileLifecycleManager {
-  private savedConfigResult: ConfigResult<ContinueConfig> | undefined;
-  private savedBrowserConfigResult?: ConfigResult<BrowserSerializedContinueConfig>;
-  private pendingConfigPromise?: Promise<ConfigResult<ContinueConfig>>;
+  private savedConfigResult: ConfigResult<DebuggAiConfig> | undefined;
+  private savedBrowserConfigResult?: ConfigResult<BrowserSerializedDebuggAiConfig>;
+  private pendingConfigPromise?: Promise<ConfigResult<DebuggAiConfig>>;
 
   constructor(
     private readonly profileLoader: IProfileLoader,
@@ -54,7 +54,7 @@ export class ProfileLifecycleManager {
   // Clear saved config and reload
   async reloadConfig(
     additionalContextProviders: IContextProvider[] = [],
-  ): Promise<ConfigResult<ContinueConfig>> {
+  ): Promise<ConfigResult<DebuggAiConfig>> {
     this.savedConfigResult = undefined;
     this.savedBrowserConfigResult = undefined;
     this.pendingConfigPromise = undefined;
@@ -65,7 +65,7 @@ export class ProfileLifecycleManager {
   async loadConfig(
     additionalContextProviders: IContextProvider[],
     forceReload: boolean = false,
-  ): Promise<ConfigResult<ContinueConfig>> {
+  ): Promise<ConfigResult<DebuggAiConfig>> {
     // If we already have a config, return it
     if (!forceReload) {
       if (this.savedConfigResult) {
@@ -77,7 +77,7 @@ export class ProfileLifecycleManager {
 
     // Set pending config promise
     this.pendingConfigPromise = new Promise(async (resolve, reject) => {
-      let result: ConfigResult<ContinueConfig>;
+      let result: ConfigResult<DebuggAiConfig>;
       // This try catch is expected to catch high-level errors that aren't block-specific
       // Like invalid json, invalid yaml, file read errors, etc.
       // NOT block-specific loading errors
@@ -115,7 +115,7 @@ export class ProfileLifecycleManager {
 
   async getSerializedConfig(
     additionalContextProviders: IContextProvider[],
-  ): Promise<ConfigResult<BrowserSerializedContinueConfig>> {
+  ): Promise<ConfigResult<BrowserSerializedDebuggAiConfig>> {
     if (this.savedBrowserConfigResult) {
       return this.savedBrowserConfigResult;
     } else {

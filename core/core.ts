@@ -114,7 +114,7 @@ export class Core {
         void messenger.request("didSelectOrganization", {
           orgId,
         });
-      },
+      }
     );
 
     this.docsService = DocsService.createSingleton(

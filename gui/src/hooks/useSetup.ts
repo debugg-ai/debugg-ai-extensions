@@ -3,7 +3,7 @@ import { VSC_THEME_COLOR_VARS } from "../components";
 import { IdeMessengerContext } from "../context/IdeMessenger";
 
 import { ConfigResult } from "@continuedev/config-yaml";
-import { BrowserSerializedContinueConfig } from "core";
+import { BrowserSerializedDebuggAiConfig } from "core";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
   selectDefaultModel,
@@ -36,7 +36,7 @@ function useSetup() {
     async (
       initial: boolean,
       result: {
-        result: ConfigResult<BrowserSerializedContinueConfig>;
+        result: ConfigResult<BrowserSerializedDebuggAiConfig>;
         profileId: string | null;
       },
     ) => {

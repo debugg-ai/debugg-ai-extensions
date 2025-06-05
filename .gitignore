@@ -164,6 +164,7 @@ extensions/intellij/.idea/**
 **/.idea/shelf/
 
 extensions/intellij/bin
+extensions/.debugg-ai-debug/
 extensions/.continue-debug/
 
 *.vsix

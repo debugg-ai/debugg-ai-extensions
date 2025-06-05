@@ -2,20 +2,20 @@ import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import {
-  ContinueRcJson,
-  FileStatsMap,
-  FileType,
-  IDE,
-  IdeInfo,
-  IdeSettings,
-  IndexTag,
-  Location,
-  Problem,
-  Range,
-  RangeInFile,
-  TerminalOptions,
-  Thread,
-  ToastType,
+    ContinueRcJson,
+    FileStatsMap,
+    FileType,
+    IDE,
+    IdeInfo,
+    IdeSettings,
+    IndexTag,
+    Location,
+    Problem,
+    Range,
+    RangeInFile,
+    TerminalOptions,
+    Thread,
+    ToastType,
 } from "../index.js";
 import { GetGhTokenArgs } from "../protocol/ide.js";
 
@@ -53,7 +53,7 @@ class FileSystemIde implements IDE {
       remoteConfigSyncPeriod: 60,
       userToken: "",
       enableControlServerBeta: false,
-      continueTestEnvironment: "none",
+      debuggAiTestEnvironment: "none",
       pauseCodebaseIndexOnStart: false,
     };
   }

@@ -3,19 +3,19 @@ import { open, type Database } from "sqlite";
 import sqlite3 from "sqlite3";
 
 import {
-  Chunk,
-  ContinueConfig,
-  DocsIndexingDetails,
-  IDE,
-  IdeInfo,
-  ILLM,
-  IndexingStatus,
-  SiteIndexingConfig,
+    Chunk,
+    DebuggAiConfig,
+    DocsIndexingDetails,
+    IDE,
+    IdeInfo,
+    ILLM,
+    IndexingStatus,
+    SiteIndexingConfig,
 } from "../..";
 import { ConfigHandler } from "../../config/ConfigHandler";
 import {
-  addContextProvider,
-  isSupportedLanceDbCpuTargetForLinux,
+    addContextProvider,
+    isSupportedLanceDbCpuTargetForLinux,
 } from "../../config/util";
 import DocsContextProvider from "../../context/providers/DocsContextProvider";
 import TransformersJsEmbeddingsProvider from "../../llm/llms/TransformersJsEmbeddingsProvider";
@@ -24,24 +24,24 @@ import { IMessenger } from "../../protocol/messenger";
 import { fetchFavicon, getFaviconBase64 } from "../../util/fetchFavicon";
 import { GlobalContext } from "../../util/GlobalContext";
 import {
-  editConfigJson,
-  getDocsSqlitePath,
-  getLanceDbPath,
+    editConfigJson,
+    getDocsSqlitePath,
+    getLanceDbPath,
 } from "../../util/paths";
 import { Telemetry } from "../../util/posthog";
 
 import {
-  ArticleWithChunks,
-  htmlPageToArticleWithChunks,
-  markdownPageToArticleWithChunks,
+    ArticleWithChunks,
+    htmlPageToArticleWithChunks,
+    markdownPageToArticleWithChunks,
 } from "./article";
 import DocsCrawler, { DocsCrawlerType, PageData } from "./crawlers/DocsCrawler";
 import { runLanceMigrations, runSqliteMigrations } from "./migrations";
 import {
-  downloadFromS3,
-  getS3Filename,
-  S3Buckets,
-  SiteIndexingResults,
+    downloadFromS3,
+    getS3Filename,
+    S3Buckets,
+    SiteIndexingResults,
 } from "./preIndexed";
 import preIndexedDocs from "./preIndexedDocs";
 
@@ -98,7 +98,7 @@ export default class DocsService {
   private docsIndexingQueue = new Set<string>();
   private lanceTableNamesSet = new Set<string>();
 
-  private config!: ContinueConfig;
+  private config!: DebuggAiConfig;
   private sqliteDb?: Database;
 
   private ideInfoPromise: Promise<IdeInfo>;
@@ -290,7 +290,7 @@ export default class DocsService {
 
   private async handleConfigUpdate({
     config: newConfig,
-  }: ConfigResult<ContinueConfig>) {
+  }: ConfigResult<DebuggAiConfig>) {
     if (newConfig) {
       const oldConfig = this.config;
       this.config = newConfig; // IMPORTANT - need to set up top, other methods below use this without passing it in
@@ -917,8 +917,8 @@ export default class DocsService {
     Ignores pre-indexed docs
   */
   private async syncDocs(
-    oldConfig: ContinueConfig | undefined,
-    newConfig: ContinueConfig,
+    oldConfig: DebuggAiConfig | undefined,
+    newConfig: DebuggAiConfig,
     forceReindex: boolean,
   ) {
     try {

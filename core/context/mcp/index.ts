@@ -5,7 +5,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { WebSocketClientTransport } from "@modelcontextprotocol/sdk/client/websocket.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 
-import { ContinueConfig, MCPOptions, SlashCommand, Tool } from "../..";
+import { DebuggAiConfig, MCPOptions, SlashCommand, Tool } from "../..";
 import { constructMcpSlashCommand } from "../../commands/slash/mcp";
 import { encodeMCPToolUri } from "../../tools/callTool";
 import MCPContextProvider from "../providers/MCPContextProvider";
@@ -118,7 +118,7 @@ class MCPConnection {
   }
 
   async modifyConfig(
-    config: ContinueConfig,
+    config: DebuggAiConfig,
     mcpId: string,
     signal: AbortSignal,
     name: string,

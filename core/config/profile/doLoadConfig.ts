@@ -8,11 +8,11 @@ import {
 } from "@continuedev/config-yaml";
 
 import {
-  ContinueConfig,
   ContinueRcJson,
+  DebuggAiConfig,
   IDE,
   IdeSettings,
-  SerializedContinueConfig,
+  SerializedDebuggAiConfig,
 } from "../../";
 import { ControlPlaneProxyInfo } from "../../control-plane/analytics/IAnalyticsProvider.js";
 import { ControlPlaneClient } from "../../control-plane/client.js";
@@ -23,11 +23,12 @@ import { getConfigJsonPath, getConfigYamlPath } from "../../util/paths";
 import { localPathOrUriToPath } from "../../util/pathToUri";
 import { Telemetry } from "../../util/posthog";
 import { TTS } from "../../util/tts";
-import { loadContinueConfigFromJson } from "../load";
+import { loadDebuggAiConfigFromJson } from "../load";
 import { migrateJsonSharedConfig } from "../migrateSharedConfig";
 import { rectifySelectedModelsFromGlobalContext } from "../selectedModels";
-import { loadContinueConfigFromYaml } from "../yaml/loadYaml";
+import { loadDebuggAiConfigFromYaml } from "../yaml/loadYaml";
 
+import { ConfigHandler } from "../ConfigHandler";
 import { PlatformConfigMetadata } from "./PlatformProfileLoader";
 
 export default async function doLoadConfig(
@@ -35,12 +36,13 @@ export default async function doLoadConfig(
   ideSettingsPromise: Promise<IdeSettings>,
   controlPlaneClient: ControlPlaneClient,
   writeLog: (message: string) => Promise<void>,
-  overrideConfigJson: SerializedContinueConfig | undefined,
+  overrideConfigJson: SerializedDebuggAiConfig | undefined,
   overrideConfigYaml: AssistantUnrolled | undefined,
   platformConfigMetadata: PlatformConfigMetadata | undefined,
   profileId: string,
   overrideConfigYamlByPath: string | undefined,
-): Promise<ConfigResult<ContinueConfig>> {
+  configHandler: ConfigHandler
+): Promise<ConfigResult<DebuggAiConfig>> {
   const workspaceConfigs = await getWorkspaceConfigs(ide);
   const ideInfo = await ide.getIdeInfo();
   const uniqueId = await ide.getUniqueId();
@@ -51,19 +53,28 @@ export default async function doLoadConfig(
   // Removes
   const configJsonPath = getConfigJsonPath(ideInfo.ideType);
   if (fs.existsSync(configJsonPath)) {
-    migrateJsonSharedConfig(configJsonPath, ide);
+    await migrateJsonSharedConfig(
+      configJsonPath, 
+      ide,
+      ideSettings,
+      ideInfo,
+      uniqueId,
+      writeLog,
+      workOsAccessToken,
+      configHandler
+    );
   }
 
   const configYamlPath = localPathOrUriToPath(
     overrideConfigYamlByPath || getConfigYamlPath(ideInfo.ideType),
   );
 
-  let newConfig: ContinueConfig | undefined;
+  let newConfig: DebuggAiConfig | undefined;
   let errors: ConfigValidationError[] | undefined;
   let configLoadInterrupted = false;
 
   if (overrideConfigYaml || fs.existsSync(configYamlPath)) {
-    const result = await loadContinueConfigFromYaml(
+    const result = await loadDebuggAiConfigFromYaml(
       ide,
       workspaceConfigs.map((c) => JSON.stringify(c)),
       ideSettings,
@@ -80,7 +91,7 @@ export default async function doLoadConfig(
     errors = result.errors;
     configLoadInterrupted = result.configLoadInterrupted;
   } else {
-    const result = await loadContinueConfigFromJson(
+    const result = await loadDebuggAiConfigFromJson(
       ide,
       workspaceConfigs,
       ideSettings,
@@ -89,6 +100,7 @@ export default async function doLoadConfig(
       writeLog,
       workOsAccessToken,
       overrideConfigJson,
+      configHandler
     );
     newConfig = result.config;
     errors = result.errors;
@@ -158,9 +170,9 @@ export default async function doLoadConfig(
 
 // Pass ControlPlaneProxyInfo to objects that need it
 async function injectControlPlaneProxyInfo(
-  config: ContinueConfig,
+  config: DebuggAiConfig,
   info: ControlPlaneProxyInfo,
-): Promise<ContinueConfig> {
+): Promise<DebuggAiConfig> {
   Object.keys(config.modelsByRole).forEach((key) => {
     config.modelsByRole[key as ModelRole].forEach((model) => {
       if (model.providerName === "continue-proxy") {

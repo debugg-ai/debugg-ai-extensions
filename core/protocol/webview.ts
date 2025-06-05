@@ -1,7 +1,7 @@
 import { ConfigResult } from "@continuedev/config-yaml";
 
 import type {
-  BrowserSerializedContinueConfig,
+  BrowserSerializedDebuggAiConfig,
   ContextItemWithId,
   ContextProviderName,
   IndexingProgressUpdate,
@@ -12,7 +12,7 @@ import type {
 export type ToWebviewFromIdeOrCoreProtocol = {
   configUpdate: [
     {
-      result: ConfigResult<BrowserSerializedContinueConfig>;
+      result: ConfigResult<BrowserSerializedDebuggAiConfig>;
       profileId: string | null;
     },
     void,

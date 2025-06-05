@@ -1,12 +1,12 @@
 import { ModelRole } from "@continuedev/config-yaml";
 import {
-  CheckIcon,
-  XMarkIcon
+    CheckIcon,
+    XMarkIcon
 } from "@heroicons/react/24/outline";
 import { ModelDescription } from "core";
 import {
-  SharedConfigSchema,
-  modifyAnyConfigWithSharedConfig,
+    SharedConfigSchema,
+    modifyAnyConfigWithSharedConfig,
 } from "core/config/sharedConfig";
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,9 +20,9 @@ import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import {
-  selectDefaultModel,
-  setDefaultModel,
-  updateConfig,
+    selectDefaultModel,
+    setDefaultModel,
+    updateConfig,
 } from "../../redux/slices/configSlice";
 import { selectProfileThunk } from "../../redux/thunks/profileAndOrg";
 import { getFontSize, isJetBrains } from "../../util";
@@ -50,8 +50,8 @@ function ConfigPage() {
 
   const [hubEnabled, setHubEnabled] = useState(false);
   useEffect(() => {
-    ideMessenger.ide.getIdeSettings().then(({ continueTestEnvironment }) => {
-      setHubEnabled(continueTestEnvironment === "production");
+    ideMessenger.ide.getIdeSettings().then(({ debuggAiTestEnvironment }) => {
+      setHubEnabled(debuggAiTestEnvironment === "production");
     });
   }, [ideMessenger]);
 

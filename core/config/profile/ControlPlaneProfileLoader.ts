@@ -4,13 +4,14 @@ import { ConfigResult } from "@continuedev/config-yaml";
 import { ControlPlaneClient } from "../../control-plane/client.js";
 import { PRODUCTION_ENV } from "../../control-plane/env.js";
 import {
-  ContinueConfig,
+  DebuggAiConfig,
   IDE,
   IdeSettings,
-  SerializedContinueConfig,
+  SerializedDebuggAiConfig,
 } from "../../index.js";
 import { ProfileDescription } from "../ProfileLifecycleManager.js";
 
+import { ConfigHandler } from "../ConfigHandler";
 import doLoadConfig from "./doLoadConfig.js";
 import { IProfileLoader } from "./IProfileLoader.js";
 
@@ -29,6 +30,7 @@ export default class ControlPlaneProfileLoader implements IProfileLoader {
     private ideSettingsPromise: Promise<IdeSettings>,
     private writeLog: (message: string) => Promise<void>,
     private readonly onReload: () => void,
+    private readonly configHandler: ConfigHandler
   ) {
     this.description = {
       id: workspaceId,
@@ -53,13 +55,13 @@ export default class ControlPlaneProfileLoader implements IProfileLoader {
     }, ControlPlaneProfileLoader.RELOAD_INTERVAL);
   }
 
-  async doLoadConfig(): Promise<ConfigResult<ContinueConfig>> {
+  async doLoadConfig(): Promise<ConfigResult<DebuggAiConfig>> {
     const settings =
       this.workspaceSettings ??
       ((await this.controlPlaneClient.getSettingsForWorkspace(
         this.description.id,
       )) as any);
-    const serializedConfig: SerializedContinueConfig = settings;
+    const serializedConfig: SerializedDebuggAiConfig = settings;
 
     return await doLoadConfig(
       this.ide,
@@ -71,6 +73,7 @@ export default class ControlPlaneProfileLoader implements IProfileLoader {
       undefined,
       this.workspaceId,
       undefined,
+      this.configHandler
     );
   }
 

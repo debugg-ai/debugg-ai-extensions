@@ -6,6 +6,7 @@ import { createE2esService, E2esService } from "../services/e2es.js";
 import { createIndexesService, IndexesService } from "../services/indexes.js";
 import { createIssuesService, IssuesService } from "../services/issues.js";
 import { createReposService, ReposService } from "../services/repos.js";
+import { createUsersService, UsersService } from "../services/users.js";
 import { AxiosTransport } from "../utils/axiosTransport.js";
 
 import type {
@@ -26,7 +27,8 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   indexes: IndexesService | undefined;
   coverage: CoverageService | undefined;
   e2es: E2esService | undefined;
-
+  users: UsersService | undefined;
+  
   constructor(
     private readonly configHandler: ConfigHandler,
     private readonly ide: IDE,
@@ -48,6 +50,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.indexes = createIndexesService(this.tx);
     this.coverage = createCoverageService(this.tx);
     this.e2es = createE2esService(this.tx);
+    this.users = createUsersService(this.tx);
   }
   
   public async updateSessionInfo(sessionInfo?: ControlPlaneSessionInfo) {
@@ -68,6 +71,10 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     return accessToken;
   }
 
+  public async awaitInit() {
+    await this.init();
+  }
+  
   /**
    * Get the server URL based on the deployment environment
    * @returns The server URL
@@ -114,19 +121,11 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   public async getConfig(): Promise<{ configJson: string }> {
     // TODO: Implement this on the backend
     const userToken = await this.userToken;
-    const response = await fetch(new URL("sync", this.url).href, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${userToken}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error(
-        `Failed to sync remote config (HTTP ${response.status}): ${response.statusText}`,
-      );
+    const response = await this.users?.getUserConfig();
+    if (!response) {
+      throw new Error("No user config found");
     }
-    const data = await response.json();
-    return data;
+    return { configJson: JSON.stringify(response) };
   }
 
   public async getFromIndexCache<T extends ArtifactType>(

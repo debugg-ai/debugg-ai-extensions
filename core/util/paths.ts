@@ -6,14 +6,14 @@ import { DevEventName } from "@continuedev/config-yaml";
 import * as JSONC from "comment-json";
 import dotenv from "dotenv";
 
-import { IdeType, SerializedContinueConfig } from "../";
+import { IdeType, SerializedDebuggAiConfig } from "../";
 import { defaultConfig, defaultConfigJetBrains } from "../config/default";
 import Types from "../config/types";
 
 dotenv.config();
 
-const CONTINUE_GLOBAL_DIR =
-  process.env.CONTINUE_GLOBAL_DIR ?? path.join(os.homedir(), ".continue");
+const DEBUGG_AI_GLOBAL_DIR =
+  process.env.DEBUGG_AI_GLOBAL_DIR ?? path.join(os.homedir(), ".debugg-ai");
 
 // export const DEFAULT_CONFIG_TS_CONTENTS = `import { Config } from "./types"\n\nexport function modifyConfig(config: Config): Config {
 //   return config;
@@ -28,7 +28,7 @@ export function getChromiumPath(): string {
 }
 
 export function getContinueUtilsPath(): string {
-  const utilsPath = path.join(getContinueGlobalPath(), ".utils");
+  const utilsPath = path.join(getDebuggAIGlobalPath(), ".utils");
   if (!fs.existsSync(utilsPath)) {
     fs.mkdirSync(utilsPath);
   }
@@ -37,7 +37,7 @@ export function getContinueUtilsPath(): string {
 
 export function getGlobalContinueIgnorePath(): string {
   const continueIgnorePath = path.join(
-    getContinueGlobalPath(),
+    getDebuggAIGlobalPath(),
     ".continueignore",
   );
   if (!fs.existsSync(continueIgnorePath)) {
@@ -46,9 +46,9 @@ export function getGlobalContinueIgnorePath(): string {
   return continueIgnorePath;
 }
 
-export function getContinueGlobalPath(): string {
+export function getDebuggAIGlobalPath(): string {
   // This is ~/.continue on mac/linux
-  const continuePath = CONTINUE_GLOBAL_DIR;
+  const continuePath = DEBUGG_AI_GLOBAL_DIR;
   if (!fs.existsSync(continuePath)) {
     fs.mkdirSync(continuePath);
   }
@@ -56,7 +56,7 @@ export function getContinueGlobalPath(): string {
 }
 
 export function getSessionsFolderPath(): string {
-  const sessionsPath = path.join(getContinueGlobalPath(), "sessions");
+  const sessionsPath = path.join(getDebuggAIGlobalPath(), "sessions");
   if (!fs.existsSync(sessionsPath)) {
     fs.mkdirSync(sessionsPath);
   }
@@ -64,7 +64,7 @@ export function getSessionsFolderPath(): string {
 }
 
 export function getIndexFolderPath(): string {
-  const indexPath = path.join(getContinueGlobalPath(), "index");
+  const indexPath = path.join(getDebuggAIGlobalPath(), "index");
   if (!fs.existsSync(indexPath)) {
     fs.mkdirSync(indexPath);
   }
@@ -76,7 +76,7 @@ export function getGlobalContextFilePath(): string {
 }
 
 export function getSharedConfigFilePath(): string {
-  return path.join(getContinueGlobalPath(), "sharedConfig.json");
+  return path.join(getDebuggAIGlobalPath(), "sharedConfig.json");
 }
 
 export function getSessionFilePath(sessionId: string): string {
@@ -92,7 +92,7 @@ export function getSessionsListPath(): string {
 }
 
 export function getConfigJsonPath(ideType: IdeType = "vscode"): string {
-  const p = path.join(getContinueGlobalPath(), "config.json");
+  const p = path.join(getDebuggAIGlobalPath(), "config.json");
   if (!fs.existsSync(p)) {
     if (ideType === "jetbrains") {
       fs.writeFileSync(p, JSON.stringify(defaultConfigJetBrains, null, 2));
@@ -104,7 +104,7 @@ export function getConfigJsonPath(ideType: IdeType = "vscode"): string {
 }
 
 export function getConfigYamlPath(ideType?: IdeType): string {
-  const p = path.join(getContinueGlobalPath(), "config.yaml");
+  const p = path.join(getDebuggAIGlobalPath(), "config.yaml");
   // if (!fs.existsSync(p)) {
   //   if (ideType === "jetbrains") {
   //     fs.writeFileSync(p, YAML.stringify(defaultConfigYamlJetBrains));
@@ -124,12 +124,12 @@ export function getPrimaryConfigFilePath(): string {
 }
 
 export function getConfigTsPath(): string {
-  const p = path.join(getContinueGlobalPath(), "config.ts");
+  const p = path.join(getDebuggAIGlobalPath(), "config.ts");
   if (!fs.existsSync(p)) {
     fs.writeFileSync(p, DEFAULT_CONFIG_TS_CONTENTS);
   }
 
-  const typesPath = path.join(getContinueGlobalPath(), "types");
+  const typesPath = path.join(getDebuggAIGlobalPath(), "types");
   if (!fs.existsSync(typesPath)) {
     fs.mkdirSync(typesPath);
   }
@@ -137,7 +137,7 @@ export function getConfigTsPath(): string {
   if (!fs.existsSync(corePath)) {
     fs.mkdirSync(corePath);
   }
-  const packageJsonPath = path.join(getContinueGlobalPath(), "package.json");
+  const packageJsonPath = path.join(getDebuggAIGlobalPath(), "package.json");
   if (!fs.existsSync(packageJsonPath)) {
     fs.writeFileSync(
       packageJsonPath,
@@ -156,11 +156,11 @@ export function getConfigTsPath(): string {
 
 export function getConfigJsPath(): string {
   // Do not create automatically
-  return path.join(getContinueGlobalPath(), "out", "config.js");
+  return path.join(getDebuggAIGlobalPath(), "out", "config.js");
 }
 
 export function getTsConfigPath(): string {
-  const tsConfigPath = path.join(getContinueGlobalPath(), "tsconfig.json");
+  const tsConfigPath = path.join(getDebuggAIGlobalPath(), "tsconfig.json");
   if (!fs.existsSync(tsConfigPath)) {
     fs.writeFileSync(
       tsConfigPath,
@@ -195,7 +195,7 @@ export function getTsConfigPath(): string {
 
 export function getContinueRcPath(): string {
   // Disable indexing of the config folder to prevent infinite loops
-  const continuercPath = path.join(getContinueGlobalPath(), ".continuerc.json");
+  const continuercPath = path.join(getDebuggAIGlobalPath(), ".continuerc.json");
   if (!fs.existsSync(continuercPath)) {
     fs.writeFileSync(
       continuercPath,
@@ -212,7 +212,7 @@ export function getContinueRcPath(): string {
 }
 
 function getDevDataPath(): string {
-  const sPath = path.join(getContinueGlobalPath(), "dev_data");
+  const sPath = path.join(getDebuggAIGlobalPath(), "dev_data");
   if (!fs.existsSync(sPath)) {
     fs.mkdirSync(sPath);
   }
@@ -235,7 +235,7 @@ export function getDevDataFilePath(
 }
 
 export function editConfigJson(
-  callback: (config: SerializedContinueConfig) => SerializedContinueConfig,
+  callback: (config: SerializedDebuggAiConfig) => SerializedDebuggAiConfig,
 ): void {
   const config = fs.readFileSync(getConfigJsonPath(), "utf8");
   let configJson = JSONC.parse(config);
@@ -249,7 +249,7 @@ export function editConfigJson(
 }
 
 function getMigrationsFolderPath(): string {
-  const migrationsPath = path.join(getContinueGlobalPath(), ".migrations");
+  const migrationsPath = path.join(getDebuggAIGlobalPath(), ".migrations");
   if (!fs.existsSync(migrationsPath)) {
     fs.mkdirSync(migrationsPath);
   }
@@ -299,7 +299,7 @@ export function getDocsSqlitePath(): string {
 }
 
 export function getRemoteConfigsFolderPath(): string {
-  const dir = path.join(getContinueGlobalPath(), ".configs");
+  const dir = path.join(getDebuggAIGlobalPath(), ".configs");
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
   }
@@ -314,7 +314,7 @@ export function getPathToRemoteConfig(remoteConfigServerUrl: string): string {
         ? undefined
         : new URL(remoteConfigServerUrl);
   } catch (e) {}
-  const dir = path.join(getRemoteConfigsFolderPath(), url?.hostname ?? "None");
+  const dir = path.join(getRemoteConfigsFolderPath(), "config");
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
   }
@@ -334,7 +334,7 @@ export function getConfigJsPathForRemote(
 }
 
 export function getContinueDotEnv(): { [key: string]: string } {
-  const filepath = path.join(getContinueGlobalPath(), ".env");
+  const filepath = path.join(getDebuggAIGlobalPath(), ".env");
   if (fs.existsSync(filepath)) {
     return dotenv.parse(fs.readFileSync(filepath));
   }
@@ -342,7 +342,7 @@ export function getContinueDotEnv(): { [key: string]: string } {
 }
 
 export function getLogsDirPath(): string {
-  const logsPath = path.join(getContinueGlobalPath(), "logs");
+  const logsPath = path.join(getDebuggAIGlobalPath(), "logs");
   if (!fs.existsSync(logsPath)) {
     fs.mkdirSync(logsPath);
   }
@@ -358,11 +358,11 @@ export function getPromptLogsPath(): string {
 }
 
 export function getGlobalPromptsPath(): string {
-  return path.join(getContinueGlobalPath(), "prompts");
+  return path.join(getDebuggAIGlobalPath(), "prompts");
 }
 
 export function getGlobalAssistantsPath(): string {
-  return path.join(getContinueGlobalPath(), "assistants");
+  return path.join(getDebuggAIGlobalPath(), "assistants");
 }
 
 export function readAllGlobalPromptFiles(
@@ -419,15 +419,15 @@ export function migrateV1DevDataFiles() {
 }
 
 export function getLocalEnvironmentDotFilePath(): string {
-  return path.join(getContinueGlobalPath(), ".local");
+  return path.join(getDebuggAIGlobalPath(), ".local");
 }
 
 export function getStagingEnvironmentDotFilePath(): string {
-  return path.join(getContinueGlobalPath(), ".staging");
+  return path.join(getDebuggAIGlobalPath(), ".staging");
 }
 
 export function getDiffsDirectoryPath(): string {
-  const diffsPath = path.join(getContinueGlobalPath(), ".diffs"); // .replace(/^C:/, "c:"); ??
+  const diffsPath = path.join(getDebuggAIGlobalPath(), ".diffs"); // .replace(/^C:/, "c:"); ??
   if (!fs.existsSync(diffsPath)) {
     fs.mkdirSync(diffsPath, {
       recursive: true,

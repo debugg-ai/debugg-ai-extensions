@@ -9,17 +9,16 @@ import {
   ModelRole,
 } from "@continuedev/config-yaml";
 import { fetchwithRequestOptions } from "@continuedev/fetch";
-import * as JSONC from "comment-json";
 import * as tar from "tar";
 
 import {
-  BrowserSerializedContinueConfig,
+  BrowserSerializedDebuggAiConfig,
   Config,
   ContextProviderWithParams,
-  ContinueConfig,
   ContinueRcJson,
   CustomContextProvider,
   CustomLLM,
+  DebuggAiConfig,
   EmbeddingsProviderDescription,
   IContextProvider,
   IDE,
@@ -30,7 +29,7 @@ import {
   LLMOptions,
   ModelDescription,
   RerankerDescription,
-  SerializedContinueConfig,
+  SerializedDebuggAiConfig,
   SlashCommand,
 } from "..";
 import {
@@ -64,13 +63,14 @@ import {
   getConfigJsonPath,
   getConfigJsonPathForRemote,
   getConfigJsPath,
-  getConfigJsPathForRemote,
   getConfigTsPath,
   getContinueDotEnv,
-  getEsbuildBinaryPath,
+  getEsbuildBinaryPath
 } from "../util/paths";
 import { localPathToUri } from "../util/pathToUri";
 
+import { DebuggAIServerClient } from "../debuggAIServer/stubs/client";
+import { ConfigHandler } from "./ConfigHandler";
 import {
   defaultContextProvidersJetBrains,
   defaultContextProvidersVsCode,
@@ -82,28 +82,66 @@ import { modifyAnyConfigWithSharedConfig } from "./sharedConfig";
 import { getModelByRole, isSupportedLanceDbCpuTargetForLinux } from "./util";
 import { validateConfig } from "./validation.js";
 
-export function resolveSerializedConfig(
+export async function resolveSerializedConfig(
   filepath: string,
-): SerializedContinueConfig {
-  let content = fs.readFileSync(filepath, "utf8");
-  const config = JSONC.parse(content) as unknown as SerializedContinueConfig;
+  ide: IDE,
+  ideSettings: IdeSettings,
+  ideInfo: IdeInfo,
+  uniqueId: string,
+  writeLog: (log: string) => Promise<void>,
+  workOsAccessToken: string | undefined,
+  overrideConfigJson: SerializedDebuggAiConfig | undefined,
+  configHandler: ConfigHandler
+): Promise<SerializedDebuggAiConfig> {
+  let config: SerializedDebuggAiConfig;
+
+  try {
+    const content = fs.readFileSync(filepath, "utf8");
+    config = JSON.parse(content) as unknown as SerializedDebuggAiConfig;
+  } catch (e) {
+    console.error("Error parsing config.json, attempting to load remote for file", filepath);
+
+    try {
+      const debuggAIServerClient = new DebuggAIServerClient(
+        configHandler,
+        ide
+      );
+      await debuggAIServerClient.awaitInit();
+      console.log("DebuggAIServerClient initialized");
+      config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
+      console.log("Loaded remote config", config);
+    } catch (e) {
+      console.error("Error loading remote config", e);
+      throw e;
+    }
+
+    const configJson = JSON.stringify(config);
+    fs.mkdirSync(path.dirname(filepath), { recursive: true });
+
+    fs.writeFileSync(
+      filepath,
+      configJson, 
+      "utf-8"
+    );
+  }
+
   if (config.env && Array.isArray(config.env)) {
     const env = {
       ...process.env,
       ...getContinueDotEnv(),
     };
 
-    config.env.forEach((envVar) => {
-      if (envVar in env) {
-        content = (content as any).replaceAll(
-          new RegExp(`"${envVar}"`, "g"),
-          `"${env[envVar]}"`,
-        );
-      }
-    });
+    // config.env.forEach((envVar) => {
+    //   if (envVar in env) {
+    //     content = (content as any).replaceAll(
+    //       new RegExp(`"${envVar}"`, "g"),
+    //       `"${env[envVar]}"`,
+    //     );
+    //   }
+    // });
   }
 
-  return JSONC.parse(content) as unknown as SerializedContinueConfig;
+  return config;
 }
 
 const configMergeKeys = {
@@ -113,17 +151,32 @@ const configMergeKeys = {
   customCommands: (a: any, b: any) => a.name === b.name,
 };
 
-function loadSerializedConfig(
+async function loadSerializedConfig(
   workspaceConfigs: ContinueRcJson[],
   ideSettings: IdeSettings,
   ideType: IdeType,
-  overrideConfigJson: SerializedContinueConfig | undefined,
+  overrideConfigJson: SerializedDebuggAiConfig | undefined,
   ide: IDE,
-): ConfigResult<SerializedContinueConfig> {
-  let config: SerializedContinueConfig = overrideConfigJson!;
+  ideInfo: IdeInfo,
+  uniqueId: string,
+  writeLog: (log: string) => Promise<void>,
+  workOsAccessToken: string | undefined,
+  configHandler: ConfigHandler
+): Promise<ConfigResult<SerializedDebuggAiConfig>> {
+  let config: SerializedDebuggAiConfig = overrideConfigJson!;
   if (!config) {
     try {
-      config = resolveSerializedConfig(getConfigJsonPath(ideType));
+      config = await resolveSerializedConfig(
+        getConfigJsonPath(ideType),
+        ide,
+        ideSettings,
+        ideInfo,
+        uniqueId,
+        writeLog,
+        workOsAccessToken,
+        overrideConfigJson,
+        configHandler
+      );
     } catch (e) {
       throw new Error(`Failed to parse config.json: ${e}`);
     }
@@ -145,8 +198,16 @@ function loadSerializedConfig(
 
   if (ideSettings.remoteConfigServerUrl) {
     try {
-      const remoteConfigJson = resolveSerializedConfig(
+      const remoteConfigJson = await resolveSerializedConfig(
         getConfigJsonPathForRemote(ideSettings.remoteConfigServerUrl),
+        ide,
+        ideSettings,
+        ideInfo,
+        uniqueId,
+        writeLog,
+        workOsAccessToken,  
+        undefined,
+        configHandler
       );
       config = mergeJson(config, remoteConfigJson, "merge", configMergeKeys);
     } catch (e) {
@@ -181,7 +242,7 @@ function loadSerializedConfig(
 }
 
 async function serializedToIntermediateConfig(
-  initial: SerializedContinueConfig,
+  initial: SerializedDebuggAiConfig,
   ide: IDE,
 ): Promise<Config> {
   // DEPRECATED - load custom slash commands
@@ -243,7 +304,7 @@ async function intermediateToFinalConfig(
   workOsAccessToken: string | undefined,
   loadPromptFiles: boolean = true,
   allowFreeTrial: boolean = true,
-): Promise<{ config: ContinueConfig; errors: ConfigValidationError[] }> {
+): Promise<{ config: DebuggAiConfig; errors: ConfigValidationError[] }> {
   const errors: ConfigValidationError[] = [];
 
   // Auto-detect models
@@ -515,7 +576,7 @@ async function intermediateToFinalConfig(
   }
   const newReranker = getRerankingILLM(config.reranker);
 
-  const continueConfig: ContinueConfig = {
+  const continueConfig: DebuggAiConfig = {
     ...config,
     contextProviders,
     models,
@@ -659,9 +720,9 @@ function llmToSerializedModelDescription(llm: ILLM): ModelDescription {
 }
 
 async function finalToBrowserConfig(
-  final: ContinueConfig,
+  final: DebuggAiConfig,
   ide: IDE,
-): Promise<BrowserSerializedContinueConfig> {
+): Promise<BrowserSerializedDebuggAiConfig> {
   return {
     allowAnonymousTelemetry: final.allowAnonymousTelemetry,
     models: final.models.map(llmToSerializedModelDescription),
@@ -878,7 +939,7 @@ async function buildConfigTsandReadConfigJs(ide: IDE, ideType: IdeType) {
   return readConfigJs();
 }
 
-async function loadContinueConfigFromJson(
+async function loadDebuggAiConfigFromJson(
   ide: IDE,
   workspaceConfigs: ContinueRcJson[],
   ideSettings: IdeSettings,
@@ -886,19 +947,25 @@ async function loadContinueConfigFromJson(
   uniqueId: string,
   writeLog: (log: string) => Promise<void>,
   workOsAccessToken: string | undefined,
-  overrideConfigJson: SerializedContinueConfig | undefined,
-): Promise<ConfigResult<ContinueConfig>> {
+  overrideConfigJson: SerializedDebuggAiConfig | undefined,
+  configHandler: ConfigHandler
+): Promise<ConfigResult<DebuggAiConfig>> {
   // Serialized config
   let {
     config: serialized,
     errors,
     configLoadInterrupted,
-  } = loadSerializedConfig(
+  } = await loadSerializedConfig(
     workspaceConfigs,
     ideSettings,
     ideInfo.ideType,
     overrideConfigJson,
     ide,
+    ideInfo,
+    uniqueId,
+    writeLog,
+    workOsAccessToken,
+    configHandler
   );
 
   if (!serialized || configLoadInterrupted) {
@@ -958,23 +1025,23 @@ async function loadContinueConfigFromJson(
   }
 
   // Apply remote config.js to modify intermediate config
-  if (ideSettings.remoteConfigServerUrl) {
-    try {
-      const configJsPathForRemote = getConfigJsPathForRemote(
-        ideSettings.remoteConfigServerUrl,
-      );
-      const module = await import(configJsPathForRemote);
-      if (typeof require !== "undefined") {
-        delete require.cache[require.resolve(configJsPathForRemote)];
-      }
-      if (!module.modifyConfig) {
-        throw new Error("config.ts does not export a modifyConfig function.");
-      }
-      intermediate = module.modifyConfig(intermediate);
-    } catch (e) {
-      console.log("Error loading remotely set config.js: ", e);
-    }
-  }
+  // if (ideSettings.remoteConfigServerUrl) {
+  //   try {
+  //     const configJsPathForRemote = getConfigJsPathForRemote(
+  //       ideSettings.remoteConfigServerUrl,
+  //     );
+  //     const module = await import(configJsPathForRemote);
+  //     if (typeof require !== "undefined") {
+  //       delete require.cache[require.resolve(configJsPathForRemote)];
+  //     }
+  //     if (!module.modifyConfig) {
+  //       throw new Error("config.ts does not export a modifyConfig function.");
+  //     }
+  //     intermediate = module.modifyConfig(intermediate);
+  //   } catch (e) {
+  //     console.log("Error loading remotely set config.js: ", e);
+  //   }
+  // }
 
   // Convert to final config format
   const { config: finalConfig, errors: finalErrors } =
@@ -997,7 +1064,7 @@ async function loadContinueConfigFromJson(
 export {
   finalToBrowserConfig,
   intermediateToFinalConfig,
-  loadContinueConfigFromJson,
-  type BrowserSerializedContinueConfig
+  loadDebuggAiConfigFromJson,
+  type BrowserSerializedDebuggAiConfig
 };
 

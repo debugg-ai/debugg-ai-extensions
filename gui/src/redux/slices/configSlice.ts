@@ -1,15 +1,15 @@
 import { ConfigResult, ConfigValidationError } from "@continuedev/config-yaml";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { BrowserSerializedContinueConfig } from "core";
+import { BrowserSerializedDebuggAiConfig } from "core";
 import { DEFAULT_MAX_TOKENS } from "core/llm/constants";
 
 export type ConfigState = {
   configError: ConfigValidationError[] | undefined;
-  config: BrowserSerializedContinueConfig;
+  config: BrowserSerializedDebuggAiConfig;
   defaultModelTitle?: string;
 };
 
-const EMPTY_CONFIG: BrowserSerializedContinueConfig = {
+const EMPTY_CONFIG: BrowserSerializedDebuggAiConfig = {
   slashCommands: [
     {
       name: "share",
@@ -58,7 +58,7 @@ export const configSlice = createSlice({
       state,
       {
         payload: result,
-      }: PayloadAction<ConfigResult<BrowserSerializedContinueConfig>>,
+      }: PayloadAction<ConfigResult<BrowserSerializedDebuggAiConfig>>,
     ) => {
       const { config, errors } = result;
       state.configError = errors;
@@ -79,7 +79,7 @@ export const configSlice = createSlice({
     },
     updateConfig: (
       state,
-      { payload: config }: PayloadAction<BrowserSerializedContinueConfig>,
+      { payload: config }: PayloadAction<BrowserSerializedDebuggAiConfig>,
     ) => {
       state.config = config;
     },

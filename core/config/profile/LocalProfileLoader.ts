@@ -1,12 +1,13 @@
 import { ConfigResult, parseConfigYaml } from "@continuedev/config-yaml";
 
 import { ControlPlaneClient } from "../../control-plane/client.js";
-import { ContinueConfig, IDE, IdeSettings } from "../../index.js";
+import { DebuggAiConfig, IDE, IdeSettings } from "../../index.js";
 import { getPrimaryConfigFilePath } from "../../util/paths.js";
 import { localPathToUri } from "../../util/pathToUri.js";
 import { getUriPathBasename } from "../../util/uri.js";
 import { ProfileDescription } from "../ProfileLifecycleManager.js";
 
+import { ConfigHandler } from "../ConfigHandler.js";
 import doLoadConfig from "./doLoadConfig.js";
 import { IProfileLoader } from "./IProfileLoader.js";
 
@@ -18,6 +19,7 @@ export default class LocalProfileLoader implements IProfileLoader {
     private ideSettingsPromise: Promise<IdeSettings>,
     private controlPlaneClient: ControlPlaneClient,
     private writeLog: (message: string) => Promise<void>,
+    private readonly configHandler: ConfigHandler,
     private overrideAssistantFile?:
       | { path: string; content: string }
       | undefined,
@@ -53,7 +55,7 @@ export default class LocalProfileLoader implements IProfileLoader {
   }
   description: ProfileDescription;
 
-  async doLoadConfig(): Promise<ConfigResult<ContinueConfig>> {
+  async doLoadConfig(): Promise<ConfigResult<DebuggAiConfig>> {
     const result = await doLoadConfig(
       this.ide,
       this.ideSettingsPromise,
@@ -64,6 +66,7 @@ export default class LocalProfileLoader implements IProfileLoader {
       undefined,
       this.description.id,
       this.overrideAssistantFile?.path,
+      this.configHandler,
     );
 
     this.description.errors = result.errors;

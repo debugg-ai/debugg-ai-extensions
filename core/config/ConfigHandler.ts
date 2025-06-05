@@ -6,8 +6,8 @@ import {
 } from "../control-plane/client.js";
 import { getControlPlaneEnv } from "../control-plane/env.js";
 import {
-  BrowserSerializedContinueConfig,
-  ContinueConfig,
+  BrowserSerializedDebuggAiConfig,
+  DebuggAiConfig,
   IContextProvider,
   IDE,
   IdeSettings,
@@ -31,7 +31,7 @@ import {
 
 export type { ProfileDescription };
 
-type ConfigUpdateFunction = (payload: ConfigResult<ContinueConfig>) => void;
+type ConfigUpdateFunction = (payload: ConfigResult<DebuggAiConfig>) => void;
 
 // Separately manages saving/reloading each profile
 
@@ -66,6 +66,7 @@ export class ConfigHandler {
       ideSettingsPromise,
       this.controlPlaneClient,
       writeLog,
+      this,
     );
     this.localProfileManager = new ProfileLifecycleManager(
       localProfileLoader,
@@ -95,6 +96,7 @@ export class ConfigHandler {
         this.ideSettingsPromise,
         this.controlPlaneClient,
         this.writeLog,
+        this,
         assistant,
       );
     });
@@ -200,6 +202,7 @@ export class ConfigHandler {
             this.ideSettingsPromise,
             this.writeLog,
             this.reloadConfig.bind(this),
+            this,
           );
 
           return new ProfileLifecycleManager(profileLoader, this.ide);
@@ -319,6 +322,7 @@ export class ConfigHandler {
           this.ideSettingsPromise,
           this.writeLog,
           this.reloadConfig.bind(this),
+          this
         );
 
         profiles.push(new ProfileLifecycleManager(profileLoader, this.ide));
@@ -429,7 +433,7 @@ export class ConfigHandler {
     }
   }
 
-  private notifyConfigListeners(result: ConfigResult<ContinueConfig>) {
+  private notifyConfigListeners(result: ConfigResult<DebuggAiConfig>) {
     // Notify listeners that config changed
     for (const listener of this.updateListeners) {
       listener(result);
@@ -465,7 +469,7 @@ export class ConfigHandler {
   }
 
   async getSerializedConfig(): Promise<
-    ConfigResult<BrowserSerializedContinueConfig>
+    ConfigResult<BrowserSerializedDebuggAiConfig>
   > {
     if (!this.currentProfile) {
       return {
@@ -483,7 +487,7 @@ export class ConfigHandler {
     return this.profiles?.map((p) => p.profileDescription) ?? null;
   }
 
-  async loadConfig(): Promise<ConfigResult<ContinueConfig>> {
+  async loadConfig(): Promise<ConfigResult<DebuggAiConfig>> {
     if (!this.currentProfile) {
       return {
         config: undefined,

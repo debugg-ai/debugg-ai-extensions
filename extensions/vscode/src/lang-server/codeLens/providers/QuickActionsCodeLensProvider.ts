@@ -1,17 +1,17 @@
-import { ContinueConfig, QuickActionConfig } from "core";
+import { DebuggAiConfig, QuickActionConfig } from "core";
 import { Telemetry } from "core/util/posthog";
 import * as vscode from "vscode";
 
 import { QuickEditShowParams } from "../../../quickEdit/QuickEditQuickPick";
 import { isTutorialFile } from "../../../util/tutorial";
 import {
-  CONTINUE_WORKSPACE_KEY,
-  getContinueWorkspaceConfig,
+    CONTINUE_WORKSPACE_KEY,
+    getContinueWorkspaceConfig,
 } from "../../../util/workspaceConfig";
 
 export const ENABLE_QUICK_ACTIONS_KEY = "enableQuickActions";
 
-export function getQuickActionsConfig(config: ContinueConfig) {
+export function getQuickActionsConfig(config: DebuggAiConfig) {
   return config.experimental?.quickActions;
 }
 

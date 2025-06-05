@@ -4,7 +4,7 @@ import { exec } from "node:child_process";
 import { Range } from "core";
 import { EXTENSION_NAME } from "core/control-plane/env";
 import { GetGhTokenArgs } from "core/protocol/ide";
-import { editConfigJson, getConfigJsonPath } from "core/util/paths";
+import { editConfigJson, getConfigJsonPath, getDebuggAIGlobalPath } from "core/util/paths";
 import * as URI from "uri-js";
 import * as vscode from "vscode";
 
@@ -16,18 +16,18 @@ import { getExtensionUri, openEditorAndRevealRange } from "./util/vscode";
 import { VsCodeWebviewProtocol } from "./webviewProtocol";
 
 import type {
-    ContinueRcJson,
-    FileStatsMap,
-    FileType,
-    IDE,
-    IdeInfo,
-    IdeSettings,
-    IndexTag,
-    Location,
-    Problem,
-    RangeInFile,
-    TerminalOptions,
-    Thread,
+  ContinueRcJson,
+  FileStatsMap,
+  FileType,
+  IDE,
+  IdeInfo,
+  IdeSettings,
+  IndexTag,
+  Location,
+  Problem,
+  RangeInFile,
+  TerminalOptions,
+  Thread,
 } from "core";
 
 class VsCodeIde implements IDE {
@@ -599,10 +599,7 @@ class VsCodeIde implements IDE {
 
   private getIdeSettingsSync(): IdeSettings {
     const settings = vscode.workspace.getConfiguration(EXTENSION_NAME);
-    const remoteConfigServerUrl = settings.get<string | undefined>(
-      "remoteConfigServerUrl",
-      undefined,
-    );
+    const remoteConfigServerUrl = `${getDebuggAIGlobalPath()}/remote-config.json`;
     const ideSettings: IdeSettings = {
       remoteConfigServerUrl,
       remoteConfigSyncPeriod: settings.get<number>(
@@ -611,10 +608,10 @@ class VsCodeIde implements IDE {
       ),
       userToken: settings.get<string>("userToken", ""),
       enableControlServerBeta: settings.get<boolean>(
-        "enableContinueForTeams",
+        "enableDebuggAiForTeams",
         false,
       ),
-      continueTestEnvironment: "production",
+      debuggAiTestEnvironment: "production",
       pauseCodebaseIndexOnStart: settings.get<boolean>(
         "pauseCodebaseIndexOnStart",
         false,

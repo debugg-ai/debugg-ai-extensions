@@ -1,18 +1,18 @@
-import { SerializedContinueConfig } from "core";
+import { SerializedDebuggAiConfig } from "core";
 // import Mock from "core/llm/llms/Mock.js";
 import { FromIdeProtocol, ToIdeProtocol } from "core/protocol/index.js";
 import { IMessenger } from "core/protocol/messenger";
 import FileSystemIde from "core/util/filesystem";
 import fs from "fs";
 import {
-  ChildProcessWithoutNullStreams,
-  execSync,
-  spawn,
+    ChildProcessWithoutNullStreams,
+    execSync,
+    spawn,
 } from "node:child_process";
 import path from "path";
 import {
-  CoreBinaryMessenger,
-  CoreBinaryTcpMessenger,
+    CoreBinaryMessenger,
+    CoreBinaryTcpMessenger,
 } from "../src/IpcMessenger";
 
 // jest.setTimeout(100_000);
@@ -50,11 +50,11 @@ function autodetectPlatformAndArch() {
   return [platform, arch];
 }
 
-const CONTINUE_GLOBAL_DIR = path.join(__dirname, "..", ".continue");
-if (fs.existsSync(CONTINUE_GLOBAL_DIR)) {
-  fs.rmSync(CONTINUE_GLOBAL_DIR, { recursive: true, force: true });
+const DEBUGG_AI_GLOBAL_DIR = path.join(__dirname, "..", ".continue");
+if (fs.existsSync(DEBUGG_AI_GLOBAL_DIR)) {
+  fs.rmSync(DEBUGG_AI_GLOBAL_DIR, { recursive: true, force: true });
 }
-fs.mkdirSync(CONTINUE_GLOBAL_DIR);
+fs.mkdirSync(DEBUGG_AI_GLOBAL_DIR);
 
 describe("Test Suite", () => {
   let messenger: IMessenger<ToIdeProtocol, FromIdeProtocol>;
@@ -115,7 +115,7 @@ describe("Test Suite", () => {
     } else {
       try {
         subprocess = spawn(binaryPath, {
-          env: { ...process.env, CONTINUE_GLOBAL_DIR },
+          env: { ...process.env, DEBUGG_AI_GLOBAL_DIR },
         });
         console.log("Successfully spawned subprocess");
       } catch (error) {
@@ -157,7 +157,7 @@ describe("Test Suite", () => {
   });
 
   it("should create .continue directory at the specified location with expected files", async () => {
-    expect(fs.existsSync(CONTINUE_GLOBAL_DIR)).toBe(true);
+    expect(fs.existsSync(DEBUGG_AI_GLOBAL_DIR)).toBe(true);
 
     // Many of the files are only created when trying to load the config
     const config = await messenger.request(
@@ -175,7 +175,7 @@ describe("Test Suite", () => {
     ];
 
     const missingFiles = expectedFiles.filter((file) => {
-      const filePath = path.join(CONTINUE_GLOBAL_DIR, file);
+      const filePath = path.join(DEBUGG_AI_GLOBAL_DIR, file);
       return !fs.existsSync(filePath);
     });
 
@@ -222,7 +222,7 @@ describe("Test Suite", () => {
   });
 
   it("should add and delete a model from config.json", async () => {
-    const model: SerializedContinueConfig["models"][number] = {
+    const model: SerializedDebuggAiConfig["models"][number] = {
       title: "Test Model",
       provider: "openai",
       model: "gpt-3.5-turbo",
@@ -246,7 +246,7 @@ describe("Test Suite", () => {
   });
 
   it("should make an LLM completion", async () => {
-    const model: SerializedContinueConfig["models"][number] = {
+    const model: SerializedDebuggAiConfig["models"][number] = {
       title: "Test Model",
       provider: "mock",
       model: "gpt-3.5-turbo",

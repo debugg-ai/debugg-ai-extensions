@@ -144,6 +144,12 @@ export class VsCodeExtension {
     this.configHandler = this.core.configHandler;
     resolveConfigHandler?.(this.configHandler);
 
+    // Need to pull in the remote config for Debugg AI first
+    setupRemoteConfigSync(
+      this.configHandler.reloadConfig.bind(this.configHandler),
+      this.core.debuggAIServerClientPromise,
+    );
+
     this.configHandler.loadConfig();
     this.verticalDiffManager = new VerticalDiffManager(
       this.configHandler,
@@ -151,10 +157,6 @@ export class VsCodeExtension {
       this.editDecorationManager,
     );
     resolveVerticalDiffManager?.(this.verticalDiffManager);
-
-    setupRemoteConfigSync(
-      this.configHandler.reloadConfig.bind(this.configHandler),
-    );
 
     this.configHandler.loadConfig().then(({ config }) => {
       const { verticalDiffCodeLens } = registerAllCodeLensProviders(

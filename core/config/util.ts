@@ -2,12 +2,12 @@ import fs from "fs";
 import os from "os";
 
 import {
-  ContextProviderWithParams,
-  ContinueConfig,
-  IDE,
-  ILLM,
-  ModelDescription,
-  ExperimentalModelRoles,
+    ContextProviderWithParams,
+    DebuggAiConfig,
+    ExperimentalModelRoles,
+    IDE,
+    ILLM,
+    ModelDescription,
 } from "../";
 import { GlobalContext } from "../util/GlobalContext";
 import { editConfigJson } from "../util/paths";
@@ -99,7 +99,7 @@ export function deleteModel(title: string) {
 }
 
 export function getModelByRole<T extends keyof ExperimentalModelRoles>(
-  config: ContinueConfig,
+  config: DebuggAiConfig,
   role: T,
 ): ILLM | undefined {
   const roleTitle = config.experimental?.modelRoles?.[role];

@@ -1,7 +1,5 @@
 import {
   BookOpenIcon,
-  ClipboardDocumentIcon,
-  Cog6ToothIcon,
   PencilSquareIcon,
   XMarkIcon
 } from "@heroicons/react/24/outline";
@@ -40,33 +38,7 @@ export function TutorialCard({ onClose }: TutorialCardProps) {
             <PencilSquareIcon className="h-4 w-4 pr-3 align-middle" />
           </div>
           <span>
-            Make sure you have setup your project to properly log to DebuggAI.
-            If you don't have a project setup, you can do so at{" "}
-            <a
-              className="cursor-pointer text-inherit underline hover:text-inherit"
-              onClick={() =>
-                ideMessenger.post("openUrl", "https://app.debugg.ai")
-              }
-            >
-              app.debugg.ai
-            </a>
-          </span>
-        </li>
-        <li className="flex items-start">
-          <div>
-            <Cog6ToothIcon className="h-4 w-4 pr-3 align-middle" />
-          </div>
-          <span>
-            Click the gear icon in the upper right to configure DebuggAI for
-            your workflow.
-          </span>
-        </li>
-        <li className="flex items-start">
-          <div>
-            <ClipboardDocumentIcon className="h-4 w-4 pr-3 align-middle" />
-          </div>
-          <span>
-            To implement any displayed fixes, use <Shortcut>Ctrl Click</Shortcut> to insert the new code.
+            To quickly create a new test, use the <Shortcut>Ctrl+Alt+C</Shortcut> shortcut.
           </span>
         </li>
         <li className="flex items-start">

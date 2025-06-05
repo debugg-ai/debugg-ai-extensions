@@ -1,14 +1,14 @@
 import { ConfigValidationError } from "@continuedev/config-yaml";
 
-import { ModelDescription, SerializedContinueConfig } from "../";
+import { ModelDescription, SerializedDebuggAiConfig } from "../";
 import { Telemetry } from "../util/posthog";
 
 /**
- * Validates a SerializedContinueConfig object to ensure all properties are correctly formed.
+ * Validates a SerializedDebuggAiConfig object to ensure all properties are correctly formed.
  * @param config The configuration object to validate.
  * @returns An array of error messages if there are any. Otherwise, the config is valid.
  */
-export function validateConfig(config: SerializedContinueConfig) {
+export function validateConfig(config: SerializedDebuggAiConfig) {
   const errors: ConfigValidationError[] = [];
 
   // Validate chat models
@@ -143,7 +143,7 @@ export function validateConfig(config: SerializedContinueConfig) {
   // Validate other boolean flags
   const booleanFlags: Array<
     keyof Pick<
-      SerializedContinueConfig,
+      SerializedDebuggAiConfig,
       "allowAnonymousTelemetry" | "disableIndexing" | "disableSessionTitles"
     >
   > = ["allowAnonymousTelemetry", "disableIndexing", "disableSessionTitles"];

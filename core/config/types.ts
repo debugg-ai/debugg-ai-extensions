@@ -176,7 +176,7 @@ declare global {
   export type FetchFunction = (url: string | URL, init?: any) => Promise<any>;
   
   export interface ContextProviderExtras {
-    config: ContinueConfig;
+    config: DebuggAiConfig;
     fullInput: string;
     embeddingsProvider: ILLM;
     reranker: ILLM | undefined;
@@ -187,7 +187,7 @@ declare global {
   }
   
   export interface LoadSubmenuItemsArgs {
-    config: ContinueConfig;
+    config: DebuggAiConfig;
     ide: IDE;
     fetch: FetchFunction;
   }
@@ -681,7 +681,7 @@ declare global {
     params?: { [key: string]: any } | undefined;
     contextItems: ContextItemWithId[];
     selectedCode: RangeInFile[];
-    config: ContinueConfig;
+    config: DebuggAiConfig;
     fetch: FetchFunction;
   }
   
@@ -1056,7 +1056,7 @@ declare global {
   }
   
   // config.json
-  export interface SerializedContinueConfig {
+  export interface SerializedDebuggAiConfig {
     env?: string[];
     allowAnonymousTelemetry?: boolean;
     models: ModelDescription[];
@@ -1081,7 +1081,7 @@ declare global {
   
   export type ConfigMergeType = "merge" | "overwrite";
   
-  export type ContinueRcJson = Partial<SerializedContinueConfig> & {
+  export type ContinueRcJson = Partial<SerializedDebuggAiConfig> & {
     mergeBehavior: ConfigMergeType;
   };
   
@@ -1132,7 +1132,7 @@ declare global {
   }
   
   // in the actual Continue source code
-  export interface ContinueConfig {
+  export interface DebuggAiConfig {
     allowAnonymousTelemetry?: boolean;
     models: ILLM[];
     systemMessage?: string;
@@ -1154,7 +1154,7 @@ declare global {
     tools: Tool[];
   }
   
-  export interface BrowserSerializedContinueConfig {
+  export interface BrowserSerializedDebuggAiConfig {
     allowAnonymousTelemetry?: boolean;
     models: ModelDescription[];
     systemMessage?: string;

@@ -1,9 +1,9 @@
 import { AssistantUnrolled, ModelConfig } from "@continuedev/config-yaml";
 
-import { SerializedContinueConfig } from "../..";
+import { SerializedDebuggAiConfig } from "../..";
 
 export function convertConfigJsonToConfigYaml(
-  configJson: SerializedContinueConfig,
+  configJson: SerializedDebuggAiConfig,
 ): AssistantUnrolled {
   return {
     name: "Local Assistant",

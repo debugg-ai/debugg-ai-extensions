@@ -13,7 +13,7 @@ const continueDir = path.join(__dirname, "..", "..", "..");
 function copyConfigSchema() {
   // Modify and copy for .continuerc.json
   const schema = JSON.parse(fs.readFileSync("config_schema.json", "utf8"));
-  schema.$defs.SerializedContinueConfig.properties.mergeBehavior = {
+  schema.$defs.SerializedDebuggAiConfig.properties.mergeBehavior = {
     type: "string",
     enum: ["merge", "overwrite"],
     default: "merge",

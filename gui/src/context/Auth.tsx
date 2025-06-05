@@ -1,14 +1,14 @@
 import {
-  OrganizationDescription,
-  ProfileDescription,
+    OrganizationDescription,
+    ProfileDescription,
 } from "core/config/ProfileLifecycleManager";
 import { ControlPlaneSessionInfo } from "core/control-plane/client";
 import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
+    createContext,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
 } from "react";
 import ConfirmationDialog from "../components/dialogs/ConfirmationDialog";
 import { useWebviewListener } from "../hooks/useWebviewListener";
@@ -16,8 +16,8 @@ import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { setLastControlServerBetaEnabledStatus } from "../redux/slices/miscSlice";
 import { setDialogMessage, setShowDialog } from "../redux/slices/uiSlice";
 import {
-  updateOrgsThunk,
-  updateProfilesThunk,
+    updateOrgsThunk,
+    updateProfilesThunk,
 } from "../redux/thunks/profileAndOrg";
 import { IdeMessengerContext } from "./IdeMessenger";
 
@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     ideMessenger.ide
       .getIdeSettings()
-      .then(({ enableControlServerBeta, continueTestEnvironment }) => {
+      .then(({ enableControlServerBeta, debuggAiTestEnvironment }) => {
         setControlServerBetaEnabled(enableControlServerBeta);
         dispatch(
           setLastControlServerBetaEnabledStatus(enableControlServerBeta),

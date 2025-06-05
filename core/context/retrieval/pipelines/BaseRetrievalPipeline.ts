@@ -1,7 +1,7 @@
 // @ts-ignore
 import nlp from "wink-nlp-utils";
 
-import { BranchAndDir, Chunk, ContinueConfig, IDE, ILLM } from "../../../";
+import { BranchAndDir, Chunk, DebuggAiConfig, IDE, ILLM } from "../../../";
 import { AstraDbIndex } from "../../../indexing/AstraDbIndex";
 import { chunkDocument } from "../../../indexing/chunk/chunk";
 import { FullTextSearchCodebaseIndex } from "../../../indexing/FullTextSearchCodebaseIndex";
@@ -12,7 +12,7 @@ const DEFAULT_CHUNK_SIZE = 384;
 
 export interface RetrievalPipelineOptions {
   llm: ILLM;
-  config: ContinueConfig;
+  config: DebuggAiConfig;
   ide: IDE;
   input: string;
   nRetrieve: number;

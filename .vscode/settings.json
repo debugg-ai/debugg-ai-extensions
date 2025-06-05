@@ -42,7 +42,7 @@
     "extensions/vscode/e2e/_output": true,
     "extensions/vscode/e2e/storage": true,
     "extensions/vscode/e2e/vsix": true,
-    "extensions/.continue-debug": true
+    "extensions/.debugg-ai-debug": true
     // "sync/**": true
   },
   "eslint.workingDirectories": ["./core"],
@@ -55,5 +55,6 @@
   },
   "[typescriptreact]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
-  }
+  },
+  "cursorpyright.analysis.extraPaths": []
 }

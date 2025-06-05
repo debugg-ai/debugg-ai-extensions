@@ -2,9 +2,10 @@ import { AssistantUnrolled, ConfigResult } from "@continuedev/config-yaml";
 
 import { ControlPlaneClient } from "../../control-plane/client.js";
 import { getControlPlaneEnv } from "../../control-plane/env.js";
-import { ContinueConfig, IDE, IdeSettings } from "../../index.js";
+import { DebuggAiConfig, IDE, IdeSettings } from "../../index.js";
 import { ProfileDescription } from "../ProfileLifecycleManager.js";
 
+import { ConfigHandler } from "../ConfigHandler.js";
 import doLoadConfig from "./doLoadConfig.js";
 import { IProfileLoader } from "./IProfileLoader.js";
 
@@ -33,6 +34,7 @@ export default class PlatformProfileLoader implements IProfileLoader {
     private writeLog: (message: string) => Promise<void>,
     private readonly onReload: () => void,
     readonly description: ProfileDescription,
+    private readonly configHandler: ConfigHandler,
   ) {}
 
   static async create(
@@ -46,6 +48,7 @@ export default class PlatformProfileLoader implements IProfileLoader {
     ideSettingsPromise: Promise<IdeSettings>,
     writeLog: (message: string) => Promise<void>,
     onReload: () => void,
+    configHandler: ConfigHandler,
   ): Promise<PlatformProfileLoader> {
     const controlPlaneEnv = await getControlPlaneEnv(ideSettingsPromise);
 
@@ -75,10 +78,11 @@ export default class PlatformProfileLoader implements IProfileLoader {
       writeLog,
       onReload,
       description,
+      configHandler,
     );
   }
 
-  async doLoadConfig(): Promise<ConfigResult<ContinueConfig>> {
+  async doLoadConfig(): Promise<ConfigResult<DebuggAiConfig>> {
     if (this.configResult.errors?.find((e) => e.fatal)) {
       return {
         config: undefined,
@@ -100,6 +104,7 @@ export default class PlatformProfileLoader implements IProfileLoader {
       },
       this.description.id,
       undefined,
+      this.configHandler
     );
 
     return {

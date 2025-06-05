@@ -1,25 +1,25 @@
 import fs from "node:fs";
 
 import {
-  AssistantUnrolled,
-  ConfigResult,
-  ConfigValidationError,
-  FQSN,
-  ModelRole,
-  PlatformClient,
-  RegistryClient,
-  SecretResult,
-  unrollAssistantFromContent,
-  validateConfigYaml,
+    AssistantUnrolled,
+    ConfigResult,
+    ConfigValidationError,
+    FQSN,
+    ModelRole,
+    PlatformClient,
+    RegistryClient,
+    SecretResult,
+    unrollAssistantFromContent,
+    validateConfigYaml,
 } from "@continuedev/config-yaml";
 import { fetchwithRequestOptions } from "@continuedev/fetch";
 
 import {
-  ContinueConfig,
-  IContextProvider,
-  IDE,
-  IdeInfo,
-  IdeSettings,
+    DebuggAiConfig,
+    IContextProvider,
+    IDE,
+    IdeInfo,
+    IdeSettings,
 } from "../..";
 import { slashFromCustomCommand } from "../../commands";
 import { AllRerankers } from "../../context/allRerankers";
@@ -96,7 +96,7 @@ async function loadConfigYaml(
   };
 }
 
-async function configYamlToContinueConfig(
+async function configYamlToDebuggAiConfig(
   config: AssistantUnrolled,
   ide: IDE,
   ideSettings: IdeSettings,
@@ -106,9 +106,9 @@ async function configYamlToContinueConfig(
   workOsAccessToken: string | undefined,
   platformConfigMetadata: PlatformConfigMetadata | undefined,
   allowFreeTrial: boolean = true,
-): Promise<{ config: ContinueConfig; errors: ConfigValidationError[] }> {
+): Promise<{ config: DebuggAiConfig; errors: ConfigValidationError[] }> {
   const localErrors: ConfigValidationError[] = [];
-  const continueConfig: ContinueConfig = {
+  const continueConfig: DebuggAiConfig = {
     slashCommands: [],
     models: [],
     tools: allTools,
@@ -422,7 +422,7 @@ async function configYamlToContinueConfig(
   return { config: continueConfig, errors: localErrors };
 }
 
-export async function loadContinueConfigFromYaml(
+export async function loadDebuggAiConfigFromYaml(
   ide: IDE,
   workspaceConfigs: string[],
   ideSettings: IdeSettings,
@@ -434,7 +434,7 @@ export async function loadContinueConfigFromYaml(
   platformConfigMetadata: PlatformConfigMetadata | undefined,
   controlPlaneClient: ControlPlaneClient,
   configYamlPath: string | undefined,
-): Promise<ConfigResult<ContinueConfig>> {
+): Promise<ConfigResult<DebuggAiConfig>> {
   const rawYaml =
     overrideConfigYaml === undefined
       ? fs.readFileSync(
@@ -460,7 +460,7 @@ export async function loadContinueConfigFromYaml(
   }
 
   const { config: continueConfig, errors: localErrors } =
-    await configYamlToContinueConfig(
+    await configYamlToDebuggAiConfig(
       configYamlResult.config,
       ide,
       ideSettings,

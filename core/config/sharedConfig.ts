@@ -1,10 +1,10 @@
 import z from "zod";
 
 import {
-  BrowserSerializedContinueConfig,
-  Config,
-  ContinueConfig,
-  SerializedContinueConfig,
+    BrowserSerializedDebuggAiConfig,
+    Config,
+    DebuggAiConfig,
+    SerializedDebuggAiConfig,
 } from "..";
 
 export const sharedConfigSchema = z
@@ -14,12 +14,12 @@ export const sharedConfigSchema = z
     disableIndexing: z.boolean(),
     disableSessionTitles: z.boolean(),
 
-    // `experimental` in `ContinueConfig`
+    // `experimental` in `DebuggAiConfig`
     useChromiumForDocsCrawling: z.boolean(),
     readResponseTTS: z.boolean(),
     promptPath: z.string(),
 
-    // `ui` in `ContinueConfig`
+    // `ui` in `DebuggAiConfig`
     showSessionTabs: z.boolean(),
     codeBlockToolbarPosition: z.enum(["top", "bottom"]),
     fontSize: z.number(),
@@ -27,7 +27,7 @@ export const sharedConfigSchema = z
     displayRawMarkdown: z.boolean(),
     showChatScrollbar: z.boolean(),
 
-    // `tabAutocompleteOptions` in `ContinueConfig`
+    // `tabAutocompleteOptions` in `DebuggAiConfig`
     useAutocompleteCache: z.boolean(),
     useAutocompleteMultilineCompletions: z.enum(["always", "never", "auto"]),
     disableAutocompleteInFiles: z.array(z.string()),
@@ -69,23 +69,23 @@ export function salvageSharedConfig(sharedConfig: object): SharedConfigSchema {
 }
 
 // Apply shared config to all forms of config
-// - SerializedContinueConfig (config.json)
+// - SerializedDebuggAiConfig (config.json)
 // - Config ("intermediate") - passed to config.ts
-// - ContinueConfig
-// - BrowserSerializedContinueConfig (final converted to be passed to GUI)
+// - DebuggAiConfig
+// - BrowserSerializedDebuggAiConfig (final converted to be passed to GUI)
 
 // This modify function is split into two steps
 // - rectifySharedModelsFromSharedConfig - includes boolean flags like allowAnonymousTelemetry which
 //   must be added BEFORE config.ts and remote server config apply for JSON
 //   for security reasons
 // - setSharedModelsFromSharedConfig - exists because of selectedModelsByRole
-//   Which don't exist on SerializedContinueConfig/Config types, so must be added after the fact
+//   Which don't exist on SerializedDebuggAiConfig/Config types, so must be added after the fact
 export function modifyAnyConfigWithSharedConfig<
   T extends
-    | ContinueConfig
-    | BrowserSerializedContinueConfig
+    | DebuggAiConfig
+    | BrowserSerializedDebuggAiConfig
     | Config
-    | SerializedContinueConfig,
+    | SerializedDebuggAiConfig,
 >(continueConfig: T, sharedConfig: SharedConfigSchema): T {
   const configCopy = { ...continueConfig };
   configCopy.tabAutocompleteOptions = {

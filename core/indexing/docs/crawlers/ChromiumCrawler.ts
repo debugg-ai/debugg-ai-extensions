@@ -7,11 +7,11 @@ import { Handler, HTTPResponse, Page } from "puppeteer";
 // @prettier-ignore
 import PCR from "puppeteer-chromium-resolver";
 
-import { ContinueConfig, IDE } from "../../..";
+import { DebuggAiConfig, IDE } from "../../..";
 import {
-  editConfigJson,
-  getChromiumPath,
-  getContinueUtilsPath,
+    editConfigJson,
+    getChromiumPath,
+    getContinueUtilsPath,
 } from "../../../util/paths";
 
 import { PageData } from "./DocsCrawler";
@@ -201,7 +201,7 @@ export class ChromiumInstaller {
 
   constructor(
     private readonly ide: IDE,
-    private readonly config: ContinueConfig,
+    private readonly config: DebuggAiConfig,
   ) {
     if (this.shouldInstallOnStartup()) {
       console.log("Installing Chromium");

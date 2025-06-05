@@ -1,5 +1,5 @@
 import com.github.continuedev.continueintellijextension.*
-import com.github.continuedev.continueintellijextension.constants.getContinueGlobalPath
+import com.github.continuedev.continueintellijextension.constants.getDebuggAIGlobalPath
 import com.github.continuedev.continueintellijextension.services.ContinueExtensionSettings
 import com.github.continuedev.continueintellijextension.services.ContinuePluginService
 import com.github.continuedev.continueintellijextension.utils.OS
@@ -104,7 +104,7 @@ class IntelliJIDE(
             remoteConfigSyncPeriod = settings.continueState.remoteConfigSyncPeriod,
             userToken = settings.continueState.userToken ?: "",
             enableControlServerBeta = settings.continueState.enableContinueTeamsBeta,
-            continueTestEnvironment = "production",
+            debuggAiTestEnvironment = "production",
             pauseCodebaseIndexOnStart = false, // TODO: Needs to be implemented
         )
     }
@@ -225,7 +225,7 @@ class IntelliJIDE(
     }
 
     override suspend fun getContinueDir(): String {
-        return getContinueGlobalPath()
+        return getDebuggAIGlobalPath()
     }
 
     override suspend fun openFile(path: String) {

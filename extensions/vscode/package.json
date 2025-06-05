@@ -95,11 +95,6 @@
           "default": true,
           "markdownDescription": "DebuggAI collects anonymous usage data, cleaned of PII, to help us improve the product for our users. Read more  at [debugg-ai.dev › Telemetry](https://docs.debugg-ai.dev/telemetry)."
         },
-        "debugg-ai.enableContinueForTeams": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Enable Continue for teams beta features. To sign in, click the gear icon to go to the settings page, and click Sign In."
-        },
         "debugg-ai.showInlineTip": {
           "type": "boolean",
           "default": true,
@@ -123,31 +118,28 @@
         "debugg-ai.pauseTabAutocompleteOnBattery": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Pause Continue's tab autocomplete feature when your battery is low."
+          "markdownDescription": "Pause Debugg AI's tab autocomplete feature when your battery is low."
         },
         "debugg-ai.pauseCodebaseIndexOnStart": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Pause Continue's codebase index on start."
-        },
-        "debugg-ai.remoteConfigServerUrl": {
-          "type": "string",
-          "default": null,
-          "markdownDescription": "If your team is set up to use shared configuration, enter the server URL here and your user token below to enable automatic syncing."
+          "markdownDescription": "Pause Debugg AIs's codebase index on start."
         },
         "debugg-ai.userToken": {
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter your user token here and your server URL above to enable automatic syncing."
-        },
-        "debugg-ai.remoteConfigSyncPeriod": {
-          "type": "number",
-          "default": 60,
-          "description": "The period of time in minutes between automatic syncs."
         }
       }
     },
     "commands": [
+      {
+        "command": "debugg-ai.copy",
+        "category": "Debugg AI",
+        "title": "Copy",
+        "icon": "$(copy)",
+        "group": "Debugg AI"
+      },
       {
         "command": "debugg-ai.applyCodeFromChat",
         "category": "Debugg AI",
@@ -680,11 +672,11 @@
     "e2e:install-extensions": "extest install-from-marketplace ms-vscode-remote.remote-ssh --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage && extest install-from-marketplace ms-vscode-remote.remote-containers --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage && extest install-from-marketplace ms-vscode-remote.remote-wsl --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage",
     "e2e:test": "extest run-tests ${TEST_FILE:-'./e2e/_output/tests/*.test.js'} --code_settings settings.json --extensions_dir ./e2e/.test-extensions --storage ./e2e/storage",
     "e2e:clean": "rm -rf ./e2e/_output",
-    "e2e:all": "npm run e2e:build && npm run e2e:compile && npm run e2e:create-storage && npm run e2e:get-chromedriver && npm run e2e:get-vscode && npm run e2e:sign-vscode && npm run e2e:copy-vsix && npm run e2e:install-vsix && npm run e2e:install-extensions && CONTINUE_GLOBAL_DIR=e2e/test-continue npm run e2e:test && npm run e2e:clean",
-    "e2e:quick": "npm run e2e:compile && CONTINUE_GLOBAL_DIR=e2e/test-continue npm run e2e:test && npm run e2e:clean",
+    "e2e:all": "npm run e2e:build && npm run e2e:compile && npm run e2e:create-storage && npm run e2e:get-chromedriver && npm run e2e:get-vscode && npm run e2e:sign-vscode && npm run e2e:copy-vsix && npm run e2e:install-vsix && npm run e2e:install-extensions && DEBUGG_AI_GLOBAL_DIR=e2e/test-continue npm run e2e:test && npm run e2e:clean",
+    "e2e:quick": "npm run e2e:compile && DEBUGG_AI_GLOBAL_DIR=e2e/test-continue npm run e2e:test && npm run e2e:clean",
     "e2e:ci:download": "npm run e2e:create-storage && npm run e2e:get-chromedriver && npm run e2e:get-vscode",
-    "e2e:ci:run": "npm run e2e:compile && npm run e2e:copy-vsix && npm run e2e:install-vsix && npm run e2e:install-extensions && CONTINUE_GLOBAL_DIR=e2e/test-continue npm run e2e:test",
-    "e2e:ci:run-yaml": "npm run e2e:compile && npm run e2e:copy-vsix && npm run e2e:install-vsix && npm run e2e:install-extensions && CONTINUE_GLOBAL_DIR=e2e/test-continue-yaml npm run e2e:test"
+    "e2e:ci:run": "npm run e2e:compile && npm run e2e:copy-vsix && npm run e2e:install-vsix && npm run e2e:install-extensions && DEBUGG_AI_GLOBAL_DIR=e2e/test-continue npm run e2e:test",
+    "e2e:ci:run-yaml": "npm run e2e:compile && npm run e2e:copy-vsix && npm run e2e:install-vsix && npm run e2e:install-extensions && DEBUGG_AI_GLOBAL_DIR=e2e/test-continue-yaml npm run e2e:test"
   },
   "extensionDependencies": [
     "ms-python.python"

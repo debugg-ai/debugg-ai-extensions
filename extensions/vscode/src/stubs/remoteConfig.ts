@@ -1,10 +1,11 @@
 import * as fs from "fs";
 
-import { ContinueServerClient } from "core/continueServer/stubs/client";
 import { EXTENSION_NAME } from "core/control-plane/env";
+import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import { getConfigJsonPathForRemote } from "core/util/paths";
 import * as vscode from "vscode";
 
+import { getDebuggAIGlobalPath } from "core/util/paths";
 import { canParseUrl } from "core/util/url";
 import { CONTINUE_WORKSPACE_KEY } from "../util/workspaceConfig";
 
@@ -12,12 +13,12 @@ export class RemoteConfigSync {
   private userToken: string | null;
   private remoteConfigServerUrl: string | null;
   private remoteConfigSyncPeriod: number;
-
   private syncInterval: NodeJS.Timer | undefined = undefined;
 
   constructor(
     private triggerReloadConfig: () => void,
     userToken: string | null,
+    private debuggAIServerClient: DebuggAIServerClient
   ) {
     let {
       userToken: settingsUserToken,
@@ -53,7 +54,7 @@ export class RemoteConfigSync {
     const userToken = settings.get<string | null>("userToken", null);
     const remoteConfigServerUrl = settings.get<string | null>(
       "remoteConfigServerUrl",
-      null,
+      `${getDebuggAIGlobalPath()}/remote-config.json`,
     );
     const remoteConfigSyncPeriod = settings.get<number>(
       "remoteConfigSyncPeriod",
@@ -108,11 +109,11 @@ export class RemoteConfigSync {
 
   async sync(userToken: string, remoteConfigServerUrl: string) {
     try {
-      const client = new ContinueServerClient(
-        remoteConfigServerUrl.toString(),
-        userToken,
-      );
-      const { configJson } = await client.getConfig();
+      const config = await this.debuggAIServerClient.users?.getUserConfig();
+      if (!config) {
+        return;
+      }
+      const configJson = JSON.stringify(config);
 
       fs.writeFileSync(
         getConfigJsonPathForRemote(remoteConfigServerUrl),

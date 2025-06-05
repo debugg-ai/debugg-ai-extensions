@@ -82,7 +82,7 @@ const debuggVsShortcuts: KeyboardShortcutProps[] = [
   {
     mac: "⌘ ⌥ E",
     windows: "Ctrl ⌃ E",
-    description: "Run E2e Test",
+    description: "Start E2e Test Generator",
   },
   {
     mac: "⌥ T",

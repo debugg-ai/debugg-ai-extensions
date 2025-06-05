@@ -181,7 +181,7 @@ export interface ContextProviderDescription {
 export type FetchFunction = (url: string | URL, init?: any) => Promise<any>;
 
 export interface ContextProviderExtras {
-  config: ContinueConfig;
+  config: DebuggAiConfig;
   fullInput: string;
   embeddingsProvider: ILLM | null;
   reranker: ILLM | null;
@@ -192,7 +192,7 @@ export interface ContextProviderExtras {
 }
 
 export interface LoadSubmenuItemsArgs {
-  config: ContinueConfig;
+  config: DebuggAiConfig;
   ide: IDE;
   fetch: FetchFunction;
 }
@@ -621,7 +621,7 @@ export interface IdeSettings {
   remoteConfigSyncPeriod: number;
   userToken: string;
   enableControlServerBeta: boolean;
-  continueTestEnvironment: "none" | "production" | "staging" | "local";
+  debuggAiTestEnvironment: "none" | "production" | "staging" | "local";
   pauseCodebaseIndexOnStart: boolean;
 }
 
@@ -749,7 +749,7 @@ export interface ContinueSDK {
   params?: { [key: string]: any } | undefined;
   contextItems: ContextItemWithId[];
   selectedCode: RangeInFile[];
-  config: ContinueConfig;
+  config: DebuggAiConfig;
   fetch: FetchFunction;
   completionOptions?: LLMFullCompletionOptions;
 }
@@ -1178,7 +1178,7 @@ export interface VectorDatabaseIndexOpts {
 }
 
 // config.json
-export interface SerializedContinueConfig {
+export interface SerializedDebuggAiConfig {
   env?: string[];
   allowAnonymousTelemetry?: boolean;
   models: ModelDescription[];
@@ -1200,13 +1200,14 @@ export interface SerializedContinueConfig {
   analytics?: AnalyticsConfig;
   docs?: SiteIndexingConfig[];
   data?: DataDestination[];
+  debuggAiServerPort?: number;
   vectorDatabaseOpts?: VectorDatabaseIndexOpts;
   deploymentEnv?: string;
 }
 
 export type ConfigMergeType = "merge" | "overwrite";
 
-export type ContinueRcJson = Partial<SerializedContinueConfig> & {
+export type ContinueRcJson = Partial<SerializedDebuggAiConfig> & {
   mergeBehavior: ConfigMergeType;
 };
 
@@ -1255,12 +1256,13 @@ export interface Config {
   /** Analytics configuration */
   analytics?: AnalyticsConfig;
   data?: DataDestination[];
+  debuggAiServerPort?: number;
   vectorDatabaseOpts?: VectorDatabaseIndexOpts;
   deploymentEnv?: string;
 }
 
 // in the actual Continue source code
-export interface ContinueConfig {
+export interface DebuggAiConfig {
   allowAnonymousTelemetry?: boolean;
   models: ILLM[];
   systemMessage?: string;
@@ -1280,11 +1282,12 @@ export interface ContinueConfig {
   modelsByRole: Record<ModelRole, ILLM[]>;
   selectedModelByRole: Record<ModelRole, ILLM | null>;
   data?: DataDestination[];
+  debuggAiServerPort?: number;
   vectorDatabaseOpts?: VectorDatabaseIndexOpts;
   deploymentEnv?: string; // Set to test local api calls
 }
 
-export interface BrowserSerializedContinueConfig {
+export interface BrowserSerializedDebuggAiConfig {
   allowAnonymousTelemetry?: boolean;
   models: ModelDescription[];
   systemMessage?: string;
@@ -1304,6 +1307,7 @@ export interface BrowserSerializedContinueConfig {
   tabAutocompleteOptions?: Partial<TabAutocompleteOptions>;
   modelsByRole: Record<ModelRole, ModelDescription[]>;
   selectedModelByRole: Record<ModelRole, ModelDescription | null>;
+  debuggAiServerPort?: number;
   vectorDatabaseOpts?: VectorDatabaseIndexOpts;
   deploymentEnv?: string;
 }

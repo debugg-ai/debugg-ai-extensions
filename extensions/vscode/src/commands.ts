@@ -1406,7 +1406,9 @@ const getCommandsMap: (
           vscode.window.showWarningMessage("Failed to create E2E test.");
           return;
         }
-        await e2eTestRunner.runTests(e2eRun?.tunnelKey ?? "", e2eRun);
+        const localPortConfig = await configHandler.loadConfig().then(configResult => configResult.config?.debuggAiServerPort);
+        console.log("Local port config - ", localPortConfig);
+        await e2eTestRunner.runTests(e2eRun?.tunnelKey ?? "", e2eRun, localPortConfig);
       },
       "debugg-ai.createNewE2eTest": async () => {
         captureCommandTelemetry("debugg-ai.createNewE2eTest");
@@ -1416,6 +1418,8 @@ const getCommandsMap: (
           });
           return testDescription;
         };
+        const localPortConfig = await configHandler.loadConfig().then(configResult => configResult.config?.debuggAiServerPort);
+        console.log("Local port config - ", localPortConfig);
         const client = await debuggAIServerClientPromise;
         const e2eTestRunner = new E2eTestRunner(client);
         const testDescription = await getTestDescription();
@@ -1423,7 +1427,7 @@ const getCommandsMap: (
           vscode.window.showWarningMessage("No test description provided.");
           return;
         }
-        await e2eTestRunner.createNewE2eTest(testDescription);
+        await e2eTestRunner.createNewE2eTest(testDescription, localPortConfig);
       },
       "debugg-ai.startTunnel": async (port: number, domain: string) => {
         captureCommandTelemetry("debugg-ai.startTunnel");
@@ -1448,14 +1452,14 @@ const registerCopyBufferSpy = (
   core: Core,
 ) => {
   const typeDisposable = vscode.commands.registerCommand(
-    "editor.action.clipboardCopyAction",
+    "debugg-ai.copy",
     async (arg) => doCopy(typeDisposable),
   );
 
   async function doCopy(typeDisposable: any) {
     typeDisposable.dispose(); // must dispose to avoid endless loops
 
-    await vscode.commands.executeCommand("editor.action.clipboardCopyAction");
+    await vscode.commands.executeCommand("debugg-ai.copy");
 
     const clipboardText = await vscode.env.clipboard.readText();
 
@@ -1472,7 +1476,7 @@ const registerCopyBufferSpy = (
 
     // re-register to continue intercepting copy commands
     typeDisposable = vscode.commands.registerCommand(
-      "editor.action.clipboardCopyAction",
+      "debugg-ai.copy",
       async () => doCopy(typeDisposable),
     );
     context.subscriptions.push(typeDisposable);

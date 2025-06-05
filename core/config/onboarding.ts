@@ -1,4 +1,4 @@
-import { SerializedContinueConfig } from "../";
+import { SerializedDebuggAiConfig } from "../";
 
 import { FREE_TRIAL_MODELS } from "./default";
 
@@ -15,8 +15,8 @@ export const LOCAL_ONBOARDING_EMBEDDINGS_MODEL = "nomic-embed-text:latest";
  * whenever a user doesn't have a config.json
  */
 export function setupBestConfig(
-  config: SerializedContinueConfig,
-): SerializedContinueConfig {
+  config: SerializedDebuggAiConfig,
+): SerializedDebuggAiConfig {
   return {
     ...config,
     models: config.models.filter((model) => model.provider !== "free-trial"),
@@ -24,8 +24,8 @@ export function setupBestConfig(
 }
 
 export function setupLocalConfig(
-  config: SerializedContinueConfig,
-): SerializedContinueConfig {
+  config: SerializedDebuggAiConfig,
+): SerializedDebuggAiConfig {
   return {
     ...config,
     models: [
@@ -49,8 +49,8 @@ export function setupLocalConfig(
 }
 
 export function setupQuickstartConfig(
-  config: SerializedContinueConfig,
-): SerializedContinueConfig {
+  config: SerializedDebuggAiConfig,
+): SerializedDebuggAiConfig {
   return {
     ...config,
     models: [

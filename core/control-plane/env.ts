@@ -92,13 +92,13 @@ export async function getControlPlaneEnv(
 ): Promise<ControlPlaneEnv> {
   const ideSettings = await ideSettingsPromise;
   return getControlPlaneEnvSync(
-    ideSettings.continueTestEnvironment,
+    ideSettings.debuggAiTestEnvironment,
     ideSettings.enableControlServerBeta,
   );
 }
 
 export function getControlPlaneEnvSync(
-  ideTestEnvironment: IdeSettings["continueTestEnvironment"],
+  ideTestEnvironment: IdeSettings["debuggAiTestEnvironment"],
   enableControlServerBeta: IdeSettings["enableControlServerBeta"],
 ): ControlPlaneEnv {
   // Note .local overrides .staging
@@ -141,5 +141,5 @@ export async function useHub(
   if (ideSettings.enableControlServerBeta) {
     return false;
   }
-  return ideSettings.continueTestEnvironment !== "none";
+  return ideSettings.debuggAiTestEnvironment !== "none";
 }

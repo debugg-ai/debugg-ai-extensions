@@ -36,7 +36,7 @@ class ContinueAuthService {
     }
 
     private fun getControlPlaneUrl(): String {
-        val env = service<ContinueExtensionSettings>().continueState.continueTestEnvironment;
+        val env = service<ContinueExtensionSettings>().continueState.debuggAiTestEnvironment;
         when (env) {
             "none" -> return "https://control-plane-api-service-i3dqylpbqa-uc.a.run.app"
             "local" -> return "http://localhost:3001"

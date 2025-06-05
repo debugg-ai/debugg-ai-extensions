@@ -1,9 +1,9 @@
-import { ContinueConfig } from "core";
+import { DebuggAiConfig } from "core";
 import { QuickPickItem, window } from "vscode";
 
 export async function getModelQuickPickVal(
   curModelTitle: string,
-  config: ContinueConfig,
+  config: DebuggAiConfig,
 ) {
   const modelItems: QuickPickItem[] = config.models.map((model) => {
     const isCurModel = curModelTitle === model.title;

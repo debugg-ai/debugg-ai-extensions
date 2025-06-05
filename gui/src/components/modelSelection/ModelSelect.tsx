@@ -1,10 +1,8 @@
 import { Listbox } from "@headlessui/react";
 import {
-  ChevronDownIcon,
   Cog6ToothIcon,
   CubeIcon,
-  PlusIcon,
-  TrashIcon,
+  TrashIcon
 } from "@heroicons/react/24/outline";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -21,8 +19,6 @@ import {
 import { setDialogMessage, setShowDialog } from "../../redux/slices/uiSlice";
 import { getFontSize, isMetaEquivalentKeyPressed } from "../../util";
 import ConfirmationDialog from "../dialogs/ConfirmationDialog";
-import Shortcut from "../gui/Shortcut";
-import { Divider } from "./platform/shared";
 
 interface ModelOptionProps {
   option: Option;
@@ -300,75 +296,78 @@ function ModelSelect() {
   }
 
   return (
-    <Listbox
-      onChange={async (val: string) => {
-        if (val === defaultModel?.title) return;
-        dispatch(setDefaultModel({ title: val }));
-      }}
-    >
-      <div className="relative">
-        <StyledListboxButton
-          data-testid="model-select-button"
-          ref={buttonRef}
-          className="h-[18px] overflow-hidden"
-          style={{ padding: 0 }}
-          onClick={calculatePosition}
-        >
-          <div className="flex max-w-[33vw] items-center gap-0.5 text-gray-400 transition-colors duration-200">
-            <span className="truncate">
-              {modelSelectTitle(defaultModel) || "Select model"}{" "}
-            </span>
-            <ChevronDownIcon
-              className="h-3 w-3 flex-shrink-0"
-              aria-hidden="true"
-            />
-          </div>
-        </StyledListboxButton>
-        <StyledListboxOptions
-          $showabove={showAbove}
-          className="z-50 max-w-[90vw]"
-        >
-          <div
-            className={`max-h-[${MAX_HEIGHT_PX}px] no-scrollbar overflow-y-scroll`}
-          >
-            {sortedOptions.map((option, idx) => (
-              <ModelOption
-                option={option}
-                idx={idx}
-                key={idx}
-                showDelete={options.length > 1}
-                showMissingApiKeyMsg={option.apiKey === ""}
-              />
-            ))}
-          </div>
+    <div className="flex items-center gap-2">
+      {modelSelectTitle(defaultModel) || "-"}
+    </div>
+    // <Listbox
+    //   onChange={async (val: string) => {
+    //     if (val === defaultModel?.title) return;
+    //     dispatch(setDefaultModel({ title: val }));
+    //   }}
+    // >
+    //   <div className="relative">
+    //     <StyledListboxButton
+    //       data-testid="model-select-button"
+    //       ref={buttonRef}
+    //       className="h-[18px] overflow-hidden"
+    //       style={{ padding: 0 }}
+    //       onClick={calculatePosition}
+    //     >
+    //       <div className="flex max-w-[33vw] items-center gap-0.5 text-gray-400 transition-colors duration-200">
+    //         <span className="truncate">
+    //           {modelSelectTitle(defaultModel) || "Select model"}{" "}
+    //         </span>
+    //         <ChevronDownIcon
+    //           className="h-3 w-3 flex-shrink-0"
+    //           aria-hidden="true"
+    //         />
+    //       </div>
+    //     </StyledListboxButton>
+    //     <StyledListboxOptions
+    //       $showabove={showAbove}
+    //       className="z-50 max-w-[90vw]"
+    //     >
+    //       <div
+    //         className={`max-h-[${MAX_HEIGHT_PX}px] no-scrollbar overflow-y-scroll`}
+    //       >
+    //         {sortedOptions.map((option, idx) => (
+    //           <ModelOption
+    //             option={option}
+    //             idx={idx}
+    //             key={idx}
+    //             showDelete={options.length > 1}
+    //             showMissingApiKeyMsg={option.apiKey === ""}
+    //           />
+    //         ))}
+    //       </div>
 
-          <div className="mt-auto">
-            <Divider className="!my-0" />
+    //       <div className="mt-auto">
+    //         <Divider className="!my-0" />
 
-            {selectedProfile?.profileType === "local" && (
-              <>
-                <StyledListboxOption
-                  key={options.length}
-                  onClick={onClickAddModel}
-                  value={"addModel" as any}
-                >
-                  <div className="flex items-center py-0.5">
-                    <PlusIcon className="mr-2 h-4 w-4" />
-                    Add Chat model
-                  </div>
-                </StyledListboxOption>
-              </>
-            )}
+    //         {selectedProfile?.profileType === "local" && (
+    //           <>
+    //             <StyledListboxOption
+    //               key={options.length}
+    //               onClick={onClickAddModel}
+    //               value={"addModel" as any}
+    //             >
+    //               <div className="flex items-center py-0.5">
+    //                 <PlusIcon className="mr-2 h-4 w-4" />
+    //                 Add Chat model
+    //               </div>
+    //             </StyledListboxOption>
+    //           </>
+    //         )}
 
-            <Divider className="!my-0" />
+    //         <Divider className="!my-0" />
 
-            <span className="block px-3 py-3" style={{ color: lightGray }}>
-              <Shortcut>meta '</Shortcut> to toggle model
-            </span>
-          </div>
-        </StyledListboxOptions>
-      </div>
-    </Listbox>
+    //         <span className="block px-3 py-3" style={{ color: lightGray }}>
+    //           <Shortcut>meta '</Shortcut> to toggle model
+    //         </span>
+    //       </div>
+    //     </StyledListboxOptions>
+    //   </div>
+    // </Listbox>
   );
 }
 

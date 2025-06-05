@@ -1,7 +1,8 @@
-import { IDE } from "..";
+import { IDE, IdeInfo, IdeSettings } from "..";
 import { deduplicateArray } from "../util";
 import { GlobalContext } from "../util/GlobalContext";
 import { editConfigJson } from "../util/paths";
+import { ConfigHandler } from "./ConfigHandler";
 
 import { resolveSerializedConfig } from "./load";
 import { SharedConfigSchema } from "./sharedConfig";
@@ -10,12 +11,31 @@ import { SharedConfigSchema } from "./sharedConfig";
   This migration function eliminates deprecated values from the json file
   And writes them to the shared config
 */
-export function migrateJsonSharedConfig(filepath: string, ide: IDE): void {
+export async function migrateJsonSharedConfig(
+  filepath: string,
+  ide: IDE,
+  ideSettings: IdeSettings,
+  ideInfo: IdeInfo,
+  uniqueId: string,
+  writeLog: (log: string) => Promise<void>,
+  workOsAccessToken: string | undefined,
+  configHandler: ConfigHandler
+): Promise<void> {
   const globalContext = new GlobalContext();
   const currentSharedConfig = globalContext.getSharedConfig(); // for merging security concerns
 
   try {
-    let config = resolveSerializedConfig(filepath);
+    let config = await resolveSerializedConfig(
+      filepath,
+      ide,
+      ideSettings,
+      ideInfo,
+      uniqueId,
+      writeLog,
+      workOsAccessToken,
+      undefined,
+      configHandler
+    );
     const shareConfigUpdates: SharedConfigSchema = {};
 
     let effected = false;

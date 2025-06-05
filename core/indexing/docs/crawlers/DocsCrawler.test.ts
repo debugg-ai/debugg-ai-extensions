@@ -1,14 +1,14 @@
 import os from "os";
 
-import { ContinueConfig } from "../../..";
+import { DebuggAiConfig } from "../../..";
 import { testConfigHandler } from "../../../test/fixtures";
 import FileSystemIde from "../../../util/filesystem";
 
 import { commonDocsSites } from "./crawl-test-cases";
 import DocsCrawler, {
-  ChromiumInstaller,
-  DocsCrawlerType,
-  type PageData,
+    ChromiumInstaller,
+    DocsCrawlerType,
+    type PageData,
 } from "./DocsCrawler";
 
 // Temporary workaround until we have better caching of Chromium
@@ -20,7 +20,7 @@ const TIMEOUT_MS = 1_000_000_000;
 ChromiumInstaller.PCR_CONFIG = { downloadPath: os.tmpdir() };
 
 describe("DocsCrawler", () => {
-  let config: ContinueConfig;
+  let config: DebuggAiConfig;
   let mockIde: FileSystemIde;
   let chromiumInstaller: ChromiumInstaller;
   let docsCrawler: DocsCrawler;

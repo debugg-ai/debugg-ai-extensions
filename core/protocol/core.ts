@@ -8,7 +8,7 @@ import { SharedConfigSchema } from "../config/sharedConfig";
 import { GlobalContextModelSelections } from "../util/GlobalContext";
 
 import type {
-  BrowserSerializedContinueConfig,
+  BrowserSerializedDebuggAiConfig,
   ChatMessage,
   ContextItem,
   ContextItemWithId,
@@ -23,7 +23,7 @@ import type {
   ModelDescription,
   PromptLog,
   RangeInFile,
-  SerializedContinueConfig,
+  SerializedDebuggAiConfig,
   Session,
   SessionMetadata,
   SiteIndexingConfig,
@@ -52,7 +52,7 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   "config/addOpenAiKey": [string, void];
   "config/addModel": [
     {
-      model: SerializedContinueConfig["models"][number];
+      model: SerializedDebuggAiConfig["models"][number];
       role?: keyof ExperimentalModelRoles;
     },
     void,
@@ -62,13 +62,13 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   "config/getSerializedProfileInfo": [
     undefined,
     {
-      result: ConfigResult<BrowserSerializedContinueConfig>;
+      result: ConfigResult<BrowserSerializedDebuggAiConfig>;
       profileId: string | null;
     },
   ];
   "config/deleteModel": [{ title: string }, void];
   "config/addContextProvider": [ContextProviderWithParams, void];
-  "config/reload": [undefined, ConfigResult<BrowserSerializedContinueConfig>];
+  "config/reload": [undefined, ConfigResult<BrowserSerializedDebuggAiConfig>];
   "config/listProfiles": [
     undefined,
     { profiles: ProfileDescription[] | null; selectedProfileId: string | null },

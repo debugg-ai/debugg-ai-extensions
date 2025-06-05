@@ -4,7 +4,7 @@ binary/out
 binary/tmp
 core/.continue-test
 docs/.docusaurus
-extensions/.continue-debug
+extensions/.debugg-ai-debug
 extensions/vscode/continue_rc_schema.json
 extensions/vscode/.vscode-test
 extensions/vscode/bin

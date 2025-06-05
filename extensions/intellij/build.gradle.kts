@@ -145,7 +145,7 @@ tasks {
     // Read more: https://github.com/JetBrains/intellij-ui-test-robot
     runIdeForUiTests {
         environment(
-            "CONTINUE_GLOBAL_DIR",
+            "DEBUGG_AI_GLOBAL_DIR",
             "${rootProject.projectDir}/src/test/kotlin/com/github/continuedev/continueintellijextension/e2e/test-continue"
         )
         systemProperty("robot-server.port", "8082")

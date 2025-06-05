@@ -1,6 +1,6 @@
 import { URL } from "node:url";
 
-import { ContinueConfig, IDE } from "../../..";
+import { DebuggAiConfig, IDE } from "../../..";
 
 import CheerioCrawler from "./CheerioCrawler";
 import { ChromiumCrawler, ChromiumInstaller } from "./ChromiumCrawler";
@@ -21,7 +21,7 @@ class DocsCrawler {
 
   constructor(
     private readonly ide: IDE,
-    private readonly config: ContinueConfig,
+    private readonly config: DebuggAiConfig,
     private readonly maxDepth: number = 4,
     private readonly maxRequestsPerCrawl: number = 1000,
     private readonly useLocalCrawling: boolean = false,

@@ -39,7 +39,7 @@ describe.skip("DocsService Integration Tests", () => {
       remoteConfigSyncPeriod: 60,
       userToken: "",
       enableControlServerBeta: false,
-      continueTestEnvironment: "none" as const,
+      debuggAiTestEnvironment: "none" as const,
       pauseCodebaseIndexOnStart: false,
       ideSettings: {} as any,
       enableDebugLogs: false,

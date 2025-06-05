@@ -1,15 +1,15 @@
 import { ModelRole } from "@continuedev/config-yaml";
 
-import { ContinueConfig, ILLM } from "..";
+import { DebuggAiConfig, ILLM } from "..";
 import {
-  GlobalContext,
-  GlobalContextModelSelections,
+    GlobalContext,
+    GlobalContextModelSelections,
 } from "../util/GlobalContext";
 
 export function rectifySelectedModelsFromGlobalContext(
-  continueConfig: ContinueConfig,
+  continueConfig: DebuggAiConfig,
   profileId: string,
-): ContinueConfig {
+): DebuggAiConfig {
   const configCopy = { ...continueConfig };
 
   const globalContext = new GlobalContext();

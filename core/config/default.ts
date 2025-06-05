@@ -2,7 +2,7 @@ import {
   CollectionVectorMetric,
   ContextProviderWithParams,
   ModelDescription,
-  SerializedContinueConfig,
+  SerializedDebuggAiConfig,
   SlashCommandDescription,
 } from "../";
 
@@ -94,7 +94,8 @@ const defaultEmbeddingsProvider = {
   maxEmbeddingChunkSize: 512,
 };
 
-export const defaultConfig: SerializedContinueConfig = {
+export const defaultConfig: SerializedDebuggAiConfig = {
+  debuggAiServerPort: 3000,
   models: [],
   contextProviders: defaultContextProvidersVsCode,
   slashCommands: defaultSlashCommandsVscode,
@@ -103,9 +104,11 @@ export const defaultConfig: SerializedContinueConfig = {
   data: [],
 };
 
-export const defaultConfigJetBrains: SerializedContinueConfig = {
+export const defaultConfigJetBrains: SerializedDebuggAiConfig = {
+  debuggAiServerPort: 3000,
   models: [],
   contextProviders: defaultContextProvidersJetBrains,
   slashCommands: defaultSlashCommandsJetBrains,
+  vectorDatabaseOpts: defaultVectorDatabaseOpts,
   data: [],
 };

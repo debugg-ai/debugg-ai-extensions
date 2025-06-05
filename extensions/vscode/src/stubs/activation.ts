@@ -1,31 +1,16 @@
-import { EXTENSION_NAME } from "core/control-plane/env";
-import * as vscode from "vscode";
 
-import { getUserToken } from "./auth";
+import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import { RemoteConfigSync } from "./remoteConfig";
 
-export async function setupRemoteConfigSync(reloadConfig: () => void) {
-  const settings = vscode.workspace.getConfiguration(EXTENSION_NAME);
-  const remoteConfigServerUrl = settings.get<string | null>(
-    "remoteConfigServerUrl",
-    null,
-  );
-  if (
-    remoteConfigServerUrl === null ||
-    remoteConfigServerUrl === undefined ||
-    remoteConfigServerUrl.trim() === ""
-  ) {
-    return;
+export async function setupRemoteConfigSync(reloadConfig: () => void, debuggAIServerClientPromise: Promise<DebuggAIServerClient>) {
+  const debuggAIServerClient = await debuggAIServerClientPromise;
+  // await vscode.workspace
+  //   .getConfiguration(EXTENSION_NAME)
+  //   .update("userToken", token, vscode.ConfigurationTarget.Global);
+  try {
+    const configSync = new RemoteConfigSync(reloadConfig, null, debuggAIServerClient);
+    await configSync.setup();
+  } catch (e) {
+    console.warn(`Failed to sync remote config: ${e}`);
   }
-  getUserToken().then(async (token) => {
-    await vscode.workspace
-      .getConfiguration(EXTENSION_NAME)
-      .update("userToken", token, vscode.ConfigurationTarget.Global);
-    try {
-      const configSync = new RemoteConfigSync(reloadConfig, token);
-      configSync.setup();
-    } catch (e) {
-      console.warn(`Failed to sync remote config: ${e}`);
-    }
-  });
 }

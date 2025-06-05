@@ -71,7 +71,7 @@ export {
 };
 """
 
-fun getContinueGlobalPath(): String {
+fun getDebuggAIGlobalPath(): String {
   val continuePath = Paths.get(System.getProperty("user.home"), ".continue")
   if (Files.notExists(continuePath)) {
     Files.createDirectories(continuePath)
@@ -80,7 +80,7 @@ fun getContinueGlobalPath(): String {
 }
 
 fun getContinueRemoteConfigPath(remoteHostname: String): String {
-  val path = Paths.get(getContinueGlobalPath(), ".configs")
+  val path = Paths.get(getDebuggAIGlobalPath(), ".configs")
   if (Files.notExists(path)) {
     Files.createDirectories(path)
   }
@@ -91,7 +91,7 @@ fun getConfigJsonPath(remoteHostname: String? = null): String {
   val path =
       Paths.get(
           if (remoteHostname != null) getContinueRemoteConfigPath(remoteHostname)
-          else getContinueGlobalPath(),
+          else getDebuggAIGlobalPath(),
           "config.json")
   if (Files.notExists(path)) {
     Files.createFile(path)
@@ -104,7 +104,7 @@ fun getConfigJsPath(remoteHostname: String? = null): String {
   val path =
       Paths.get(
           if (remoteHostname != null) getContinueRemoteConfigPath(remoteHostname)
-          else getContinueGlobalPath(),
+          else getDebuggAIGlobalPath(),
           "config.js")
   if (Files.notExists(path)) {
     Files.createFile(path)
@@ -114,7 +114,7 @@ fun getConfigJsPath(remoteHostname: String? = null): String {
 }
 
 fun getSessionsDir(): String {
-  val path = Paths.get(getContinueGlobalPath(), "sessions")
+  val path = Paths.get(getDebuggAIGlobalPath(), "sessions")
   if (Files.notExists(path)) {
     Files.createDirectories(path)
   }
