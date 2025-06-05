@@ -173,3 +173,6 @@ extensions/.continue-debug/
 **/.continue/assistants/
 .continue/.local
 /.debugg-ai
+/extensions
+extensions/.debugg-ai-debug/**/*
+extensions/.continue-debug/**/*
