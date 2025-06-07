@@ -1401,7 +1401,7 @@ const getCommandsMap: (
           vscode.window.showWarningMessage("No test description provided.");
           return;
         }
-        await e2eSuiteGenerator.createTestSuite(testDescription, localPortConfig);
+        await e2eSuiteGenerator.runE2eSuiteGenerator(testDescription, localPortConfig);
 
       },
       "debugg-ai.createNewE2eTest": async () => {
