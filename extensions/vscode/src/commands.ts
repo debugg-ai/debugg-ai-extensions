@@ -46,7 +46,7 @@ import { showSnippetWebview } from "./debug/webviews/snippetWebview";
 import { DebuggGuiWebviewViewProvider } from "./DebuggGUIWebviewViewProvider";
 import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
 import E2eTestRunner from "./test/e2e-agents/e2eRunner";
-import ValidatorRunner from "./test/runner/validator";
+import E2eSuiteGenerator from "./test/e2e-agents/e2eSuiteGen";
 import { start } from "./tunnels/ngrok";
 import { post } from "./util/axiosNaming";
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
@@ -1263,152 +1263,146 @@ const getCommandsMap: (
           errorFileDecorationProvider.updateErrorFiles(errorFiles.map(f => f.filePath));
         }
       },
-      "debugg-ai.runTestsFile": async () => {
-        captureCommandTelemetry("debugg-ai.runTestsFile");
-        vscode.window.showInformationMessage("Running tests...");
-        // Call the class that runs tests
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-          vscode.window.showWarningMessage("No file open.");
-          return;
-        }
-        const filePath = editor.document.uri.fsPath;
-        const testRunner = new ValidatorRunner();
-        const res = await testRunner.runTests(filePath);
+      // "debugg-ai.runTestsFile": async () => {
+      //   captureCommandTelemetry("debugg-ai.runTestsFile");
+      //   vscode.window.showInformationMessage("Running tests...");
+      //   // Call the class that runs tests
+      //   const editor = vscode.window.activeTextEditor;
+      //   if (!editor) {
+      //     vscode.window.showWarningMessage("No file open.");
+      //     return;
+      //   }
+      //   const filePath = editor.document.uri.fsPath;
+      //   const testRunner = new ValidatorRunner();
+      //   const res = await testRunner.runTests(filePath);
 
-        // Show the failed tests in a popup
-        if (!res.ok) {
-          // 1) echo to an OutputChannel
-          const ch = vscode.window.createOutputChannel('Test run');
-          ch.appendLine(res.stdout || res.stderr);
-          ch.appendLine("--------------------------------");
-          ch.appendLine("Failed tests - ");
-          ch.appendLine(res.failures.map((f) => f.message).join("\n"));
-          ch.show(true);
+      //   // Show the failed tests in a popup
+      //   if (!res.ok) {
+      //     // 1) echo to an OutputChannel
+      //     const ch = vscode.window.createOutputChannel('Test run');
+      //     ch.appendLine(res.stdout || res.stderr);
+      //     ch.appendLine("--------------------------------");
+      //     ch.appendLine("Failed tests - ");
+      //     ch.appendLine(res.failures.map((f) => f.message).join("\n"));
+      //     ch.show(true);
 
-          console.log("Failed tests - ", res.stdout || res.stderr);
+      //     console.log("Failed tests - ", res.stdout || res.stderr);
         
-          // 2) send to a language server / web-view / telemetry
-          // sendToServer(res);
-          const client = await debuggAIServerClientPromise;
-          const { repoName, repoPath, branchName } = await client.getRepoInfo(editor.document.uri.fsPath);
-          if (!repoName || !repoPath || !branchName) {
-            console.debug("No repo name, path, or branch name found for file");
+      //     // 2) send to a language server / web-view / telemetry
+      //     // sendToServer(res);
+      //     const client = await debuggAIServerClientPromise;
+      //     const { repoName, repoPath, branchName } = await client.getRepoInfo(editor.document.uri.fsPath);
+      //     if (!repoName || !repoPath || !branchName) {
+      //       console.debug("No repo name, path, or branch name found for file");
+      //     }
+      //     // const filePath = editor.document.uri.fsPath;
+      //     const curFileUri = vscode.Uri.file(filePath);
+      //     // Read the file contents
+      //     const fileContents = await vscode.workspace.fs.readFile(curFileUri);
+      //     const coverage = await client.coverage?.logFailedRun(
+      //       fileContents,
+      //       filePath,
+      //       repoName ?? "",
+      //       branchName ?? "",
+      //       {
+      //         repoPath,
+      //         testFailures: res.stderr,
+      //       }
+      //     );
+      //   }
+      // },
+      // /**
+      //  * Create a tests file for the given file.
+      //  */
+      // "debugg-ai.createTestsFile": async () => {
+      //   captureCommandTelemetry("debugg-ai.createTestsFile");
+      //   vscode.window.showInformationMessage("Creating tests file...");
+      //   // Get the current open file, request tests
+      //   const editor = vscode.window.activeTextEditor;
+      //   if (!editor) {
+      //     vscode.window.showWarningMessage("No file open.");
+      //     return;
+      //   }
+      //   try {
+      //     const client = await debuggAIServerClientPromise;
+      //     const { repoName, repoPath, branchName } = await client.getRepoInfo(editor.document.uri.fsPath);
+      //     if (!repoName || !repoPath || !branchName) {
+      //       console.debug("No repo name, path, or branch name found for file");
+      //     }
+      //     const filePath = editor.document.uri.fsPath;
+      //     const curFileUri = vscode.Uri.file(filePath);
+      //     // Read the file contents
+      //     const fileContents = await vscode.workspace.fs.readFile(curFileUri);
+      //     const coverage = await client.coverage?.createCoverage(
+      //       fileContents,
+      //       filePath,
+      //       repoName ?? "",
+      //       branchName ?? "",
+      //       {
+      //         repoPath,
+      //       }
+      //     );
+      //     console.log("Coverage - ", coverage);
+
+      //     if (coverage) {
+      //       // Add a new file to the workspace
+      //       // const testFileName = coverage.testFilePath.split("/").pop();
+      //       // const mainFilePath = filePath.split("/").slice(0, -1).join("/");
+      //       const testFilePath = `${repoPath}/${coverage.testFilePath}`;
+      //       const newFileUri = vscode.Uri.file(testFilePath);
+      //       // const newFile = await vscode.workspace.openTextDocument(newFileUri);
+      //       // // Add the coverage to the file
+      //       // const editor = await vscode.window.showTextDocument(newFile);
+      //       // await editor.edit(editBuilder => {
+      //       //   editBuilder.insert(new vscode.Position(0, 0), coverage.testFileContents);
+      //       // });
+
+      //       // First, actually create/write the file
+      //       await vscode.workspace.fs.writeFile(newFileUri, Buffer.from(coverage.testFileContent, 'utf8'));
+
+      //       // Now open the newly created file
+      //       const newFile = await vscode.workspace.openTextDocument(newFileUri);
+      //       const editor = await vscode.window.showTextDocument(newFile);
+      //     }
+      //   } catch (e) {
+      //     console.error("Error getting repo info:", e);
+      //   }
+
+      // },
+      "debugg-ai.runE2eSuiteGenerator": async () => {
+        captureCommandTelemetry("debugg-ai.runE2eSuiteGenerator");
+        vscode.window.setStatusBarMessage("Running E2E test generator...", 2500);
+
+        const getTestDescription = async () => {
+          const testDescription = await vscode.window.showInputBox({
+            prompt: 'What section of the app do you want to create test suites for?',
+            value: 'User authentication',
+          });
+          return testDescription;
+        };
+        const { config } = await configHandler.loadConfig();
+        let localPortConfig = config?.debuggAiServerPort;
+        if (!localPortConfig) {
+          const localPort = await vscode.window.showInputBox({
+            prompt: 'Provide the port number for the local server',
+            value: '3000',
+          });
+          if (!localPort) {
+            vscode.window.showWarningMessage("No local port provided.");
+            return;
           }
-          // const filePath = editor.document.uri.fsPath;
-          const curFileUri = vscode.Uri.file(filePath);
-          // Read the file contents
-          const fileContents = await vscode.workspace.fs.readFile(curFileUri);
-          const coverage = await client.coverage?.logFailedRun(
-            fileContents,
-            filePath,
-            repoName ?? "",
-            branchName ?? "",
-            {
-              repoPath,
-              testFailures: res.stderr,
-            }
-          );
+          localPortConfig = parseInt(localPort, 10);
         }
-      },
-      /**
-       * Create a tests file for the given file.
-       */
-      "debugg-ai.createTestsFile": async () => {
-        captureCommandTelemetry("debugg-ai.createTestsFile");
-        vscode.window.showInformationMessage("Creating tests file...");
-        // Get the current open file, request tests
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-          vscode.window.showWarningMessage("No file open.");
-          return;
-        }
-        try {
-          const client = await debuggAIServerClientPromise;
-          const { repoName, repoPath, branchName } = await client.getRepoInfo(editor.document.uri.fsPath);
-          if (!repoName || !repoPath || !branchName) {
-            console.debug("No repo name, path, or branch name found for file");
-          }
-          const filePath = editor.document.uri.fsPath;
-          const curFileUri = vscode.Uri.file(filePath);
-          // Read the file contents
-          const fileContents = await vscode.workspace.fs.readFile(curFileUri);
-          const coverage = await client.coverage?.createCoverage(
-            fileContents,
-            filePath,
-            repoName ?? "",
-            branchName ?? "",
-            {
-              repoPath,
-            }
-          );
-          console.log("Coverage - ", coverage);
-
-          if (coverage) {
-            // Add a new file to the workspace
-            // const testFileName = coverage.testFilePath.split("/").pop();
-            // const mainFilePath = filePath.split("/").slice(0, -1).join("/");
-            const testFilePath = `${repoPath}/${coverage.testFilePath}`;
-            const newFileUri = vscode.Uri.file(testFilePath);
-            // const newFile = await vscode.workspace.openTextDocument(newFileUri);
-            // // Add the coverage to the file
-            // const editor = await vscode.window.showTextDocument(newFile);
-            // await editor.edit(editBuilder => {
-            //   editBuilder.insert(new vscode.Position(0, 0), coverage.testFileContents);
-            // });
-
-            // First, actually create/write the file
-            await vscode.workspace.fs.writeFile(newFileUri, Buffer.from(coverage.testFileContent, 'utf8'));
-
-            // Now open the newly created file
-            const newFile = await vscode.workspace.openTextDocument(newFileUri);
-            const editor = await vscode.window.showTextDocument(newFile);
-          }
-        } catch (e) {
-          console.error("Error getting repo info:", e);
-        }
-
-      },
-      "debugg-ai.runE2eTestGenerator": async () => {
-        captureCommandTelemetry("debugg-ai.runE2eTestGenerator");
-        vscode.window.showInformationMessage("Running E2E test generator...");
-
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-          vscode.window.showWarningMessage("No file open.");
-          return;
-        }
-        // Configure the runner & pre-emptively ensure we have the ngrok binary
-        const client = await debuggAIServerClientPromise;
-        const e2eTestRunner = new E2eTestRunner(client);
-        await e2eTestRunner.configureNgrok();
-
-        const filePath = editor.document.uri.fsPath;
-        const { repoName, repoPath, branchName } = await client.getRepoInfo(editor.document.uri.fsPath);
-        if (!repoName || !repoPath || !branchName) {
-          console.debug("No repo name, path, or branch name found for file");
-        }
-        // const filePath = editor.document.uri.fsPath;
-        const curFileUri = vscode.Uri.file(filePath);
-        // Read the file contents
-        const fileContents = await vscode.workspace.fs.readFile(curFileUri);
-        const e2eRun = await client.e2es?.createE2eRun(
-          fileContents,
-          filePath,
-          repoName ?? "",
-          branchName ?? "",
-          {
-            repoPath
-          }
-        );
-        console.log("E2E run - ", e2eRun);
-        if (!e2eRun) {
-          vscode.window.showWarningMessage("Failed to create E2E test.");
-          return;
-        }
-        const localPortConfig = await configHandler.loadConfig().then(configResult => configResult.config?.debuggAiServerPort);
         console.log("Local port config - ", localPortConfig);
-        await e2eTestRunner.runTests(e2eRun?.tunnelKey ?? "", e2eRun, localPortConfig);
+        const client = await debuggAIServerClientPromise;
+        const e2eSuiteGenerator = new E2eSuiteGenerator(client);
+        const testDescription = await getTestDescription();
+        if (!testDescription) {
+          vscode.window.showWarningMessage("No test description provided.");
+          return;
+        }
+        await e2eSuiteGenerator.createTestSuite(testDescription, localPortConfig);
+
       },
       "debugg-ai.createNewE2eTest": async () => {
         captureCommandTelemetry("debugg-ai.createNewE2eTest");
@@ -1418,7 +1412,19 @@ const getCommandsMap: (
           });
           return testDescription;
         };
-        const localPortConfig = await configHandler.loadConfig().then(configResult => configResult.config?.debuggAiServerPort);
+        const { config } = await configHandler.loadConfig();
+        let localPortConfig = config?.debuggAiServerPort;
+        if (!localPortConfig) {
+          const localPort = await vscode.window.showInputBox({
+            prompt: 'Provide the port number for the local server',
+            value: '3000',
+          });
+          if (!localPort) {
+            vscode.window.showWarningMessage("No local port provided.");
+            return;
+          }
+          localPortConfig = parseInt(localPort, 10);
+        }
         console.log("Local port config - ", localPortConfig);
         const client = await debuggAIServerClientPromise;
         const e2eTestRunner = new E2eTestRunner(client);

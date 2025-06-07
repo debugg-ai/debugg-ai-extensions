@@ -2,7 +2,7 @@
   "name": "debugg-ai",
   "icon": "media/icon.png",
   "author": "Debugg Inc",
-  "version": "1.0.9",
+  "version": "1.0.12",
   "repository": {
     "type": "git",
     "url": "https://github.com/debugg-ai/debugg-ai-extensions"
@@ -351,27 +351,15 @@
         "group": "Debugg AI"
       },
       {
-        "command": "debugg-ai.runTestsFile",
-        "category": "Debugg AI",
-        "title": "Run Tests For File",
-        "group": "Debugg AI"
-      },
-      {
-        "command": "debugg-ai.createTestsFile",
-        "category": "Debugg AI",
-        "title": "Create Tests For File",
-        "group": "Debugg AI"
-      },
-      {
         "command": "debugg-ai.createNewE2eTest",
         "category": "Debugg AI",
-        "title": "Create New E2E Test",
+        "title": "Create & Run New E2E Test",
         "group": "Debugg AI"
       },
       {
-        "command": "debugg-ai.runE2eTestGenerator",
+        "command": "debugg-ai.runE2eSuiteGenerator",
         "category": "Debugg AI",
-        "title": "Run E2E Test",
+        "title": "Run E2E Test Suite Generator",
         "group": "Debugg AI"
       }
     ],
@@ -481,7 +469,7 @@
         "key": "ctrl+alt+c"
       },
       {
-        "command": "debugg-ai.runE2eTestGenerator",
+        "command": "debugg-ai.runE2eSuiteGenerator",
         "mac": "cmd+alt+e",
         "key": "ctrl+alt+e"
       }

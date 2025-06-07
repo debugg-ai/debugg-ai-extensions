@@ -1,6 +1,6 @@
 // src/E2eTestRunner.ts
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
-import { E2eRun } from 'core/debuggAIServer/types';
+import { E2eTest } from 'core/debuggAIServer/types';
 import * as vscode from 'vscode';
 import { downloadBinary, start, stop } from '../../tunnels/ngrok';
 import { RunResultFormatter } from '../terminal/resultsFormatter';
@@ -85,10 +85,12 @@ export class E2eTestRunner {
     private branchName?: string;
     private fileContents?: Uint8Array;
     private filePath?: string;
+    private currentTunnel?: string;
 
     constructor(client: DebuggAIServerClient) {
         this.client = client;
         this.setup();
+
     }
 
     async setup() {
@@ -96,9 +98,13 @@ export class E2eTestRunner {
 
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-          vscode.window.showWarningMessage("No file open.");
+          vscode.window.showWarningMessage("No file open.").then(() => {
+            setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
+          });
           return;
         }
+        try {
+            
         const filePath = editor.document.uri.fsPath;
         this.filePath = filePath;
         const { repoName, repoPath, branchName } = await this.client.getRepoInfo(editor.document.uri.fsPath);
@@ -111,13 +117,21 @@ export class E2eTestRunner {
         this.repoPath = repoPath;
         this.branchName = branchName;
         this.fileContents = fileContents;
+        } catch (e) {
+            console.error("Error setting up E2E test runner:", e);
+            vscode.window.showWarningMessage("File not found or not associated with a repo.").then(() => {
+                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
+            });
+            return;
+        }
+
     }
 
     async configureNgrok(): Promise<void> {
         await downloadBinary();
     }
 
-    /** Lazily create (or reuse) the controller so VS Code only shows one “DebuggAI Tests” tree */
+    /** Lazily create (or reuse) the controller so VS Code only shows one "DebuggAI Tests" tree */
     private getController(): vscode.TestController {
         if (!E2eTestRunner.controller) {
             E2eTestRunner.controller = vscode.tests.createTestController(
@@ -131,37 +145,8 @@ export class E2eTestRunner {
     async startTunnel(authToken: string, port: number, url: string): Promise<string> {
         await startNgrokTunnel(authToken, port, url);
         console.log(`Tunnel started at: ${url}`);
+        this.currentTunnel = url;
         return url;
-    }
-
-    /**
-     * Run E2E test generator for a single file *quietly* in the background.
-     * @param filePath absolute path of the file to test
-     */
-    async runTests(authToken: string, e2eRun: E2eRun, localPort?: number): Promise<undefined> {
-        // Start by opening an ngrok tunnel.
-        // call the debugg ai endpoint to start running the test
-        // retrieve the results when done
-        // save files locally somewhere
-        const listener = await startNgrokTunnel(authToken, localPort ?? 3000, `${e2eRun.key}.ngrok.debugg.ai`)
-        console.log(`Tunnel started at: ${listener}`);
-
-        const interval = setInterval(async () => {
-            const newE2eRun = await this.client.e2es?.getE2eRun(e2eRun.uuid);
-            console.log(`E2E run - ${newE2eRun}`);
-            if (newE2eRun?.status === 'completed') {
-                console.log(`E2E run completed - ${newE2eRun}`);
-                clearInterval(interval);
-                await stop(listener);
-            }
-        }, 1000);
-        // if the run doesn't complete in time, disconnect the tunnel
-        const setTimer = setTimeout(async () => {
-            clearInterval(interval);
-            clearTimeout(setTimer);
-            await stop(listener);
-        }, 300000);
-        return undefined;
     }
 
     async createNewE2eTest(testDescription: string, localPort?: number): Promise<void> {
@@ -177,24 +162,39 @@ export class E2eTestRunner {
         );
         console.log(`E2E test created - ${e2eTest}`);
         if (!e2eTest) {
-            vscode.window.showWarningMessage("Failed to create E2E test.");
+            vscode.window.showWarningMessage("Failed to create E2E test.").then(() => {
+                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
+            });
             return;
         }
         if (!e2eTest.curRun) {
-            vscode.window.showWarningMessage("Failed to create E2E test run.");
+            vscode.window.showWarningMessage("Failed to create E2E test run.").then(() => {
+                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
+            });
             return;
         }
         const authToken = e2eTest.tunnelKey ?? "";
-        return this.handleE2eRun(authToken, e2eTest.curRun, localPort);
+        return this.handleE2eRun(authToken, e2eTest, localPort);
     }
 
-    async handleE2eRun(authToken: string, e2eRun: E2eRun, localPort?: number): Promise<void> {
-        console.log(`🔧 Handling E2E run - ${e2eRun.uuid}`);
+    async handleE2eRun(authToken: string, e2eTest: E2eTest, localPort?: number): Promise<void> {
+        console.log(`🔧 Handling E2E run - ${e2eTest.uuid}`);
 
+        const e2eRun = e2eTest.curRun;
         const port = localPort ?? 3000;
+        if (!e2eRun) {
+            vscode.window.showWarningMessage("Failed to retrieve current E2E test run.").then(() => {
+                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1500);
+            });
+            return;
+        }
         // Start ngrok tunnel
         await startNgrokTunnel(authToken, port, `${e2eRun.key}.ngrok.debugg.ai`);
         console.log(`🌐 Tunnel started at: ${e2eRun.key}.ngrok.debugg.ai`);
+
+        vscode.window.showInformationMessage(`E2E test running...`).then(() => {
+            setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
+        });
 
         // Setup VS Code test run
         const ctrl = this.getController();
@@ -203,13 +203,15 @@ export class E2eTestRunner {
 
         const testItem = ctrl.createTestItem(
             e2eRun.uuid, 
-            e2eRun.test?.description ?? ""
+            e2eTest.uuid ? `${e2eTest.uuid.slice(0, 4)}: ${e2eTest.description}` : "End to end test runner"
         );
         run.enqueued(testItem);
 
         let stopped = false;
         let lastStep = 0;
         const formatter = new RunResultFormatter(run);
+        vscode.commands.executeCommand('testing.showMostRecentOutput', testItem);
+        formatter.updateStep(`Running ${e2eTest.description}`, "pending");
 
         // Poll every second for completion
         const interval = setInterval(async () => {

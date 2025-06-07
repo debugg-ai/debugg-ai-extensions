@@ -10,6 +10,7 @@ export type ConfigState = {
 };
 
 const EMPTY_CONFIG: BrowserSerializedDebuggAiConfig = {
+  debuggAiServerPort: 3000,
   slashCommands: [
     {
       name: "share",

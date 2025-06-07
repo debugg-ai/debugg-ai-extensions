@@ -1,5 +1,5 @@
 // services/issues.ts
-import { E2eRun, E2eTest } from "../types";
+import { E2eRun, E2eTest, E2eTestSuite } from "../types";
 import { AxiosTransport } from "../utils/axiosTransport";
 
 
@@ -10,7 +10,40 @@ export interface E2esService {
     getE2eRun(uuid: string, params?: Record<string, any>): Promise<E2eRun | null>;
     getE2eTest(uuid: string, params?: Record<string, any>): Promise<E2eTest | null>;
     formatRunResult(e2eRun: E2eRun): string;
+
+    createE2eTestSuite(description: string, params: Record<string, any>): Promise<E2eTestSuite | null>;
+    getE2eTestSuite(uuid: string, params?: Record<string, any>): Promise<E2eTestSuite | null>;
 }
+
+const paramsToBody = (params: Record<string, any>) => {
+    const filePath = params?.filePath;
+    const repoName = params?.repoName;
+    const branchName = params?.branchName;
+    let relativePath = params?.filePath;
+    // Convert absolute path to relative path
+    if (params?.repoPath) {
+        relativePath = filePath?.replace(params?.repoPath + "/", "");
+    } else {
+        console.log("No repo path found for file");
+        // split based on the repo name
+        const repoBaseName = repoName?.split("/")[-1] ?? "";  // typically the form of 'userName/repoName'
+        const splitPath = filePath?.split(repoBaseName) ?? [];
+        if (splitPath?.length === 2) {  // if the repo name is in the path & only once, otherwise unclear how to handle
+            relativePath = splitPath[1] ?? filePath;
+        } else {
+            relativePath = filePath ?? "";
+        }
+    }
+    const body = {
+        ...params,
+        absPath: filePath ?? "",
+        filePath: relativePath ?? "",
+        repoName: repoName ?? "",
+        branchName: branchName ?? "",
+    };
+    console.log("Body params - ", body);
+    return body;
+};
 
 
 export const createE2esService = (tx: AxiosTransport): E2esService => ({
@@ -197,7 +230,36 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
         }
 
     },
+    async createE2eTestSuite(
+        description: string,
+        params: Record<string, any>
+    ): Promise<E2eTestSuite | null> {
+        try {
+            const serverUrl = "api/v1/test-suites/generate_tests/";
+            const body = paramsToBody({...params, description});
+            const response = await tx.post<E2eTestSuite>(serverUrl, { ...body });
+            console.log("Raw API response:", response);
+            return response;
+        } catch (err) {
+            console.error("Error creating E2E test suite:", err);
+            return null;
+        }
 
+    },
+    async getE2eTestSuite(
+        uuid: string,
+        params?: Record<string, any>
+    ): Promise<E2eTestSuite | null> {   
+        try {
+            const serverUrl = `api/v1/test-suites/${uuid}/`;
+            const response = await tx.get<E2eTestSuite>(serverUrl, { ...params });
+            console.log("Raw API response:", response);
+            return response;
+        } catch (err) {
+            console.error("Error fetching E2E test suite:", err);
+            return null;
+        }
+    },
     formatRunResult(result: E2eRun): string {
         if (!result) return 'No result data available.';
         // const failures = result.failures || [];

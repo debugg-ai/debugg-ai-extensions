@@ -1,14 +1,15 @@
 import z from "zod";
 
 import {
-    BrowserSerializedDebuggAiConfig,
-    Config,
-    DebuggAiConfig,
-    SerializedDebuggAiConfig,
+  BrowserSerializedDebuggAiConfig,
+  Config,
+  DebuggAiConfig,
+  SerializedDebuggAiConfig,
 } from "..";
 
 export const sharedConfigSchema = z
   .object({
+    debuggAiServerPort: z.number(),
     // boolean fields in config.json
     allowAnonymousTelemetry: z.boolean(),
     disableIndexing: z.boolean(),
@@ -39,6 +40,12 @@ export type SharedConfigSchema = z.infer<typeof sharedConfigSchema>;
 // For security in case of damaged config file, try to salvage any security-related values
 export function salvageSharedConfig(sharedConfig: object): SharedConfigSchema {
   const salvagedConfig: SharedConfigSchema = {};
+  if ("debuggAiServerPort" in sharedConfig) {
+    const val = z.number().safeParse(sharedConfig.debuggAiServerPort);
+    if (val.success) {
+      salvagedConfig.debuggAiServerPort = val.data;
+    }
+  }
   if ("allowAnonymousTelemetry" in sharedConfig) {
     const val = z.boolean().safeParse(sharedConfig.allowAnonymousTelemetry);
     if (val.success) {
@@ -86,8 +93,11 @@ export function modifyAnyConfigWithSharedConfig<
     | BrowserSerializedDebuggAiConfig
     | Config
     | SerializedDebuggAiConfig,
->(continueConfig: T, sharedConfig: SharedConfigSchema): T {
-  const configCopy = { ...continueConfig };
+>(debuggAiConfig: T, sharedConfig: SharedConfigSchema): T {
+  const configCopy = { ...debuggAiConfig };
+  if (sharedConfig.debuggAiServerPort !== undefined) {
+    configCopy.debuggAiServerPort = sharedConfig.debuggAiServerPort;
+  }
   configCopy.tabAutocompleteOptions = {
     ...configCopy.tabAutocompleteOptions,
   };

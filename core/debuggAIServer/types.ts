@@ -229,3 +229,62 @@ export interface E2eRun {
   runJson?: string | null;  // Url to the json file containing the run data
   metrics?: E2eRunMetrics | null;
 }
+
+export interface E2eTestSuite {
+    uuid: string;
+    id: number;
+    name: string;
+    description?: string | null;
+    project: number; // typically an ID
+    host?: number | null;
+    createdBy?: number | null;
+    completed?: boolean;
+    completedAt?: string | null;
+    tests?: E2eTest[];
+
+    // Read-only expanded fields
+    feature?: TestFeature | null;
+    testType?: TestType | null;
+    userRole?: UserRole | null;
+    deviceType?: DeviceType | null;
+    region?: Region | null;
+  
+    // Writable foreign key fields
+    featureId?: number | null;
+    testTypeId?: number | null;
+    userRoleId?: number | null;
+    deviceTypeId?: number | null;
+    regionId?: number | null;
+  
+    timestamp: string;
+    lastMod: string;
+    tunnelKey?: string | null;
+  }
+  
+  // Supporting interfaces (adjust fields as necessary)
+  export interface TestFeature {
+    id: number;
+    name: string;
+    description?: string;
+  }
+  
+  export interface TestType {
+    id: number;
+    name: string;
+  }
+  
+  export interface UserRole {
+    id: number;
+    name: string;
+  }
+  
+  export interface DeviceType {
+    id: number;
+    name: string;
+  }
+  
+  export interface Region {
+    id: number;
+    name: string;
+  }
+  

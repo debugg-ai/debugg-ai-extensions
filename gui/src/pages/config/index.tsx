@@ -1,12 +1,12 @@
 import { ModelRole } from "@continuedev/config-yaml";
 import {
-    CheckIcon,
-    XMarkIcon
+  CheckIcon,
+  XMarkIcon
 } from "@heroicons/react/24/outline";
 import { ModelDescription } from "core";
 import {
-    SharedConfigSchema,
-    modifyAnyConfigWithSharedConfig,
+  SharedConfigSchema,
+  modifyAnyConfigWithSharedConfig,
 } from "core/config/sharedConfig";
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,9 +20,9 @@ import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import {
-    selectDefaultModel,
-    setDefaultModel,
-    updateConfig,
+  selectDefaultModel,
+  setDefaultModel,
+  updateConfig,
 } from "../../redux/slices/configSlice";
 import { selectProfileThunk } from "../../redux/thunks/profileAndOrg";
 import { getFontSize, isJetBrains } from "../../util";
@@ -182,6 +182,9 @@ function ConfigPage() {
           <div className="flex max-w-[400px] flex-col gap-4 py-6">
             <h2 className="mb-1 mt-0">Configuration</h2>
           </div>
+          <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-[auto_1fr] py-2">
+
+          </div>
         </div>
 
         {/* Model Roles as a separate section */}
@@ -196,10 +199,10 @@ function ConfigPage() {
                 selectedModel={
                   selectedChatModel
                     ? {
-                        title: selectedChatModel.title,
-                        provider: selectedChatModel.provider,
-                        model: selectedChatModel.model,
-                      }
+                      title: selectedChatModel.title,
+                      provider: selectedChatModel.provider,
+                      model: selectedChatModel.model,
+                    }
                     : null
                 }
                 onSelect={(model) => handleChatModelSelection(model)}
@@ -243,6 +246,37 @@ function ConfigPage() {
                 onSelect={(model) => handleRoleUpdate("rerank", model)}
               /> */}
             </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4 py-6">
+          <div className="flex max-w-[400px] flex-col">
+
+            <div>
+              <h2 className="mb-6 mt-0">Testing Configuration</h2>
+            </div>
+
+            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-4">
+              <span>Local Server Port</span>
+              <div className="border-vsc-input-border bg-vsc-input-background text-right rounded-md border border-solid min-w-0">
+                <input
+                  type="number"
+                  value={config.debuggAiServerPort}
+                  className="text-vsc-foreground border-none bg-inherit pr-1.5 text-right outline-none ring-0 w-full"
+                  style={{
+                    appearance: "none",
+                    WebkitAppearance: "none",
+                    MozAppearance: "none",
+                  }}
+                  onChange={(e) =>
+                    handleUpdate({
+                      debuggAiServerPort: parseInt(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -402,7 +436,7 @@ function ConfigPage() {
                         />
                         <div className="flex h-full flex-col">
                           {formDisableAutocomplete !==
-                          disableAutocompleteInFiles ? (
+                            disableAutocompleteInFiles ? (
                             <>
                               <div
                                 onClick={handleDisableAutocompleteSubmit}
@@ -435,7 +469,7 @@ function ConfigPage() {
           </div>
         ) : null}
       </div>
-    </div>
+    </div >
   );
 }
 

@@ -107,7 +107,9 @@ Full walkthrough ▶ [docs.debugg.ai/getting-started](https://docs.debugg.ai)
 
 ## 🛠️ Configuration
 
-We default to assuming your app server is running on localhost:3000. If it is on another port, you need to set the config variable `debuggAiServerPort` in config.json.
+We default to assuming your app server is running on `localhost:3000`. If you would like to configure a different port, or have 2 apps running at the same time, you need to update the `Local Server Port` in the settings tab of the Debugg AI extension.
+
+Simply open the Extension, click the `gear` icon and update the value located in the `Testing Configuration` section.
 
 
 ---

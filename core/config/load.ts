@@ -755,6 +755,7 @@ async function finalToBrowserConfig(
         v ? llmToSerializedModelDescription(v) : null,
       ]),
     ) as Record<ModelRole, ModelDescription | null>, // TODO better types here
+    debuggAiServerPort: final.debuggAiServerPort,
     // data not included here because client doesn't need
   };
 }

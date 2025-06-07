@@ -25,6 +25,40 @@ function MorePage() {
     <div className="overflow-y-scroll">
       <PageHeader showBorder onTitleClick={() => navigate("/")} title="Chat" />
 
+
+      <div className="gap-2 divide-x-0 divide-y-2 divide-solid divide-zinc-700 px-4">
+        <div>
+          <h3 className="mx-auto mb-1 text-lg">E2E Test Shortcuts</h3>
+          <KeyboardShortcuts top={true} />
+        </div>
+        
+        <div className="py-5">
+          <h3 className="mb-4 mt-0 text-xl">Help center</h3>
+          <div className="-mx-4 flex flex-col">
+            <MoreHelpRow
+              title="Documentation"
+              description="Learn how to configure and use Debugg AI"
+              Icon={ArrowTopRightOnSquareIcon}
+              onClick={() =>
+                ideMessenger.post("openUrl", "https://docs.debugg.ai/")
+              }
+            />
+
+            <MoreHelpRow
+              title="Have an issue?"
+              description="Let us know on GitHub and we'll do our best to resolve it"
+              Icon={ArrowTopRightOnSquareIcon}
+              onClick={() =>
+                ideMessenger.post(
+                  "openUrl",
+                  "https://github.com/debugg-ai/debugg-ai-extensions/issues/",
+                )
+              }
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="gap-2 divide-x-0 divide-y-2 divide-solid divide-zinc-700 px-4">
         <div className="py-5">
           <div>
@@ -52,45 +86,17 @@ function MorePage() {
           <DocsIndexingStatuses />
         </div>
 
-        <div className="py-5">
-          <h3 className="mb-4 mt-0 text-xl">Help center</h3>
-          <div className="-mx-4 flex flex-col">
-            <MoreHelpRow
-              title="Documentation"
-              description="Learn how to configure and use Debugg AI"
-              Icon={ArrowTopRightOnSquareIcon}
-              onClick={() =>
-                ideMessenger.post("openUrl", "https://docs.debugg.ai/")
-              }
-            />
-
-            <MoreHelpRow
-              title="Have an issue?"
-              description="Let us know on GitHub and we'll do our best to resolve it"
-              Icon={ArrowTopRightOnSquareIcon}
-              onClick={() =>
-                ideMessenger.post(
-                  "openUrl",
-                  "https://github.com/debuggai/debugg-ai/issues/new/choose",
-                )
-              }
-            />
-
-            <MoreHelpRow
-              title="Token usage"
-              description="Daily token usage across models"
-              Icon={TableCellsIcon}
-              onClick={() => navigate("/stats")}
-            />
-          </div>
-        </div>
-
         <div>
-          <h3 className="mx-auto mb-1 text-lg">Keyboard shortcuts</h3>
+          <h3 className="mx-auto mb-1 text-lg">Additional Keyboard shortcuts</h3>
           <KeyboardShortcuts />
         </div>
         <div>
-
+          <MoreHelpRow
+            title="Token usage"
+            description="Daily token usage across models"
+            Icon={TableCellsIcon}
+            onClick={() => navigate("/stats")}
+          />
           <MoreHelpRow
             title="Contribute to Continue"
             description="Continue's Open Source project provided the base for our extensions. Join their community to stay up-to-date on the latest developments."

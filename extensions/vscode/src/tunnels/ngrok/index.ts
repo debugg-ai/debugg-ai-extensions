@@ -195,7 +195,7 @@ const closeTunnel = async (tunnel: string, api: NgrokClient) => {
       message = `${message} DebuggAI test runner completed.`;
       // hideStatusBarItem();
     }
-    window.showInformationMessage(message);
+    window.setStatusBarMessage(message, 3000);
   } catch (error) {
     // window.showErrorMessage(
     //   `There was a problem stopping the tunnel ${tunnel}, see the log for details.`

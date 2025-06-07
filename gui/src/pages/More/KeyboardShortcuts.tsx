@@ -82,18 +82,18 @@ const debuggVsShortcuts: KeyboardShortcutProps[] = [
   {
     mac: "⌘ ⌥ E",
     windows: "Ctrl ⌃ E",
-    description: "Start E2e Test Generator",
+    description: "Start E2e Test Suite Generator",
   },
-  {
-    mac: "⌥ T",
-    windows: "Alt T",
-    description: "Create Tests For File",
-  },
-  {
-    mac: "⌥ R",
-    windows: "Alt R",
-    description: "Run Tests For File",
-  },
+  // {
+  //   mac: "⌥ T",
+  //   windows: "Alt T",
+  //   description: "Create Tests For File",
+  // },
+  // {
+  //   mac: "⌥ R",
+  //   windows: "Alt R",
+  //   description: "Run Tests For File",
+  // },
 ];
 
 const vscodeShortcuts: KeyboardShortcutProps[] = [
@@ -221,10 +221,10 @@ const jetbrainsShortcuts: KeyboardShortcutProps[] = [
   },
 ];
 
-function KeyboardShortcuts() {
+function KeyboardShortcuts({ top }: { top?: boolean }) {
   return (
     <>
-    <GridDiv>
+    <GridDiv className={`${top ? "my-4" : "hidden"}`}>
       {debuggVsShortcuts.map(
         (shortcut, i) => {
           return (
@@ -238,7 +238,7 @@ function KeyboardShortcuts() {
         },
       )}
     </GridDiv>
-    <GridDiv>
+    <GridDiv className={`${top ? "hidden" : ""}`}>
       {(isJetBrains() ? jetbrainsShortcuts : vscodeShortcuts).map(
         (shortcut, i) => {
           return (
