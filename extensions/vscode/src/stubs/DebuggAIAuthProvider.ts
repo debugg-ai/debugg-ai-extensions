@@ -266,7 +266,8 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
                 if (controlPlaneEnv.AUTH_TYPE === 'debugg-ai-test') {
                     final.push(s);
                 } else {
-                    this._sessionChangeEmitter.fire({ added: [], removed: [s], changed: [] });
+                    final.push(s);
+                    // this._sessionChangeEmitter.fire({ added: [], removed: [s], changed: [] });
                 }
                 // console.debug("Refresh failed, dropping session:", e);
             }
