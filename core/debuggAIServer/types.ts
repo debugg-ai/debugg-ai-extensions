@@ -241,6 +241,7 @@ export interface E2eTestSuite {
     completed?: boolean;
     completedAt?: string | null;
     tests?: E2eTest[];
+    key: string;
 
     // Read-only expanded fields
     feature?: TestFeature | null;

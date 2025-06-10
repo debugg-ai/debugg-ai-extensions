@@ -86,30 +86,26 @@ export class E2eSuiteGenerator {
 
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-          vscode.window.showWarningMessage("No file open.").then(() => {
-            setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
-          });
-          return;
+            vscode.window.setStatusBarMessage("No file open.", 3000)
+            return;
         }
         try {
-            
-        const filePath = editor.document.uri.fsPath;
-        this.filePath = filePath;
-        const { repoName, repoPath, branchName } = await this.client.getRepoInfo(editor.document.uri.fsPath);
-        if (!repoName || !repoPath || !branchName) {
-          console.debug("No repo name, path, or branch name found for file");
-        }
-        const curFileUri = vscode.Uri.file(filePath);
-        const fileContents = await vscode.workspace.fs.readFile(curFileUri);
-        this.repoName = repoName;
-        this.repoPath = repoPath;
-        this.branchName = branchName;
-        this.fileContents = fileContents;
+
+            const filePath = editor.document.uri.fsPath;
+            this.filePath = filePath;
+            const { repoName, repoPath, branchName } = await this.client.getRepoInfo(editor.document.uri.fsPath);
+            if (!repoName || !repoPath || !branchName) {
+                console.log("No repo name, path, or branch name found for file");
+                vscode.window.setStatusBarMessage("File not found or not associated with a repo. Please open a file in a repo.", 2000)
+                return;
+            }
+            const curFileUri = vscode.Uri.file(filePath);
+            this.repoName = repoName;
+            this.repoPath = repoPath;
+            this.branchName = branchName;
         } catch (e) {
             console.error("Error setting up E2E test runner:", e);
-            vscode.window.showWarningMessage("File not found or not associated with a repo.").then(() => {
-                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
-            });
+            vscode.window.showWarningMessage("File not found or not associated with a repo.")
             return;
         }
 
@@ -147,9 +143,7 @@ export class E2eSuiteGenerator {
         );
         console.log(`E2E test suite created - ${e2eTestSuite}`);
         if (!e2eTestSuite) {
-            vscode.window.showWarningMessage("Failed to create E2E test suite.").then(() => {
-                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
-            });
+            vscode.window.setStatusBarMessage("Failed to create E2E test suite.", 3000)
             return null;
         }
         vscode.window.setStatusBarMessage(`E2E test suite created - ${e2eTestSuite.uuid}`, 1500);
@@ -170,7 +164,7 @@ export class E2eSuiteGenerator {
         const run = ctrl.createTestRun(request);
 
         const testItem = ctrl.createTestItem(
-            suite.uuid, 
+            suite.uuid,
             suite.uuid ? `${suite.uuid.slice(0, 4)}: ${suite.description}` : "End to end test suite generator"
         );
         run.enqueued(testItem);
@@ -213,9 +207,7 @@ export class E2eSuiteGenerator {
         // Create the test suite
         const e2eTestSuite = await this.createTestSuite(description, localPort);
         if (!e2eTestSuite) {
-            vscode.window.showWarningMessage("Failed to create E2E test suite.").then(() => {
-                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
-            });
+            vscode.window.setStatusBarMessage("Failed to create E2E test suite.", 3000)
             return;
         }
         // First setup the tunnel as needed

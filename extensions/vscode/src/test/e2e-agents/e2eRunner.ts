@@ -119,9 +119,7 @@ export class E2eTestRunner {
         this.fileContents = fileContents;
         } catch (e) {
             console.error("Error setting up E2E test runner:", e);
-            vscode.window.showWarningMessage("File not found or not associated with a repo.").then(() => {
-                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
-            });
+            vscode.window.setStatusBarMessage("File not found or not associated with a repo.", 3000)
             return;
         }
 
@@ -162,15 +160,11 @@ export class E2eTestRunner {
         );
         console.log(`E2E test created - ${e2eTest}`);
         if (!e2eTest) {
-            vscode.window.showWarningMessage("Failed to create E2E test.").then(() => {
-                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
-            });
+            vscode.window.setStatusBarMessage("Failed to create E2E test.", 3000)
             return;
         }
         if (!e2eTest.curRun) {
-            vscode.window.showWarningMessage("Failed to create E2E test run.").then(() => {
-                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
-            });
+            vscode.window.setStatusBarMessage("Failed to create E2E test run.", 3000)
             return;
         }
         const authToken = e2eTest.tunnelKey ?? "";
@@ -183,18 +177,14 @@ export class E2eTestRunner {
         const e2eRun = e2eTest.curRun;
         const port = localPort ?? 3000;
         if (!e2eRun) {
-            vscode.window.showWarningMessage("Failed to retrieve current E2E test run.").then(() => {
-                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1500);
-            });
+            vscode.window.setStatusBarMessage("Failed to retrieve current E2E test run.", 3000)
             return;
         }
         // Start ngrok tunnel
         await startNgrokTunnel(authToken, port, `${e2eRun.key}.ngrok.debugg.ai`);
         console.log(`🌐 Tunnel started at: ${e2eRun.key}.ngrok.debugg.ai`);
 
-        vscode.window.showInformationMessage(`E2E test running...`).then(() => {
-            setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
-        });
+        vscode.window.setStatusBarMessage(`E2E test running...`, 1000)
 
         // Setup VS Code test run
         const ctrl = this.getController();
