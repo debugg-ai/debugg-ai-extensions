@@ -39,7 +39,7 @@ import { VsCodeIde } from "./VsCodeIde";
 import { LOCAL_DEV_DATA_VERSION } from "core/data/log";
 import { E2eTestSuite, Issue } from 'core/debuggAIServer/types';
 import { E2eTestHandler } from "core/e2es/e2eTestHandler";
-import { NgrokTunnelClient } from "core/e2es/ngrok";
+import { NgrokTunnelClient } from "core/e2es/ngrok-service";
 import { isModelInstaller } from "core/llm";
 import { startLocalOllama } from "core/util/ollamaHelper";
 import { SuggestionCodeLensProvider } from "./debug/codeLens/suggestionsLensProvider";
@@ -832,7 +832,7 @@ const getCommandsMap: (
         ide.runCommand(text);
       },
       "debugg-ai.showE2es": () => {
-        vscode.commands.executeCommand("debugg-ai.navigateTo", "/e2es", true);
+        vscode.commands.executeCommand("debugg-ai.navigateTo", "/", true);
       },
       "debugg-ai.newSession": () => {
         sidebar.webviewProtocol?.request("newSession", undefined);

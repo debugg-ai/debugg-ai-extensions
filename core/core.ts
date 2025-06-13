@@ -49,7 +49,7 @@ import {
 
 
 import E2eTestHandler from "./e2es/e2eTestHandler";
-import { NgrokTunnelClient } from "./e2es/ngrok";
+import { NgrokTunnelClient } from "./e2es/ngrok-service";
 import type { FromCoreProtocol, ToCoreProtocol } from "./protocol";
 import type { IMessenger, Message } from "./protocol/messenger";
 
@@ -1136,8 +1136,11 @@ export class Core {
         this.configHandler,
         new NgrokTunnelClient(),
       );
-      await e2eTestRunner.runE2eTest(uuid, localPortConfig ?? 3000);
-      return null;
+      const test = await e2eTestRunner.runE2eTest(uuid, localPortConfig ?? 3000, false);
+      if (!test) throw new Error("Failed to run E2E test");
+      console.log("Running E2E test...", test);
+      return e2eTestRunner;
+      
     });
 
     on("e2eTests/deleteE2eTest", async ({data: {uuid}}) => {

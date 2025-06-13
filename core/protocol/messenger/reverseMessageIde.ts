@@ -138,6 +138,10 @@ export class ReverseMessageIde {
       return this.ide.openFile(data.path);
     });
 
+    this.on("openImageFile", (data) => {
+      return this.ide.openImageFile(data.path);
+    });
+
     this.on("runCommand", (data) => {
       return this.ide.runCommand(data.command);
     });

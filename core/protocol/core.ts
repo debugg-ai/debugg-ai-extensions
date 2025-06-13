@@ -28,7 +28,8 @@ import type {
   SiteIndexingConfig,
   ToolCall,
 } from "../";
-import { E2eRun, E2eTest, PaginatedResponse } from "../debuggAIServer/types";
+import { E2eTest, PaginatedResponse } from "../debuggAIServer/types";
+import E2eTestHandler from "../e2es/e2eTestHandler";
 
 
 export type OnboardingModes = "Local" | "Best" | "Custom" | "Quickstart";
@@ -208,7 +209,7 @@ export type ToCoreFromIdeOrWebviewProtocol = {
     {filters: Record<string, any>, pagination: Record<string, any>, search: string}, 
     PaginatedResponse<E2eTest> | null
   ];
-  "e2eTests/runE2eTest": [{ uuid: string }, E2eRun | null];
+  "e2eTests/runE2eTest": [{ uuid: string }, E2eTestHandler];
   "e2eTests/deleteE2eTest": [{ uuid: string }, void];
   "ideCommand/run": [{
     slashCommandName: string;

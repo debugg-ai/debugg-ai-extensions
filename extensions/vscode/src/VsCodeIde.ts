@@ -382,7 +382,18 @@ class VsCodeIde implements IDE {
   }
 
   async openFile(fileUri: string): Promise<void> {
-    await this.ideUtils.openFile(vscode.Uri.parse(fileUri));
+    try {
+      await this.ideUtils.openFile(vscode.Uri.parse(fileUri));
+    } catch (error) {
+      console.error("Failed to open file:", error);
+    }
+  }
+  async openImageFile(fileUri: string): Promise<void> {
+    try {
+      await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(fileUri));
+    } catch (error) {
+      console.error("Failed to open image file:", error);
+    }
   }
 
   async showLines(

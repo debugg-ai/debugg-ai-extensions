@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { E2eTest, PaginatedResponse } from "core/debuggAIServer/types";
+import E2eTestHandler from "core/e2es/e2eTestHandler";
 import { deleteE2eTest, fetchE2eTests, runE2eTest } from "../thunks/e2eTestsThunks";
 
 // Types for pagination and filters
@@ -15,6 +16,7 @@ export interface E2eTestsState {
   error: string | null;
   currentFilters: Record<string, any>;
   currentPagination: Pagination;
+  e2eTestHandler: E2eTestHandler | null;
 }
 
 const initialState: E2eTestsState = {
@@ -24,6 +26,7 @@ const initialState: E2eTestsState = {
   error: null,
   currentFilters: {},
   currentPagination: { page: 1, pageSize: 10 },
+  e2eTestHandler: null,
 };
 
 const e2eTestsSlice = createSlice({
@@ -56,8 +59,9 @@ const e2eTestsSlice = createSlice({
       .addCase(runE2eTest.pending, (state) => {
         state.loading = true;
       })
-      .addCase(runE2eTest.fulfilled, (state) => {
+      .addCase(runE2eTest.fulfilled, (state, action) => {
         state.loading = false;
+        state.e2eTestHandler = action.payload;
       })
       .addCase(runE2eTest.rejected, (state, action) => {
         state.loading = false;

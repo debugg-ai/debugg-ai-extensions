@@ -17,7 +17,7 @@ export const useNavigationListener = () => {
     useWebviewListener(
       messageType,
       async (data) => {
-        navigate("/");
+        navigate("/chat");
         setTimeout(() => {
           window.postMessage(
             {

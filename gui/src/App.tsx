@@ -23,15 +23,15 @@ const router = createMemoryRouter([
     children: [
       {
         path: "/index.html",
-        element: <Chat />,
+        element: <E2es />,
       },
       {
         path: ROUTES.HOME,
-        element: <Chat />,
+        element: <E2es />,
       },
       {
-        path: "/e2es",
-        element: <E2es />,
+        path: "/chat",
+        element: <Chat />,
       },
       {
         path: "/history",

@@ -2,7 +2,7 @@
   "name": "debugg-ai",
   "icon": "media/icon.png",
   "author": "Debugg Inc",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "repository": {
     "type": "git",
     "url": "https://github.com/debugg-ai/debugg-ai-extensions"
@@ -55,7 +55,6 @@
     "llama"
   ],
   "activationEvents": [
-    "onUri",
     "onStartupFinished",
     "onView:debuggaiGUIView"
   ],

@@ -671,6 +671,8 @@ export interface IDE {
 
   openFile(path: string): Promise<void>;
 
+  openImageFile(path: string): Promise<void>;
+  
   openUrl(url: string): Promise<void>;
 
   runCommand(command: string, options?: TerminalOptions): Promise<void>;

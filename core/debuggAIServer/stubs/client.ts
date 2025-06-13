@@ -45,7 +45,7 @@ export class DebuggTransport extends AxiosTransport {
     const curdirs = await this.ide.getWorkspaceDirs();
     console.log("curdirs -", curdirs);
     const curdir = curdirs?.[0];
-    const gitRootPath = await this.ide.getGitRootPath(curdir);
+    const gitRootPath = (await this.ide.getGitRootPath(curdir))?.replace('file://', "");
     if (!gitRootPath) return { repoName: undefined, repoPath: undefined, branchName: undefined};
     const repoName = await this.ide.getRepoName(gitRootPath);
     const branchName = await this.ide.getBranch(gitRootPath);
@@ -62,13 +62,14 @@ export class DebuggTransport extends AxiosTransport {
     return extraParams;
   }
 
-  async get<T = unknown>(url: string, params?: any) {
-    const extraParams = await this.addProjectToCall();
+  async get<T = unknown>(url: string, params?: any, addProjectToCall?: boolean) {
+    const extraParams = addProjectToCall ? await this.addProjectToCall() : {};
     return super.get<T>(url, { ...params, ...extraParams });
   }
 
-  async post<T = unknown>(url: string, data?: any, cfg?: AxiosRequestConfig) {
-    const extraParams = await this.addProjectToCall();
+  async post<T = unknown>(url: string, data?: any, cfg?: AxiosRequestConfig, addProjectToCall?: boolean) {
+    // For post calls, we default to injecting the project information.
+    const extraParams = addProjectToCall === undefined || addProjectToCall === true ? await this.addProjectToCall() : {};
     return super.post<T>(url, { ...data, ...extraParams }, cfg);
   }
 }

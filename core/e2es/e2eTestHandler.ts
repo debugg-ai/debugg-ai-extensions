@@ -1,10 +1,10 @@
 // src/E2eTestRunner.ts
 import { DebuggAIServerClient } from '../debuggAIServer/stubs/client';
-import { E2eTest } from '../debuggAIServer/types';
+import { E2eRun, E2eTest } from '../debuggAIServer/types';
 // import { downloadBinary, start, stop } from '../tunnels/ngrok';
 import { ConfigHandler } from '../config/ConfigHandler';
 import type { IDE, TestController, TestItem, TestRun } from '../index.js';
-import { TunnelClient } from './ngrok/types';
+import { TunnelClient } from './ngrok-service/types';
 import { fetchAndOpenGif } from './recordingHandler';
 import { TestRunFormatter } from './terminal/testRunFormatter';
 
@@ -49,6 +49,9 @@ export class E2eTestHandler {
     private ide: IDE;
     private configHandler: ConfigHandler;
 
+    public status: "pending" | "running" | "completed" | "failed" = "pending";
+    public isRunning: boolean = false;
+
     // Tunnelling tools and configuration
     private tunnelClient: TunnelClient;
     private currentTunnel?: string;
@@ -59,6 +62,10 @@ export class E2eTestHandler {
     private ideTesterRun: TestRun | null = null;
     private ideTesterItem: TestItem | null = null;
     private formatter: TestRunFormatter | null = null;
+    private _setupPromise: Promise<void> | null = null;
+    private _controllerPromise: Promise<TestController> | null = null;
+    private pollingInterval: NodeJS.Timeout | null = null;
+    private timeoutInterval: NodeJS.Timeout | null = null;
 
     constructor(client: DebuggAIServerClient, ide: IDE, configHandler: ConfigHandler, tunnelClient: TunnelClient, timeoutMinutes: number = 15) {
         this.client = client;
@@ -66,19 +73,21 @@ export class E2eTestHandler {
         this.configHandler = configHandler;
         this.tunnelClient = tunnelClient;
         this.timeoutMinutes = timeoutMinutes;
-        this.setup();
+        this._setupPromise = this.setup();  // Start async setup for Ngrok
+        this._controllerPromise = this.getControllerPromise(); // Start async setup for test controller
 
     }
 
-    async setup() {
-        await this.configureTunnelClient();
+    async setup(): Promise<void> {
+        return this.configureTunnelClient();
     }
 
     async configureTunnelClient(): Promise<void> {
-        await this.tunnelClient.downloadBinary();
+        return this.tunnelClient.downloadBinary();
     }
     async configureAndStartTunnel(tunnelKey: string, port: number, url: string): Promise<string> {
         try {
+            await this._setupPromise;  // Correctly waiting for the promise to resolve
             const tunnelUrl = await this.tunnelClient.start({
                 addr: port,
                 hostname: url,
@@ -96,8 +105,12 @@ export class E2eTestHandler {
         }
     }
 
+    private async getControllerPromise(): Promise<TestController> {
+        return this.getController();
+    }
     /** Lazily create (or reuse) the controller so VS Code only shows one "DebuggAI Tests" tree */
     private async getController(): Promise<TestController> {
+        console.log("Getting controller...");
         if (!E2eTestHandler.controller) {
             E2eTestHandler.controller = await this.ide.createTestController(
                 'debuggaiTestSuiteGenerators',
@@ -109,7 +122,9 @@ export class E2eTestHandler {
 
     async setupIdeTestRun(e2eTest: E2eTest): Promise<void> {
         // Setup VS Code test run
-        const ctrl = await this.getController();
+        console.log("Setting up IDE test run...");
+        this.status = "running";
+        const ctrl = await this.getControllerPromise();
         const request = await this.ide.createTestRunRequest();
         const run = ctrl.createTestRun(request);
 
@@ -119,9 +134,11 @@ export class E2eTestHandler {
         );
         run.enqueued(testItem);
 
+        console.log("Setting up formatter...");
         this.formatter = new TestRunFormatter(run, this.ide, this.configHandler);
         // vscode.commands.executeCommand('testing.showMostRecentOutput', testItem);
-        this.formatter?.printToTestRun(e2eTest);
+        // this.formatter?.printToTestRun(e2eTest);
+        this.formatter?.updateStep(`Running ${e2eTest.description}`, "pending");
 
         this.ideTesterRun = run;
         this.ideTesterItem = testItem;
@@ -132,38 +149,117 @@ export class E2eTestHandler {
         return repoPath ?? "";
     }
     async setupPollingInterval(e2eTest: E2eTest): Promise<NodeJS.Timeout> {
+        console.log("Setting up polling interval...");
+        let lastStep = 0;
+        let runUuid: string | null = null;
         const interval = setInterval(async () => {
-            const test = await this.client.e2es?.getE2eTest(e2eTest.uuid);
-            if (test?.curRun?.status === "completed") {
-                this.finalizeTestRun(test);
+            console.log("New polling interval...");
+            if (!runUuid) {
+                const test = await this.client.e2es?.getE2eTest(e2eTest.uuid ?? "");
+                runUuid = test?.curRun?.uuid ?? null;
+            } 
+            if (!runUuid) {
+                console.log("No run UUID found...");
+                return;
+            }
+
+            // Get the run directly as it comes with all the conversation data
+            const updatedRun = await this.client.e2es?.getE2eRun(runUuid) ?? null;
+            if (!updatedRun) {
+                console.log("No updated run found...");
+                return;
+            }
+            lastStep = updatedRun.conversations?.[0]?.messages?.length ?? 0;
+            console.log("Last step: ", lastStep);
+            // Handle the initial step
+            if (lastStep <= 1) {
+                // Force redraw of the initial step and show the loading icon sequence
+                this.formatter?.updateStep(`Running ${e2eTest.description}`, "pending");
+            } else if (lastStep === 2) {
+                // Force redraw of the initial step and show the loading icon sequence
+                this.formatter?.updateStep(`Running ${e2eTest.description}`, "success");
+            }
+
+            // Update with the latest step status
+            let prevStepMessage = '';
+
+            if (lastStep > 0) {
+                // Need to check for the last step info to see if it was successful or not
+                const prevStep = updatedRun.conversations?.[0]?.messages?.[lastStep - 1];
+                if (prevStep) {
+                    const prevStepMessageContent = prevStep.jsonContent;
+                    if (prevStepMessageContent) {
+                        const prevActionFmt = prevStepMessageContent as StepMessageContent;
+                        prevStepMessage = prevActionFmt.currentState.memory;
+                    }
+                }
+            }
+
+            let stepMessage = null;
+            // Process the current step
+            stepMessage = updatedRun.conversations?.[0]?.messages?.[lastStep];
+            if (stepMessage) {
+                console.log("Step message found...");
+                const stepMessageContent = stepMessage.jsonContent;
+                if (stepMessageContent) {
+                    const actionFmt = stepMessageContent as StepMessageContent;
+                    const currentStepStateMessage = actionFmt.currentState.memory;
+                    const stepStatus = actionFmt.currentState.evaluationPreviousGoal ? actionFmt.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() : "pending";
+                    if (stepStatus && prevStepMessage) {
+                        this.formatter?.updateStep(prevStepMessage, stepStatus as any);
+                    }
+                    if (currentStepStateMessage) {
+                        this.formatter?.updateStep(currentStepStateMessage, 'pending');
+                    }
+                }
+            }
+
+            if (updatedRun?.status === "completed") {
+                this.finalizeTestRun(updatedRun ?? null);
                 this.ideTesterRun?.end();
                 this.ideTesterRun = null;
                 this.ideTesterItem = null;
                 this.formatter = null;
-                clearInterval(interval);
-                if (test?.curRun?.runGif) {
+                this.status = "completed";
+                this.isRunning = false;
+                if (this.pollingInterval) {
+                    clearInterval(this.pollingInterval);
+                    this.pollingInterval = null;
+                }
+                console.log("Finalizing test run...");
+                if (this.currentTunnel) {
+                    await this.tunnelClient.stop(this.currentTunnel);
+                }
+                if (this.timeoutInterval) {
+                    clearTimeout(this.timeoutInterval);
+                    this.timeoutInterval = null;
+                }
+                if (updatedRun?.runGif) {
                     fetchAndOpenGif(
                         this.ide, 
                         await this.getRepoPath(), 
-                        test.curRun.runGif, 
-                        test.curRun.test?.name ?? "", 
-                        test.curRun.uuid);
+                        updatedRun.runGif, 
+                        updatedRun.test?.name ?? "", 
+                        updatedRun.uuid);
                 }
-            } else {
-                this.formatter?.printToTestRun(test ?? null);
             }
-        }, 2500);
+        }, 1500);
+        this.pollingInterval = interval;
         return interval;
     }
     /*
     Finalize the test run.
     */
-    finalizeTestRun(test: E2eTest | null): void {
+    finalizeTestRun(e2eRun: E2eRun | null): void {
         // The summary section uses markdown not terminal output
-        const markdown = `\n\n**🧪 E2E Test Completed**\n\n${this.formatter?.formatMarkdownSummary(test)}`
-        const duration = test?.curRun?.metrics?.executionTime ? new Date(test.curRun.metrics.executionTime).getTime() - new Date(test.curRun.timestamp).getTime() : 0;
-        if (test && this.ideTesterRun && this.ideTesterItem) {
-            if (test.curRun?.status === "completed") {
+        const markdown = `\n\n**🧪 E2E Test Completed**\n\n${this.formatter?.formatRunSummaryForMarkdown(e2eRun)}`
+        const duration = e2eRun?.metrics?.executionTime ? new Date(e2eRun.metrics.executionTime).getTime() - new Date(e2eRun.timestamp).getTime() : 0;
+        
+        this.ideTesterRun?.appendOutput("\r\n");
+        this.ideTesterRun?.appendOutput(this.formatter?.formatRunSummaryForTerminal(e2eRun ?? null) + "\r\n");
+
+        if (e2eRun && this.ideTesterRun && this.ideTesterItem) {
+            if (e2eRun.status === "completed" && e2eRun.outcome === "pass") {
                 this.ideTesterRun?.passed(this.ideTesterItem, duration);
             } else {
                 this.ideTesterRun?.failed(this.ideTesterItem, markdown, duration);
@@ -179,6 +275,7 @@ export class E2eTestHandler {
             await this.tunnelClient.stop(this.currentTunnel);
             this.ide.showToast("warning", `E2E test suite generator timed out after ${this.timeoutMinutes} minutes\n`);
         }, this.timeoutMinutes * 60 * 1000);
+        this.timeoutInterval = timeout;
         return timeout;
     }
 
@@ -193,28 +290,36 @@ export class E2eTestHandler {
         // Start running the test if it's not already started
         let e2eTest: E2eTest | null = null;
         if (!started) {
+            console.log("Running E2E test...");
             e2eTest = await this.client.e2es?.runE2eTest(uuid) ?? null;
             if (!e2eTest) {
+                console.log("No E2E test found...");
                 this.ide.showToast("error", "Failed to run E2E test.");
                 return null;
             }
         }
 
         if (!e2eTest) {
+            console.log("No E2E test found...");
             this.ide.showToast("error", "Failed to get E2E test.");
             return null;
         }
 
         // First setup the tunnel as needed
         const ngrokUrl = `${e2eTest.curRun?.key}.ngrok.debugg.ai`;
+        console.log("Configuring and starting tunnel...");
         await this.configureAndStartTunnel(e2eTest.tunnelKey ?? "", localPort, ngrokUrl);
         // Setup the VS Code test run and associated metadata
+        console.log("Setting up IDE test run...");
         await this.setupIdeTestRun(e2eTest);
         // Setup the polling interval
+        console.log("Setting up polling interval...");
         await this.setupPollingInterval(e2eTest);
         // Setup the timeout / error cleanup
+        console.log("Setting up timeout and error cleanup...");
         await this.setupTimeoutAndErrorCleanup();
 
+        console.log("E2E test run completed...");
         return e2eTest;
     }
 

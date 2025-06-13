@@ -196,6 +196,10 @@ class FileSystemIde implements IDE {
     return Promise.resolve();
   }
 
+  openImageFile(path: string): Promise<void> {
+    return Promise.resolve();
+  }
+
   openUrl(url: string): Promise<void> {
     return Promise.resolve();
   }

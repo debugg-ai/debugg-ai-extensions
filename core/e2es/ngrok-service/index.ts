@@ -176,10 +176,17 @@ export async function downloadBinary() {
         console.error(error);
       }
     }
+    await runDownload();
   }
 };
 
 export class NgrokTunnelClient implements TunnelClient {
+  private api: NgrokClient | null = null;
+
+  constructor() {
+    this.api = getApi();
+  }
+
   start = async (options?: Ngrok.Options) => {
     return await start(options);
   }
@@ -194,9 +201,8 @@ export class NgrokTunnelClient implements TunnelClient {
     return tunnels.map((tunnel) => tunnel.public_url).join(', ');
   }
   getApi = async () => {
-    const api = getApi();
-    if (!api) throw new Error('ngrok is not currently running.');
-    return api;
+    if (!this.api) throw new Error('ngrok is not currently running.');
+    return this.api;
   }
   downloadBinary = async () => {
     await downloadBinary();

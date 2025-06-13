@@ -385,6 +385,9 @@ export class VsCodeMessenger {
     this.onWebviewOrCore("openFile", async (msg) => {
       return ide.openFile(msg.data.path);
     });
+    this.onWebviewOrCore("openImageFile", async (msg) => {
+      return ide.openImageFile(msg.data.path);
+    });
     this.onWebviewOrCore("runCommand", async (msg) => {
       await ide.runCommand(msg.data.command);
     });

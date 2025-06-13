@@ -48,6 +48,15 @@ export function E2eTestsTable() {
   const handleRunTest = (e: React.MouseEvent, uuid: string) => {
     e.stopPropagation();
     dispatch(runE2eTest({ uuid }));
+    
+    const wait5Seconds = new Promise((resolve) => setTimeout(resolve, 5000));
+    wait5Seconds.then(() => {
+      // Refresh the tests list to show the updated test status
+      dispatch(fetchE2eTests({
+        filters: currentFilters,
+        pagination: currentPagination,
+      }));
+    });
   };
 
   const handleDeleteTest = async (e: React.MouseEvent, uuid: string) => {
@@ -80,11 +89,11 @@ export function E2eTestsTable() {
         <table className="w-full table-fixed">
           <thead className="bg-muted/50">
             <tr>
+            <th className="text-left p-3 font-medium w-[10%]"></th>
               <th className="text-left p-3 font-medium w-[60%]">Name</th>
               {/* <th className="text-left p-3 font-medium w-[15%]">Project</th> */}
               {/* <th className="text-left p-3 font-medium w-[15%]">Host</th> */}
               <th className="text-left p-3 font-medium w-[30%]">Last Run</th>
-              <th className="text-left p-3 font-medium w-[10%]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -94,6 +103,11 @@ export function E2eTestsTable() {
               testsList?.results?.map((test) => (
                 <React.Fragment key={test.uuid}>
                   <tr className="hover:bg-muted/50 cursor-pointer">
+                    <td className="">
+                      <div className="flex items-center">
+                        <Button variant="success" size="icon" className="h-7 w-7 hover:bg-green-600" onClick={(e) => handleRunTest(e, test.uuid)}><PlayCircle className="h-4 w-4 text-green-700 hover:text-white hover:bg-white" /></Button>
+                      </div>
+                    </td>
                     <td className="p-3" onClick={(e) => toggleExpand(e, test.uuid)}>
                       <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon" className="h-5 w-5 flex-shrink-0"
@@ -109,11 +123,6 @@ export function E2eTestsTable() {
                       <span className="flex items-center gap-2 text-sm">
                         <TestStatusIcon test={test} />
                       </span>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center space-x-1">
-                        <Button variant="success" size="icon" className="h-7 w-7 hover:bg-green-600" onClick={(e) => handleRunTest(e, test.uuid)}><PlayCircle className="h-4 w-4" /></Button>
-                      </div>
                     </td>
                   </tr>
                   {expandedTest === test.uuid && (
@@ -147,9 +156,9 @@ export function E2eTestsTable() {
 }
 
 function TestStatusIcon({ test }: { test: E2eTest }) {
-  if (!test.curRun) return null;
+  if (!test.curRun) return <div className="text-gray-300"><span title="Never">-</span></div>;
 
-  const lastRun = test.curRun?.timestamp ? formatDistanceToNow(parseISO(test.curRun.timestamp), { addSuffix: true }) : "Never";
+  const lastRun = test.curRun?.timestamp ? formatDistanceToNow(parseISO(test.curRun.timestamp), { addSuffix: false }) : "Never";
 
   if (test.curRun.status === "completed") {
     if (test.curRun.outcome === "pass") {
@@ -158,7 +167,7 @@ function TestStatusIcon({ test }: { test: E2eTest }) {
       return <div className="text-red-500" ><span title="Failed">✗</span> {lastRun}</div>;
     }
   }
-  return null;
+  return <div className="text-gray-300"><span title="Never">-</span></div>;
 }
 
 function TestDetails({ test }: { test: E2eTest }) {

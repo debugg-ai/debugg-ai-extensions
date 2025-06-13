@@ -308,6 +308,15 @@ class IdeProtocolClient(
                         respond(null)
                     }
 
+                    "openImageFile" -> {
+                        val params = Gson().fromJson(
+                            dataElement.toString(),
+                            OpenFileParams::class.java
+                        )
+                        ide.openFile(params.path)
+                        respond(null)
+                    }
+
                     "runCommand" -> {
                         // Running commands not yet supported in JetBrains
                         respond(null)

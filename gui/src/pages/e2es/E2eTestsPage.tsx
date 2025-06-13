@@ -37,7 +37,7 @@ function E2eTestsPage() {
     return (
         <div className="overflow-y-scroll">
             <E2eTestsTable />
-            {/* <PageHeader showBorder onTitleClick={() => navigate("/e2es")} title="Testing Home" /> */}
+            {/* <PageHeader showBorder onTitleClick={() => navigate("/")} title="Testing Home" /> */}
 
             <div className="gap-2 divide-x-0 divide-y-2 divide-solid divide-zinc-700 px-4">
                 <div className="flex justify-between items-center mb-4 mt-4">

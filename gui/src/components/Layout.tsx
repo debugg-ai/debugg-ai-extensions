@@ -60,7 +60,7 @@ const Layout = () => {
   useWebviewListener(
     "newSession",
     async () => {
-      navigate(ROUTES.HOME);
+      navigate(ROUTES.CHAT);
       await dispatch(
         saveCurrentSession({
           openNewSession: true,
@@ -78,13 +78,13 @@ const Layout = () => {
       return false;
     },
     [location.pathname],
-    location.pathname === ROUTES.HOME,
+    location.pathname === ROUTES.CHAT,
   );
 
   useWebviewListener(
     "focusContinueInputWithNewSession",
     async () => {
-      navigate(ROUTES.HOME);
+      navigate(ROUTES.CHAT);
       await dispatch(
         saveCurrentSession({
           openNewSession: true,
@@ -94,7 +94,7 @@ const Layout = () => {
       dispatch(exitEditMode());
     },
     [location.pathname],
-    location.pathname === ROUTES.HOME,
+    location.pathname === ROUTES.CHAT,
   );
 
   useWebviewListener(

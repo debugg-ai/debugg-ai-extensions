@@ -1,7 +1,6 @@
-import boxen from "boxen";
 import chalk from "chalk";
 import type { ConfigHandler } from "../../config/ConfigHandler.js";
-import type { E2eRun, E2eTest } from "../../debuggAIServer/types";
+import type { E2eRun } from "../../debuggAIServer/types";
 import type { IDE, TestRun } from "../../index.js";
 
 
@@ -18,6 +17,7 @@ export class TestRunFormatter {
     private readonly configHandler: ConfigHandler;
     private testRun: TestRun;
     private steps: Step[] = [];
+    private iconIndex = -1;
 
     constructor(testRun: TestRun, ide: IDE, configHandler: ConfigHandler) {
         this.ide = ide;
@@ -44,11 +44,11 @@ export class TestRunFormatter {
                     const num = chalk.dim(`Step ${idx + 1}:`);
                     const label = chalk.white(s.label.padEnd(30));
                     const icon = chalk.green("✅ Success")
-                        // s.status === "pending"
-                        //     ? chalk.yellow("⏳ Pending")
-                        //     : s.status === "success"
-                        //         ? chalk.green("✅ Success")
-                        //         : chalk.red("❌ Failed");
+                    // s.status === "pending"
+                    //     ? chalk.yellow("⏳ Pending")
+                    //     : s.status === "success"
+                    //         ? chalk.green("✅ Success")
+                    //         : chalk.red("❌ Failed");
 
                     return `${num} ${label} ${icon}`;
                 })
@@ -65,6 +65,22 @@ export class TestRunFormatter {
 
         console.log('updating step. steps ->', this.steps);
 
+        const getLoadingIcon = () => {
+            const icons = [
+                "█▒▒▒▒▒▒▒▒▒",
+                "██▒▒▒▒▒▒▒▒",
+                "███▒▒▒▒▒▒▒",
+                "████▒▒▒▒▒▒",
+                "█████▒▒▒▒▒",
+                "██████▒▒▒▒",
+                "███████▒▒▒",
+                "████████▒▒",
+                "█████████▒",
+                "██████████",
+            ]
+            this.iconIndex = (this.iconIndex + 1) % icons.length;
+            return icons[this.iconIndex];
+        }
         // Clear terminal and redraw
         this.testRun.appendOutput("\x1Bc"); // ANSI clear screen
         this.testRun.appendOutput(
@@ -73,7 +89,7 @@ export class TestRunFormatter {
                 .map((s, i) => {
                     const icon =
                         s.status === "pending"
-                            ? chalk.yellow("⏳")
+                            ? chalk.yellow(getLoadingIcon())
                             : s.status === "success"
                                 ? chalk.green("✅")
                                 : chalk.red("❌");
@@ -84,52 +100,38 @@ export class TestRunFormatter {
                 .join("\r\n")}`
         );
     }
-
     /*
-    Print the test run to the test run.
+    Format the test run information with a summary of the results,
+    formatted specifically for the terminal. eg with \r\n instead of \n
     */
-    printToTestRun(result: E2eTest | null): void {
-        if (result?.curRun) {
-            this.testRun.appendOutput(this.formatTerminalBox(result.curRun));
-        }
-    }
+    formatRunSummaryForTerminal(result: E2eRun | null): string {
+        if (!result) return "";
 
-    printToSummarySection(result: E2eTest | null): void {
-        if (result?.curRun) {
-            this.testRun.appendOutput(this.formatTerminalBox(result.curRun));
-        }
-    }
-    /*
-    Format the test run to a terminal box.
-    */
-    formatTerminalBox(result: E2eRun): string {
-        const header = this.passed(result)
+        const outcomeDisplay = this.passed(result)
             ? chalk.green.bold("✅ Test Passed")
             : chalk.red.bold("❌ Test Failed");
 
-        const body = [
-            chalk.bold("Test: ") + result.test?.name,
-            chalk.bold("Description: ") + (result.test?.description ?? "None"),
-            chalk.bold("Duration: ") + `${result.metrics?.executionTime ?? 0}s`,
-            chalk.bold("Status: ") + result.status,
-            chalk.bold("Outcome: ") + result.outcome,
-            this.formatStepsAsMarkdown(),
-            this.passed(result) ? "" : this.formatFailures(result),
+        return [
+            `🧪 Test Name: ${result.test?.name ?? "Unknown"}`,
+            `📄 Description: ${result.test?.description ?? "None"}`,
+            `⏱ Duration: ${result.metrics?.executionTime ?? 0}s`,
+            `🔎 Status: ${result.status}`,
+            `📊 Outcome: ${outcomeDisplay}`,
+            this.formatFailures(result),
         ]
             .filter(Boolean)
-            .join("\n");
-
-        return boxen(`${header}\r\n${body}`, {
-            padding: 1,
-            borderStyle: "round",
-            borderColor: this.passed(result) ? "green" : "red",
-        });
+            .join("\r\n")
+            .trim();
     }
 
-    formatMarkdownSummary(test: E2eTest | null): string {
-        if (!test?.curRun) return "";
+    /*
+    Format the test run information with a summary of the results,
+    formatted specifically for the markdown.
+    */
+    formatRunSummaryForMarkdown(e2eRun: E2eRun | null): string {
+        if (!e2eRun) return "";
 
-        const result = test.curRun;
+        const result = e2eRun;
 
         return [
             `🧪 **Test Name:** ${result.test?.name ?? "Unknown"}`,
@@ -142,23 +144,6 @@ export class TestRunFormatter {
         ]
             .filter(Boolean)
             .join("\n")
-            .trim();
-    }
-
-    /*
-    Terminal uses different formatting than markdown.
-    */
-    terminalSummary(result: E2eRun): string {
-        return [
-            `🧪 Test Name: ${result.test?.name ?? "Unknown"}`,
-            `📄 Description: ${result.test?.description ?? "None"}`,
-            `⏱ Duration: ${result.metrics?.executionTime ?? 0}s`,
-            `🔎 Status: ${result.status}`,
-            `📊 Outcome: ${result.outcome}`,
-            this.formatFailures(result),
-        ]
-            .filter(Boolean)
-            .join("\r\n")
             .trim();
     }
 }

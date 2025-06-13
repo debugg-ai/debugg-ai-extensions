@@ -15,6 +15,7 @@ class MessageTypes {
             "fileExists",
             "showVirtualFile",
             "openFile",
+            "openImageFile",
             "runCommand",
             "saveFile",
             "readFile",

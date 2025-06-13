@@ -1,6 +1,6 @@
 // services/issues.ts
+import { DebuggTransport } from "../stubs/client";
 import { E2eRun, E2eTest, E2eTestSuite, PaginatedResponse } from "../types";
-import { AxiosTransport } from "../utils/axiosTransport";
 
 
 export interface E2esService {
@@ -50,7 +50,7 @@ const paramsToBody = (params: Record<string, any>) => {
 };
 
 
-export const createE2esService = (tx: AxiosTransport): E2esService => ({
+export const createE2esService = (tx: DebuggTransport): E2esService => ({
     /**
      * Create a test coverage file for a given file
      */
@@ -151,7 +151,7 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
                 repoName: repoName,
                 branchName: branchName,
             };
-            const response = await tx.post<E2eRun>(serverUrl, { ...fileParams });
+            const response = await tx.post<E2eRun>(serverUrl, { ...fileParams }, undefined, false);
 
             console.log("Raw API response:", response);
             return response;
@@ -227,7 +227,7 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
 
         try {
             const serverUrl = `api/v1/e2e-tests/`;
-            const response = await tx.get<PaginatedResponse<E2eTest>>(serverUrl, { ...params });
+            const response = await tx.get<PaginatedResponse<E2eTest>>(serverUrl, { ...params }, true);
 
             console.log("Raw API response:", response);
             return response;
@@ -257,7 +257,7 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
     async listE2eTestSuites(params?: Record<string, any>): Promise<PaginatedResponse<E2eTestSuite> | null> {
         try {
             const serverUrl = "api/v1/test-suites/";
-            const response = await tx.get<PaginatedResponse<E2eTestSuite>>(serverUrl, { ...params });
+            const response = await tx.get<PaginatedResponse<E2eTestSuite>>(serverUrl, { ...params }, true);
             console.log("Raw API response:", response);
             return response;
         } catch (err) {

@@ -1,5 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import type { E2eRun, E2eTest, PaginatedResponse } from "core/debuggAIServer/types";
+import type { E2eTest, PaginatedResponse } from "core/debuggAIServer/types";
+import E2eTestHandler from "core/e2es/e2eTestHandler";
 import type { ThunkApiType } from "../store";
 
 // Fetch E2E Tests list
@@ -30,7 +31,7 @@ export const fetchE2eTests = createAsyncThunk<
 
 // Run E2E Test
 export const runE2eTest = createAsyncThunk<
-  E2eRun,
+  E2eTestHandler,
   { uuid: string },
   ThunkApiType
 >(
@@ -42,7 +43,7 @@ export const runE2eTest = createAsyncThunk<
       throw new Error(result.error);
     }
 
-    return result as unknown as E2eRun;
+    return result.content;
   }
 );
 

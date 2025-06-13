@@ -157,6 +157,9 @@ export class MessageIde implements IDE {
   async openFile(fileUri: string): Promise<void> {
     await this.request("openFile", { path: fileUri });
   }
+  async openImageFile(fileUri: string): Promise<void> {
+    await this.request("openImageFile", { path: fileUri });
+  }
 
   async openUrl(url: string): Promise<void> {
     await this.request("openUrl", url);

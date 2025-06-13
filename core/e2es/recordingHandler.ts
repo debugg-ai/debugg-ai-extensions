@@ -7,7 +7,7 @@ import { IDE } from "../index.js";
 
 
 export async function fetchAndOpenGif(ide: IDE, projectRoot: string, recordingUrl: string, testName: string, testId: string): Promise<void> {
-    const cacheDir = path.join(projectRoot, ".debugg-ai", "e2e-runs");
+    let cacheDir = path.join(projectRoot, ".debugg-ai", "e2e-runs");
     console.log('....downloading gif....')
     console.log('cacheDir', cacheDir);
     console.log('testId', testId);
@@ -15,6 +15,9 @@ export async function fetchAndOpenGif(ide: IDE, projectRoot: string, recordingUr
     let localUrl = recordingUrl.replace('localhost', 'localhost:8002');
     console.log('localUrl', localUrl);
 
+    if (cacheDir.includes("file:")) {
+        cacheDir = cacheDir.replace("file:", "");
+    }
     await fs.promises.mkdir(cacheDir, { recursive: true });
 
     const filePath = path.join(cacheDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}.gif`);
@@ -58,6 +61,9 @@ export async function fetchAndOpenGif(ide: IDE, projectRoot: string, recordingUr
             });
         }
     });
-
-    await ide.openFile(filePath);
+    // const fileUri = vscode.Uri.file(filePath);
+    // await vscode.commands.executeCommand('vscode.open', fileUri);
+    const fileUri = filePath.replace("file://", "");
+    console.log('fileUri', fileUri);
+    await ide.openImageFile(fileUri);
 }

@@ -30,6 +30,7 @@ export type ToIdeFromWebviewOrCoreProtocol = {
   writeFile: [{ path: string; contents: string }, void];
   showVirtualFile: [{ name: string; content: string }, void];
   openFile: [{ path: string }, void];
+  openImageFile: [{ path: string }, void];
   openUrl: [string, void];
   runCommand: [{ command: string; options?: TerminalOptions }, void];
   getSearchResults: [{ query: string }, string];
