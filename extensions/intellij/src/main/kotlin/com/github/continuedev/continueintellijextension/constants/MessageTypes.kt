@@ -131,6 +131,9 @@ class MessageTypes {
             "didChangeSelectedProfile",
             "didChangeSelectedOrg",
             "tools/call",
+            "e2eTests/fetchE2eTests",
+            "e2eTests/runE2eTest",
+            "e2eTests/deleteE2eTest",
             "controlPlane/openUrl",
             "controlPlane/listOrganizations"
 

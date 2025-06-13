@@ -1,6 +1,6 @@
 import chalk from "chalk";
-import type { E2eTestSuite } from "core/debuggAIServer/types";
-import * as vscode from "vscode";
+import type { E2eTestSuite } from "../../debuggAIServer/types";
+import type { TestItem, TestRun } from "../../index.js";
 
 
 type StepStatus = 'pending' | 'success' | 'error' | 'failed' | 'skipped';
@@ -11,12 +11,12 @@ interface Step {
 }
 
 export class SuiteGenFormatter {
-    private runVsTestRunner: vscode.TestRun;
+    private testRun: TestRun;
     private suite: E2eTestSuite;
     private steps: Step[] = [];
 
-    constructor(runVsTestRunner: vscode.TestRun, suite: E2eTestSuite) {
-        this.runVsTestRunner = runVsTestRunner;
+    constructor(testRun: TestRun, suite: E2eTestSuite) {
+        this.testRun = testRun;
         this.suite = suite;
     }
 
@@ -31,8 +31,8 @@ export class SuiteGenFormatter {
         console.log('updating step. steps ->', this.steps);
 
         // Clear terminal and redraw
-        this.runVsTestRunner.appendOutput("\x1Bc"); // ANSI clear screen
-        this.runVsTestRunner.appendOutput(
+        this.testRun.appendOutput("\x1Bc"); // ANSI clear screen
+        this.testRun.appendOutput(
             chalk.bold("🧪 E2E Test Progress") +
             `\r\n${this.steps
                 .map((s, i) => {
@@ -68,29 +68,25 @@ export class SuiteGenFormatter {
         if (suite) {
             this.suite = suite;
         }
-        this.runVsTestRunner.appendOutput("\x1Bc"); // ANSI clear screen
-        this.runVsTestRunner.appendOutput("\r\n");
-        this.runVsTestRunner.appendOutput(this.formatSuiteSummary() + "\r\n");
+        this.testRun.appendOutput("\x1Bc"); // ANSI clear screen
+        this.testRun.appendOutput("\r\n");
+        this.testRun.appendOutput(this.formatSuiteSummary() + "\r\n");
     }
 
-    printToSummarySection(suite: E2eTestSuite, testItem: vscode.TestItem | null): void {
+    printToSummarySection(suite: E2eTestSuite, testItem: TestItem | null): void {
         // The summary section uses markdown not terminal output
 
-        const markdown = new vscode.MarkdownString(
-            `\n\n**🧪 E2E Test Completed**\n\n${this.formatMarkdownSummary(suite)}`
-        );
-        markdown.supportHtml = true;
-        markdown.isTrusted = true;
+        const markdown = `\n\n**🧪 E2E Test Completed**\n\n${this.formatMarkdownSummary(suite)}`
 
         const duration = suite.completedAt ? new Date(suite.completedAt).getTime() - new Date(suite.timestamp).getTime() : 0;
         if (testItem) {
             if (suite.completed) {
-                this.runVsTestRunner.passed(testItem, duration);
+                this.testRun.passed(testItem, duration);
             } else {
-                this.runVsTestRunner.failed(testItem, new vscode.TestMessage(markdown), duration);
+                this.testRun.failed(testItem, markdown, duration);
             }
         }
 
-        this.runVsTestRunner.end();
+        this.testRun.end();
     }
 }

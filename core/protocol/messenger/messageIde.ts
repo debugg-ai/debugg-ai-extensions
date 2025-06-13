@@ -14,6 +14,8 @@ import type {
   Range,
   RangeInFile,
   TerminalOptions,
+  TestController,
+  TestRunRequest,
   Thread,
 } from "../..";
 
@@ -197,5 +199,13 @@ export class MessageIde implements IDE {
 
   async getBranch(dir: string): Promise<string> {
     return this.request("getBranch", { dir });
+  }
+
+  async createTestController(controllerId: string, description: string): Promise<TestController> {
+    return await this.request("createTestController", { controllerId, description });
+  }
+
+  async createTestRunRequest(): Promise<TestRunRequest> {
+    return await this.request("createTestRunRequest", undefined);
   }
 }

@@ -48,8 +48,11 @@ import {
 } from ".";
 
 
+import E2eTestHandler from "./e2es/e2eTestHandler";
+import { NgrokTunnelClient } from "./e2es/ngrok";
 import type { FromCoreProtocol, ToCoreProtocol } from "./protocol";
 import type { IMessenger, Message } from "./protocol/messenger";
+
 
 export class Core {
   configHandler: ConfigHandler;
@@ -743,6 +746,9 @@ export class Core {
         this.messenger,
       ),
     );
+    on("ideCommand/run", (msg) => {
+      console.log("ideCommand/run", msg.data);
+    });
 
     // Autocomplete
     on("autocomplete/complete", async (msg) => {
@@ -1064,6 +1070,7 @@ export class Core {
       }
     });
 
+    
     on("tools/call", async ({ data: { toolCall, selectedModelTitle } }) => {
       const { config } = await this.configHandler.loadConfig();
       if (!config) {
@@ -1099,6 +1106,45 @@ export class Core {
       }
 
       return { contextItems };
+    });
+
+    // E2E Tests Handlers
+    on("e2eTests/fetchE2eTests", async ({data: {filters, pagination, search}}) => {
+      const client = await this.debuggAIServerClientPromise;
+      const e2es = client.e2es;
+      if (!e2es) throw new Error("E2e service not available");
+      const params = {
+        ...filters,
+        ...pagination,
+        search,
+      }
+      console.log("Listing E2E tests", params);
+      const tests = await e2es.listE2eTests(params);
+      return tests;
+    });
+
+    on("e2eTests/runE2eTest", async ({data: {uuid}}) => {
+      const { config } = await this.configHandler.loadConfig();
+      let localPortConfig = config?.debuggAiServerPort;
+      const client = await this.debuggAIServerClientPromise;
+      if (!client || !client.e2es) throw new Error("E2e service not available");
+
+      // You may need to fetch test details to get filePath, repoName, branchName
+      const e2eTestRunner = new E2eTestHandler(
+        client,
+        this.ide,
+        this.configHandler,
+        new NgrokTunnelClient(),
+      );
+      await e2eTestRunner.runE2eTest(uuid, localPortConfig ?? 3000);
+      return null;
+    });
+
+    on("e2eTests/deleteE2eTest", async ({data: {uuid}}) => {
+      const client = await this.debuggAIServerClientPromise;
+      const e2es = client.e2es;
+      if (!e2es) throw new Error("E2e service not available");
+      await e2es.deleteE2eTest(uuid);
     });
   }
 

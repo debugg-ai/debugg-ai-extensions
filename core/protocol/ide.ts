@@ -14,6 +14,8 @@ import type {
   Range,
   RangeInFile,
   TerminalOptions,
+  TestController,
+  TestRunRequest,
   Thread,
 } from "../";
 
@@ -98,6 +100,13 @@ export type ToIdeFromWebviewOrCoreProtocol = {
     ControlPlaneSessionInfo | undefined,
   ];
   logoutOfControlPlane: [undefined, void];
+
+  // Test management
+  createTestController: [
+    { controllerId: string; description: string },
+    TestController,
+  ];
+  createTestRunRequest: [undefined, TestRunRequest];
 };
 
 export type ToWebviewOrCoreFromIdeProtocol = {

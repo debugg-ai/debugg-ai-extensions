@@ -10,6 +10,7 @@ import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import storage from "redux-persist/lib/storage";
 import { IdeMessenger, IIdeMessenger } from "../context/IdeMessenger";
 import configReducer from "./slices/configSlice";
+import e2eTestsReducer from "./slices/e2eTestsSlice";
 import editModeStateReducer from "./slices/editModeState";
 import indexingReducer from "./slices/indexingSlice";
 import miscReducer from "./slices/miscSlice";
@@ -24,6 +25,7 @@ export interface ChatMessage {
 
 const rootReducer = combineReducers({
   session: sessionReducer,
+  e2eTests: e2eTestsReducer,
   misc: miscReducer,
   ui: uiReducer,
   editModeState: editModeStateReducer,

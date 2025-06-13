@@ -9,6 +9,7 @@ import { createReposService, ReposService } from "../services/repos.js";
 import { createUsersService, UsersService } from "../services/users.js";
 import { AxiosTransport } from "../utils/axiosTransport.js";
 
+import { AxiosRequestConfig } from "axios";
 import type {
   ArtifactType,
   EmbeddingsCacheResponse,
@@ -16,8 +17,64 @@ import type {
 } from "../interface.js";
 
 
+/**
+ * AxiosTransport with project information added to the call.
+ */
+export class DebuggTransport extends AxiosTransport {
+  /**
+   * The IDE instance to use for the transport.
+   */
+  private ide: IDE;
+
+  constructor(ide: IDE, baseUrl: string, token?: string) {
+    super({ baseUrl, token });
+    this.ide = ide;
+  }
+  
+  /*
+   Nearly every api call is going to need the information about the project. 
+   This function will add the project information to the call.
+  */
+   public async addProjectToCall(): Promise<{ 
+    repoName: string | undefined, 
+    repoPath: string | undefined, 
+    branchName: string | undefined,
+    filePath?: string | undefined,
+  }> {
+
+    const curdirs = await this.ide.getWorkspaceDirs();
+    console.log("curdirs -", curdirs);
+    const curdir = curdirs?.[0];
+    const gitRootPath = await this.ide.getGitRootPath(curdir);
+    if (!gitRootPath) return { repoName: undefined, repoPath: undefined, branchName: undefined};
+    const repoName = await this.ide.getRepoName(gitRootPath);
+    const branchName = await this.ide.getBranch(gitRootPath);
+    const extraParams = { repoName, repoPath: gitRootPath, branchName };
+
+    console.log("extraParams -", extraParams);
+    if (await this.ide.getCurrentFile()) {
+      const curFile = await this.ide.getCurrentFile();
+      if (curFile?.path) {
+        console.log("curFile -", curFile.path);
+        return { ...extraParams, filePath: curFile.path };
+      }
+    }
+    return extraParams;
+  }
+
+  async get<T = unknown>(url: string, params?: any) {
+    const extraParams = await this.addProjectToCall();
+    return super.get<T>(url, { ...params, ...extraParams });
+  }
+
+  async post<T = unknown>(url: string, data?: any, cfg?: AxiosRequestConfig) {
+    const extraParams = await this.addProjectToCall();
+    return super.post<T>(url, { ...data, ...extraParams }, cfg);
+  }
+}
+
 export class DebuggAIServerClient implements IDebuggAIServerClient {
-  private tx: AxiosTransport | undefined;
+  private tx: DebuggTransport | undefined;
   private accessToken: string | undefined;
   url: URL | undefined;
 
@@ -44,7 +101,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.url = new URL(serverUrl);
     this.accessToken = await this.getAccessToken();
     this.userToken = this.accessToken;
-    this.tx = new AxiosTransport({ baseUrl: serverUrl, token: this.accessToken });
+    this.tx = new DebuggTransport(this.ide, serverUrl, this.accessToken);
     this.repos = createReposService(this.tx);
     this.issues = createIssuesService(this.tx);
     this.indexes = createIndexesService(this.tx);

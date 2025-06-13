@@ -668,6 +668,10 @@ declare global {
   
     // Callbacks
     onDidChangeActiveTextEditor(callback: (filepath: string) => void): void;
+
+    // Test management
+    async createTestController(controllerId: string, description: string): Promise<TestController>;
+    async createTestRunRequest(): Promise<TestRunRequest>;
   }
   
   // Slash Commands
@@ -691,7 +695,33 @@ declare global {
     params?: { [key: string]: any };
     run: (sdk: ContinueSDK) => AsyncGenerator<string | undefined>;
   }
-  
+
+  // Test management
+  export interface TunnelClient {
+    start(options: any): Promise<string>;
+    stop(tunnel?: string): Promise<void>;
+    downloadBinary(): Promise<void>;
+  }
+
+  export interface TestController {
+    id: string;
+    description: string;
+  }
+
+  export interface TestRunRequest {
+    name: string;
+    description: string;
+  }
+
+  export interface TestRun {
+    enqueued(testItem: TestItem): void;
+    end(): void;
+  }
+
+  export interface TestItem {
+    id: string;
+  }
+
   // Config
   
   type StepName =

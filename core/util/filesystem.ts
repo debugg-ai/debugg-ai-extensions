@@ -2,20 +2,22 @@ import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import {
-    ContinueRcJson,
-    FileStatsMap,
-    FileType,
-    IDE,
-    IdeInfo,
-    IdeSettings,
-    IndexTag,
-    Location,
-    Problem,
-    Range,
-    RangeInFile,
-    TerminalOptions,
-    Thread,
-    ToastType,
+  ContinueRcJson,
+  FileStatsMap,
+  FileType,
+  IDE,
+  IdeInfo,
+  IdeSettings,
+  IndexTag,
+  Location,
+  Problem,
+  Range,
+  RangeInFile,
+  TerminalOptions,
+  TestController,
+  TestRunRequest,
+  Thread,
+  ToastType,
 } from "../index.js";
 import { GetGhTokenArgs } from "../protocol/ide.js";
 
@@ -244,6 +246,14 @@ class FileSystemIde implements IDE {
 
   async subprocess(command: string, cwd?: string): Promise<[string, string]> {
     return ["", ""];
+  }
+
+  async createTestController(controllerId: string, description: string): Promise<TestController> {
+    return { id: controllerId, description } as unknown as TestController;
+  }
+
+  async createTestRunRequest(): Promise<TestRunRequest> {
+    return { name: "Test Run", description: "Test Run" } as unknown as TestRunRequest;
   }
 }
 

@@ -114,6 +114,10 @@ export class GUISelectors {
     return SelectorUtils.getElementByAriaLabel(view, "View History");
   }
 
+  public static getE2esNavButton(view: WebView) {
+    return SelectorUtils.getElementByAriaLabel(view, "Show E2Es");
+  }
+
   public static getNewSessionNavButton(view: WebView) {
     return SelectorUtils.getElementByAriaLabel(view, "New Session");
   }
@@ -132,6 +136,6 @@ export class GUISelectors {
   }
 
   public static getContinueExtensionBadge(view: WebView) {
-    return SelectorUtils.getElementByAriaLabel(view, "Continue");
+    return SelectorUtils.getElementByAriaLabel(view, "Debugg AI");
   }
 }

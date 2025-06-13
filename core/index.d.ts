@@ -736,6 +736,11 @@ export interface IDE {
 
   // Callbacks
   onDidChangeActiveTextEditor(callback: (fileUri: string) => void): void;
+
+  // Test management
+  createTestController(controllerId: string, description: string): Promise<TestController>;
+  createTestRunRequest(): Promise<TestRunRequest>;
+
 }
 
 // Slash Commands
@@ -759,6 +764,59 @@ export interface SlashCommand {
   description: string;
   params?: { [key: string]: any };
   run: (sdk: ContinueSDK) => AsyncGenerator<string | undefined>;
+}
+
+
+export interface TunnelClient {
+  start(options: any): Promise<string>;
+  stop(tunnel?: string): Promise<void>;
+  downloadBinary(): Promise<void>;
+}
+
+export interface TestRunRequest {
+  name: string;
+  description: string;
+}
+
+export interface TestRun {
+  enqueued(testItem: TestItem): void;
+  appendOutput(output: string): void;
+  end(): void;
+  passed(testItem: TestItem, duration: number): void;
+  failed(testItem: TestItem, message: string, duration: number): void;
+}
+
+export interface TestItem {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface TestMessage {
+  /**
+   * Human-readable message text to display.
+   */
+  message: string;
+
+  /**
+   * Expected test output. If given with {@link TestMessage.actualOutput actualOutput }, a diff view will be shown.
+   */
+  expectedOutput?: string;
+
+  /**
+   * Actual test output. If given with {@link TestMessage.expectedOutput expectedOutput }, a diff view will be shown.
+   */
+  actualOutput?: string;
+
+  /**
+   * Associated file location.
+   */
+  location?: Location;
+}
+
+export interface TestController {
+  createTestRun(request: TestRunRequest): TestRun;
+  createTestItem(id: string, name: string): TestItem;
 }
 
 // Config

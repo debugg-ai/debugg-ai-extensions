@@ -177,5 +177,13 @@ export class ReverseMessageIde {
     this.on("getBranch", (data) => {
       return this.ide.getBranch(data.dir);
     });
+
+    this.on("createTestController", (data) => {
+      return this.ide.createTestController(data.controllerId, data.description);
+    });
+
+    this.on("createTestRunRequest", () => {
+      return this.ide.createTestRunRequest();
+    });
   }
 }

@@ -1,10 +1,11 @@
 // src/E2eTestRunner.ts
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
 import { E2eTest } from 'core/debuggAIServer/types';
+import { fetchAndOpenGif } from 'core/e2es/recordingHandler';
+import { IDE } from 'core/index.js';
 import * as vscode from 'vscode';
 import { downloadBinary, start, stop } from '../../tunnels/ngrok';
 import { RunResultFormatter } from '../terminal/resultsFormatter';
-import { fetchAndOpenGif } from './recordingHandler';
 
 // test-runner.ts
 export interface FailureDetail {
@@ -79,6 +80,7 @@ async function startNgrokTunnel(authToken: string, localPort: number, domain: st
 export class E2eTestRunner {
     private static controller: vscode.TestController | undefined;
     private client: DebuggAIServerClient;
+    private ide: IDE;
 
     private repoName?: string;
     private repoPath?: string;
@@ -87,7 +89,8 @@ export class E2eTestRunner {
     private filePath?: string;
     private currentTunnel?: string;
 
-    constructor(client: DebuggAIServerClient) {
+    constructor(ide: IDE, client: DebuggAIServerClient) {
+        this.ide = ide;
         this.client = client;
         this.setup();
 
@@ -150,13 +153,7 @@ export class E2eTestRunner {
     async createNewE2eTest(testDescription: string, localPort?: number): Promise<void> {
         console.log(`Creating new E2E test with description: ${testDescription}`);
         const e2eTest = await this.client.e2es?.createE2eTest(
-            testDescription,
-            this.filePath ?? "",
-            this.repoName ?? "",
-            this.branchName ?? "",
-            {
-              repoPath: this.repoPath ?? ""
-            }
+            testDescription
         );
         console.log(`E2E test created - ${e2eTest}`);
         if (!e2eTest) {
@@ -246,8 +243,7 @@ export class E2eTestRunner {
                 await stop(`https://${e2eRun.key}.ngrok.debugg.ai`);
 
                 formatter.appendToTestRun(updatedRun, run, testItem);  // For test output
-                // formatter.printToTerminal();               // Optional: pretty terminal view
-
+                
                 // const duration = new Date().getTime() - new Date(updatedRun.timestamp).getTime();
                 // if (updatedRun.outcome === 'pass') {
                 //     run.passed(testItem, duration);
@@ -256,7 +252,7 @@ export class E2eTestRunner {
                 // }
                 // run.end();
                 if (updatedRun.runGif) {
-                    fetchAndOpenGif(this.repoPath ?? "", updatedRun.runGif, updatedRun.test?.name ?? "", updatedRun.uuid);
+                    fetchAndOpenGif(this.ide, this.repoPath ?? "", updatedRun.runGif, updatedRun.test?.name ?? "", updatedRun.uuid);
                 }
                 stopped = true;
             } 

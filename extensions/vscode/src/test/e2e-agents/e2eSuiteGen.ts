@@ -203,9 +203,9 @@ export class E2eSuiteGenerator {
         return timeout;
     }
 
-    async runE2eSuiteGenerator(description: string, localPort: number): Promise<void> {
+    async runE2eSuiteGenerator(description: string, localPort: number, testSuite?: E2eTestSuite): Promise<void> {
         // Create the test suite
-        const e2eTestSuite = await this.createTestSuite(description, localPort);
+        const e2eTestSuite = testSuite ? testSuite : await this.createTestSuite(description, localPort);
         if (!e2eTestSuite) {
             vscode.window.setStatusBarMessage("Failed to create E2E test suite.", 3000)
             return;

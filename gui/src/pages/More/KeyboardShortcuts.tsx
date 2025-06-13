@@ -224,34 +224,40 @@ const jetbrainsShortcuts: KeyboardShortcutProps[] = [
 function KeyboardShortcuts({ top }: { top?: boolean }) {
   return (
     <>
-    <GridDiv className={`${top ? "my-4" : "hidden"}`}>
-      {debuggVsShortcuts.map(
-        (shortcut, i) => {
-          return (
-            <KeyboardShortcut
-              key={i}
-              mac={shortcut.mac}
-              windows={shortcut.windows}
-              description={shortcut.description}
-            />
-          );
-        },
-      )}
-    </GridDiv>
-    <GridDiv className={`${top ? "hidden" : ""}`}>
-      {(isJetBrains() ? jetbrainsShortcuts : vscodeShortcuts).map(
-        (shortcut, i) => {
-          return (
-            <KeyboardShortcut
-              key={i}
-              mac={shortcut.mac}
-              windows={shortcut.windows}
-              description={shortcut.description}
-            />
-          );
-        },
-      )}
-    </GridDiv>
+      <div className={`${top ? "" : "hidden"}`}>
+        <GridDiv className={`${top ? "my-4" : "hidden"}`}>
+          {debuggVsShortcuts.map(
+            (shortcut, i) => {
+              return (
+                <KeyboardShortcut
+                  key={i}
+                  mac={shortcut.mac}
+                  windows={shortcut.windows}
+                  description={shortcut.description}
+                />
+              );
+            },
+          )}
+        </GridDiv>
+
+      </div>
+      <div className={`${top ? "hidden" : ""}`}>
+        <GridDiv>
+          {(isJetBrains() ? jetbrainsShortcuts : vscodeShortcuts).map(
+            (shortcut, i) => {
+              return (
+                <KeyboardShortcut
+                  key={i}
+                  mac={shortcut.mac}
+                  windows={shortcut.windows}
+                  description={shortcut.description}
+                />
+              );
+            },
+          )}
+        </GridDiv>
+
+      </div>
     </>
   );
 }

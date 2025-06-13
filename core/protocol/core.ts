@@ -1,5 +1,4 @@
-import { ConfigResult, ModelRole } from "@continuedev/config-yaml";
-import { DevDataLogEvent } from "@continuedev/config-yaml";
+import { ConfigResult, DevDataLogEvent, ModelRole } from "@continuedev/config-yaml";
 
 import { AutocompleteInput } from "../autocomplete/util/types";
 import { ProfileDescription } from "../config/ConfigHandler";
@@ -29,6 +28,7 @@ import type {
   SiteIndexingConfig,
   ToolCall,
 } from "../";
+import { E2eRun, E2eTest, PaginatedResponse } from "../debuggAIServer/types";
 
 
 export type OnboardingModes = "Local" | "Best" | "Custom" | "Quickstart";
@@ -204,6 +204,16 @@ export type ToCoreFromIdeOrWebviewProtocol = {
     { toolCall: ToolCall; selectedModelTitle: string },
     { contextItems: ContextItem[] },
   ];
+  "e2eTests/fetchE2eTests": [
+    {filters: Record<string, any>, pagination: Record<string, any>, search: string}, 
+    PaginatedResponse<E2eTest> | null
+  ];
+  "e2eTests/runE2eTest": [{ uuid: string }, E2eRun | null];
+  "e2eTests/deleteE2eTest": [{ uuid: string }, void];
+  "ideCommand/run": [{
+    slashCommandName: string;
+    params: any;
+  }, void];
   "clipboardCache/add": [{ content: string }, void];
   "controlPlane/openUrl": [{ path: string; orgSlug: string | undefined }, void];
   "controlPlane/listOrganizations": [undefined, OrganizationDescription[]];

@@ -1,10 +1,12 @@
-import { useDispatch } from "react-redux";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import Layout from "./components/Layout";
+import { SubmenuContextProvidersProvider } from "./context/SubmenuContextProviders";
 import { VscThemeProvider } from "./context/VscTheme";
 import useSetup from "./hooks/useSetup";
 import { AddNewModel, ConfigureProvider } from "./pages/AddNewModel";
+import ConfigPage from "./pages/config";
 import ConfigErrorPage from "./pages/config-error";
+import E2es from "./pages/e2es";
 import ErrorPage from "./pages/error";
 import Chat from "./pages/gui";
 import History from "./pages/history";
@@ -12,8 +14,6 @@ import MigrationPage from "./pages/migration";
 import MorePage from "./pages/More";
 import Stats from "./pages/stats";
 import { ROUTES } from "./util/navigation";
-import { SubmenuContextProvidersProvider } from "./context/SubmenuContextProviders";
-import ConfigPage from "./pages/config";
 
 const router = createMemoryRouter([
   {
@@ -28,6 +28,10 @@ const router = createMemoryRouter([
       {
         path: ROUTES.HOME,
         element: <Chat />,
+      },
+      {
+        path: "/e2es",
+        element: <E2es />,
       },
       {
         path: "/history",

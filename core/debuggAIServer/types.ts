@@ -183,15 +183,21 @@ export interface CoverageResponse {
     lastMod: string;
 }
 
+export interface Host {
+    id: number;
+    name: string;
+}
+
 export interface E2eTest {
     id: string;
     uuid: string;
     timeStamp: string;
     lastModified: string;
     project: number;
+    projectName?: string | null;
     tunnelKey?: string | null;
     curRun?: E2eRun | null;
-    host?: number | null;
+    host?: Host | null;
     name: string;
     description?: string | null;
     agent?: number | null;

@@ -29,7 +29,6 @@ import { NewSessionButton } from "../../components/mainInput/NewSessionButton";
 import resolveEditorContent from "../../components/mainInput/resolveInput";
 import ThinkingBlockPeek from "../../components/mainInput/ThinkingBlockPeek";
 import { TutorialCard } from "../../components/mainInput/TutorialCard";
-import AssistantSelect from "../../components/modelSelection/platform/AssistantSelect";
 import {
   useOnboardingCard
 } from "../../components/OnboardingCard";
@@ -319,7 +318,7 @@ export function Chat() {
                   }
                 : undefined
             }
-            rightContent={useHub && <AssistantSelect />}
+            // rightContent={useHub && <AssistantSelect />}
           />
         )}
 

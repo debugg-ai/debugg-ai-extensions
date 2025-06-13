@@ -27,6 +27,8 @@ import type {
   Problem,
   RangeInFile,
   TerminalOptions,
+  TestController,
+  TestRunRequest,
   Thread,
 } from "core";
 
@@ -628,6 +630,19 @@ class VsCodeIde implements IDE {
     const ideSettings = this.getIdeSettingsSync();
     return ideSettings;
   }
+
+  /*
+  * Test management
+  */
+  async createTestController(controllerId: string, description: string): Promise<TestController> {
+    return vscode.tests.createTestController(controllerId, description) as any;
+  }
+
+  async createTestRunRequest(): Promise<TestRunRequest> {
+    const request = new vscode.TestRunRequest();
+    return request as any;
+  }
+
 }
 
 export { VsCodeIde };

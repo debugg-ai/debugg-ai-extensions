@@ -66,6 +66,10 @@ export const defaultSlashCommandsVscode: SlashCommandDescription[] = [
     name: "commit",
     description: "Generate a git commit message",
   },
+  {
+    name: "run-command",
+    description: "Run a command in the IDE",
+  }
 ];
 
 export const defaultSlashCommandsJetBrains = [

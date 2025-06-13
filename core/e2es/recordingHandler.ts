@@ -3,9 +3,10 @@ import * as http from "http";
 import * as https from "https";
 import * as path from "path";
 import { URL } from "url";
-import * as vscode from "vscode";
+import { IDE } from "../index.js";
 
-export async function fetchAndOpenGif(projectRoot: string, recordingUrl: string, testName: string, testId: string): Promise<void> {
+
+export async function fetchAndOpenGif(ide: IDE, projectRoot: string, recordingUrl: string, testName: string, testId: string): Promise<void> {
     const cacheDir = path.join(projectRoot, ".debugg-ai", "e2e-runs");
     console.log('....downloading gif....')
     console.log('cacheDir', cacheDir);
@@ -20,8 +21,6 @@ export async function fetchAndOpenGif(projectRoot: string, recordingUrl: string,
     const fileUrl = new URL(localUrl);
 
     const file = fs.createWriteStream(filePath);
-
-    vscode.window.setStatusBarMessage(`⬇️ Downloading test recording...`, 2000);
 
     await new Promise<void>((resolve, reject) => {
         console.log('fetching gif', fileUrl);
@@ -60,8 +59,5 @@ export async function fetchAndOpenGif(projectRoot: string, recordingUrl: string,
         }
     });
 
-    vscode.window.setStatusBarMessage(`📂 Opening test recording`, 2000);
-    const fileUri = vscode.Uri.file(filePath);
-    await vscode.commands.executeCommand('vscode.open', fileUri);
-    // vscode.env.openExternal(vscode.Uri.file(filePath));
+    await ide.openFile(filePath);
 }

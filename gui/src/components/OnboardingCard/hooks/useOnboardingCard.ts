@@ -32,8 +32,8 @@ export function useOnboardingCard(): UseOnboardingCard {
 
   let show: boolean;
 
-  console.log("session", session);
-  console.log("selectedProfile", selectedProfile);
+  // console.log("session", session);
+  // console.log("selectedProfile", selectedProfile);
   // Always show if we explicitly want to, e.g. passing free trial
   // and setting up keys
   if (allSessionMetadata.length === 0 || selectedProfile?.profileType !== "platform") {

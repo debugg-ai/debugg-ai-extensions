@@ -228,6 +228,13 @@
         "group": "Debugg AI"
       },
       {
+        "command": "debugg-ai.showE2es",
+        "category": "Debugg AI",
+        "title": "Show E2Es",
+        "icon": "$(beaker)",
+        "group": "Debugg AI"
+      },
+      {
         "command": "debugg-ai.newSession",
         "category": "Debugg AI",
         "title": "New Session",
@@ -351,15 +358,21 @@
         "group": "Debugg AI"
       },
       {
-        "command": "debugg-ai.createNewE2eTest",
-        "category": "Debugg AI",
-        "title": "Create & Run New E2E Test",
-        "group": "Debugg AI"
-      },
-      {
         "command": "debugg-ai.runE2eSuiteGenerator",
         "category": "Debugg AI",
         "title": "Run E2E Test Suite Generator",
+        "group": "Debugg AI"
+      },
+      {
+        "command": "debugg-ai.runE2eTestSuite",
+        "category": "Debugg AI",
+        "title": "Run E2E Test Suite",
+        "group": "Debugg AI"
+      },
+      {
+        "command": "debugg-ai.createNewE2eTest",
+        "category": "Debugg AI",
+        "title": "Create & Run New E2E Test",
         "group": "Debugg AI"
       }
     ],
@@ -496,6 +509,9 @@
         },
         {
           "command": "debugg-ai.newSession"
+        },
+        {
+          "command": "debugg-ai.showE2es"
         }
       ],
       "editor/context": [
@@ -546,45 +562,55 @@
       "explorer/context": [
         {
           "command": "debugg-ai.selectFilesAsContext",
-          "group": "1_debug@1"
+          "group": "1_debug@2"
         }
       ],
       "view/title": [
         {
-          "command": "debugg-ai.newSession",
+          "command": "debugg-ai.showE2es",
           "group": "navigation@1",
           "when": "view == debugg-ai.debuggaiGUIView"
         },
         {
-          "command": "debugg-ai.viewHistory",
+          "command": "debugg-ai.newSession",
           "group": "navigation@2",
           "when": "view == debugg-ai.debuggaiGUIView"
         },
         {
-          "command": "debugg-ai.toggleFullScreen",
+          "command": "debugg-ai.viewHistory",
           "group": "navigation@3",
           "when": "view == debugg-ai.debuggaiGUIView"
         },
         {
-          "command": "debugg-ai.openConfigPage",
+          "command": "debugg-ai.toggleFullScreen",
           "group": "navigation@4",
           "when": "view == debugg-ai.debuggaiGUIView"
         },
         {
+          "command": "debugg-ai.openConfigPage",
+          "group": "navigation@5",
+          "when": "view == debugg-ai.debuggaiGUIView"
+        },
+        {
           "command": "debugg-ai.openMorePage",
-          "group": "navigation@6",
+          "group": "navigation@7",
           "when": "view == debugg-ai.debuggaiGUIView"
         }
       ],
       "editor/title": [
         {
-          "command": "debugg-ai.newSession",
+          "command": "debugg-ai.showE2es",
           "group": "navigation@1",
           "when": "activeWebviewPanelId == debugg-ai.debuggaiGUIView"
         },
         {
-          "command": "debugg-ai.viewHistory",
+          "command": "debugg-ai.newSession",
           "group": "navigation@2",
+          "when": "activeWebviewPanelId == debugg-ai.debuggaiGUIView"
+        },
+        {
+          "command": "debugg-ai.viewHistory",
+          "group": "navigation@3",
           "when": "activeWebviewPanelId == debugg-ai.debuggaiGUIView"
         }
       ],

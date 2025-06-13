@@ -1,18 +1,22 @@
 // services/issues.ts
-import { E2eRun, E2eTest, E2eTestSuite } from "../types";
+import { E2eRun, E2eTest, E2eTestSuite, PaginatedResponse } from "../types";
 import { AxiosTransport } from "../utils/axiosTransport";
 
 
 export interface E2esService {
-    createE2eTest(description: string, filePath: string, repoName: string, branchName: string, params?: Record<string, any>): Promise<E2eTest | null>;
-    runE2eTest(filePath: string, repoName: string, branchName: string, params?: Record<string, any>): Promise<E2eRun | null>;
+    createE2eTest(description: string, params?: Record<string, any>): Promise<E2eTest | null>;
+    runE2eTest(uuid: string, params?: Record<string, any>): Promise<E2eTest | null>;
     createE2eRun(fileContents: Uint8Array, filePath: string, repoName: string, branchName: string, params?: Record<string, any>): Promise<E2eRun | null>;
     getE2eRun(uuid: string, params?: Record<string, any>): Promise<E2eRun | null>;
+    listE2eTests(params?: Record<string, any>): Promise<PaginatedResponse<E2eTest> | null>;
     getE2eTest(uuid: string, params?: Record<string, any>): Promise<E2eTest | null>;
+    deleteE2eTest(uuid: string): Promise<void>;
     formatRunResult(e2eRun: E2eRun): string;
 
-    createE2eTestSuite(description: string, params: Record<string, any>): Promise<E2eTestSuite | null>;
+    createE2eTestSuite(description: string, params?: Record<string, any>): Promise<E2eTestSuite | null>;
+    listE2eTestSuites(params?: Record<string, any>): Promise<PaginatedResponse<E2eTestSuite> | null>;
     getE2eTestSuite(uuid: string, params?: Record<string, any>): Promise<E2eTestSuite | null>;
+    runE2eTestSuite(uuid: string, params?: Record<string, any>): Promise<E2eTestSuite | null>;
 }
 
 const paramsToBody = (params: Record<string, any>) => {
@@ -52,40 +56,37 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
      */
     async createE2eTest(
         description: string,
-        filePath: string,
-        repoName: string,
-        branchName: string,
         params?: Record<string, any>
     ): Promise<E2eTest | null> {
         try {
             const serverUrl = "api/v1/e2e-tests/";
-            console.log('Branch name - ', branchName, ' repo name - ', repoName, ' repo path - ', params?.repoPath);
+            // console.log('Branch name - ', branchName, ' repo name - ', repoName, ' repo path - ', params?.repoPath);
 
-            let relativePath = filePath;
-            // Convert absolute path to relative path
-            if (params?.repoPath) {
-                relativePath = filePath.replace(params?.repoPath + "/", "");
-            } else {
-                console.log("No repo path found for file");
-                // split based on the repo name
-                const repoBaseName = repoName.split("/")[-1];  // typically the form of 'userName/repoName'
-                const splitPath = filePath.split(repoBaseName);
-                if (splitPath.length === 2) {  // if the repo name is in the path & only once, otherwise unclear how to handle
-                    relativePath = splitPath[1];
-                } else {
-                    relativePath = filePath;
-                }
-            }
-            console.log("CREATE_E2E_TEST: Full path - ", filePath, ". Relative path - ", relativePath);
-            const fileParams = {
-                ...params,
-                description: description,
-                absPath: filePath,
-                filePath: relativePath,
-                repoName: repoName,
-                branchName: branchName,
-            };
-            const response = await tx.post<E2eTest>(serverUrl, { ...fileParams });
+            // let relativePath = filePath;
+            // // Convert absolute path to relative path
+            // if (params?.repoPath) {
+            //     relativePath = filePath.replace(params?.repoPath + "/", "");
+            // } else {
+            //     console.log("No repo path found for file");
+            //     // split based on the repo name
+            //     const repoBaseName = repoName.split("/")[-1];  // typically the form of 'userName/repoName'
+            //     const splitPath = filePath.split(repoBaseName);
+            //     if (splitPath.length === 2) {  // if the repo name is in the path & only once, otherwise unclear how to handle
+            //         relativePath = splitPath[1];
+            //     } else {
+            //         relativePath = filePath;
+            //     }
+            // }
+            // console.log("CREATE_E2E_TEST: Full path - ", filePath, ". Relative path - ", relativePath);
+            // const fileParams = {
+            //     ...params,
+            //     description: description,
+            //     absPath: filePath,
+            //     filePath: relativePath,
+            //     repoName: repoName,
+            //     branchName: branchName,
+            // };
+            const response = await tx.post<E2eTest>(serverUrl, { description, ...params });
 
             console.log("Raw API response:", response);
             return response;
@@ -99,39 +100,12 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
      * Create a test coverage file for a given file
      */
     async runE2eTest(
-        filePath: string,
-        repoName: string,
-        branchName: string,
+        uuid: string,
         params?: Record<string, any>
-    ): Promise<E2eRun | null> {
+    ): Promise<E2eTest | null> {
         try {
-            const serverUrl = "api/v1/e2e-runs/";
-            console.log('Branch name - ', branchName, ' repo name - ', repoName, ' repo path - ', params?.repoPath);
-
-            let relativePath = filePath;
-            // Convert absolute path to relative path
-            if (params?.repoPath) {
-                relativePath = filePath.replace(params?.repoPath + "/", "");
-            } else {
-                console.log("No repo path found for file");
-                // split based on the repo name
-                const repoBaseName = repoName.split("/")[-1];  // typically the form of 'userName/repoName'
-                const splitPath = filePath.split(repoBaseName);
-                if (splitPath.length === 2) {  // if the repo name is in the path & only once, otherwise unclear how to handle
-                    relativePath = splitPath[1];
-                } else {
-                    relativePath = filePath;
-                }
-            }
-            console.log("RUN_E2E_TEST: Full path - ", filePath, ". Relative path - ", relativePath);
-            const fileParams = {
-                ...params,
-                absPath: filePath,
-                filePath: relativePath,
-                repoName: repoName,
-                branchName: branchName,
-            };
-            const response = await tx.post<E2eRun>(serverUrl, { ...fileParams });
+            const serverUrl = `api/v1/e2e-tests/${uuid}/run/`;
+            const response = await tx.post<E2eTest>(serverUrl, { ...params });
 
             console.log("Raw API response:", response);
             return response;
@@ -230,9 +204,43 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
         }
 
     },
+    /**
+     * Delete a E2E test for a given UUID
+     */
+    async deleteE2eTest(
+        uuid: string,
+        params?: Record<string, any>
+    ): Promise<void> {
+        try {
+            const serverUrl = `api/v1/e2e-tests/${uuid}/`;
+            await tx.delete(serverUrl, { ...params });
+        } catch (err) {
+            console.error("Error deleting E2E test:", err);
+        }
+    },
+    /**
+     * List E2E tests
+     */
+    async listE2eTests(
+        params?: Record<string, any>
+    ): Promise<PaginatedResponse<E2eTest> | null> {
+
+        try {
+            const serverUrl = `api/v1/e2e-tests/`;
+            const response = await tx.get<PaginatedResponse<E2eTest>>(serverUrl, { ...params });
+
+            console.log("Raw API response:", response);
+            return response;
+
+        } catch (err) {
+            console.error("Error listing E2E tests:", err);
+            return null;
+        }
+
+    },
     async createE2eTestSuite(
         description: string,
-        params: Record<string, any>
+        params?: Record<string, any>
     ): Promise<E2eTestSuite | null> {
         try {
             const serverUrl = "api/v1/test-suites/generate_tests/";
@@ -245,6 +253,17 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
             return null;
         }
 
+    },
+    async listE2eTestSuites(params?: Record<string, any>): Promise<PaginatedResponse<E2eTestSuite> | null> {
+        try {
+            const serverUrl = "api/v1/test-suites/";
+            const response = await tx.get<PaginatedResponse<E2eTestSuite>>(serverUrl, { ...params });
+            console.log("Raw API response:", response);
+            return response;
+        } catch (err) {
+            console.error("Error listing E2E test suites:", err);
+            return null;
+        }
     },
     async getE2eTestSuite(
         uuid: string,
@@ -260,10 +279,22 @@ export const createE2esService = (tx: AxiosTransport): E2esService => ({
             return null;
         }
     },
+    async runE2eTestSuite(
+        uuid: string,
+        params?: Record<string, any>
+    ): Promise<E2eTestSuite | null> {
+        try {
+            const serverUrl = `api/v1/test-suites/${uuid}/run/`;
+            const response = await tx.post<E2eTestSuite>(serverUrl, { ...params });
+            console.log("Raw API response:", response);
+            return response;
+        } catch (err) {
+            console.error("Error running E2E test suite:", err);
+            return null;
+        }
+    },
     formatRunResult(result: E2eRun): string {
         if (!result) return 'No result data available.';
-        // const failures = result.failures || [];
-
         // const failureOutput = failures.map(f => 
         //     `❌ **${f.testName}**\n> ${f.message}\n${f.location ? `Location: ${f.location}` : ''}`
         // ).join('\n\n');

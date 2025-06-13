@@ -1,7 +1,8 @@
 import boxen from "boxen";
 import chalk from "chalk";
-import type { E2eRun } from "core/debuggAIServer/types";
-import * as vscode from "vscode";
+import type { ConfigHandler } from "../../config/ConfigHandler.js";
+import type { E2eRun, E2eTest } from "../../debuggAIServer/types";
+import type { IDE, TestRun } from "../../index.js";
 
 
 type StepStatus = 'pending' | 'success' | 'error' | 'failed' | 'skipped';
@@ -11,13 +12,17 @@ interface Step {
     status: StepStatus;
 }
 
-export class RunResultFormatter {
-    // private terminal: vscode.Terminal;
-    private runVsTestRunner: vscode.TestRun;
+
+export class TestRunFormatter {
+    private readonly ide: IDE;
+    private readonly configHandler: ConfigHandler;
+    private testRun: TestRun;
     private steps: Step[] = [];
 
-    constructor(runVsTestRunner: vscode.TestRun) {
-        this.runVsTestRunner = runVsTestRunner;
+    constructor(testRun: TestRun, ide: IDE, configHandler: ConfigHandler) {
+        this.ide = ide;
+        this.configHandler = configHandler;
+        this.testRun = testRun;
     }
     private passed(result: E2eRun): boolean {
         return result.status === "completed" && result.outcome === "pass";
@@ -61,8 +66,8 @@ export class RunResultFormatter {
         console.log('updating step. steps ->', this.steps);
 
         // Clear terminal and redraw
-        this.runVsTestRunner.appendOutput("\x1Bc"); // ANSI clear screen
-        this.runVsTestRunner.appendOutput(
+        this.testRun.appendOutput("\x1Bc"); // ANSI clear screen
+        this.testRun.appendOutput(
             chalk.bold("🧪 E2E Test Progress") +
             `\r\n${this.steps
                 .map((s, i) => {
@@ -80,6 +85,23 @@ export class RunResultFormatter {
         );
     }
 
+    /*
+    Print the test run to the test run.
+    */
+    printToTestRun(result: E2eTest | null): void {
+        if (result?.curRun) {
+            this.testRun.appendOutput(this.formatTerminalBox(result.curRun));
+        }
+    }
+
+    printToSummarySection(result: E2eTest | null): void {
+        if (result?.curRun) {
+            this.testRun.appendOutput(this.formatTerminalBox(result.curRun));
+        }
+    }
+    /*
+    Format the test run to a terminal box.
+    */
     formatTerminalBox(result: E2eRun): string {
         const header = this.passed(result)
             ? chalk.green.bold("✅ Test Passed")
@@ -104,7 +126,11 @@ export class RunResultFormatter {
         });
     }
 
-    formatMarkdownSummary(result: E2eRun): string {
+    formatMarkdownSummary(test: E2eTest | null): string {
+        if (!test?.curRun) return "";
+
+        const result = test.curRun;
+
         return [
             `🧪 **Test Name:** ${result.test?.name ?? "Unknown"}`,
             `📄 **Description:** ${result.test?.description ?? "None"}`,
@@ -135,23 +161,4 @@ export class RunResultFormatter {
             .join("\r\n")
             .trim();
     }
-    appendToTestRun(result: E2eRun, run: vscode.TestRun, testItem: vscode.TestItem): void {
-        const markdown = new vscode.MarkdownString(
-            `\n\n**🧪 E2E Test Completed**\n\n${this.formatMarkdownSummary(result)}`
-        );
-        markdown.supportHtml = true;
-        markdown.isTrusted = true;
-
-        run.appendOutput("\r\n");
-        run.appendOutput(this.terminalSummary(result) + "\r\n");
-
-        if (this.passed(result)) {
-            run.passed(testItem, result.metrics?.executionTime ?? 0);
-        } else {
-            run.failed(testItem, new vscode.TestMessage(markdown), result.metrics?.executionTime ?? 0);
-        }
-
-        run.end();
-    }
-
 }
