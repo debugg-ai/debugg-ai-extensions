@@ -101,15 +101,16 @@ export class ControlPlaneClient {
     if (!userId) {
       return [];
     }
+    // try {
+    //   const resp = await this.request("workspaces", {
+    //     method: "GET",
+    //   });
+    //   return (await resp.json()) as any;
+    // } catch (e) {
+    //   return [];
+    // }
 
-    try {
-      const resp = await this.request("workspaces", {
-        method: "GET",
-      });
-      return (await resp.json()) as any;
-    } catch (e) {
-      return [];
-    }
+    return [];
   }
 
   public async listAssistants(organizationId: string | null): Promise<
@@ -130,10 +131,11 @@ export class ControlPlaneClient {
         ? `ide/list-assistants?organizationId=${organizationId}`
         : "ide/list-assistants";
 
-      const resp = await this.request(url, {
-        method: "GET",
-      });
-      return (await resp.json()) as any;
+      return [];
+      // const resp = await this.request(url, {
+      //   method: "GET",
+      // });
+      // return (await resp.json()) as any;
     } catch (e) {
       return [];
     }
@@ -147,11 +149,13 @@ export class ControlPlaneClient {
     }
 
     try {
-      const resp = await this.request("ide/list-organizations", {
-        method: "GET",
-      });
-      const { organizations } = (await resp.json()) as any;
-      return organizations;
+      // const resp = await this.request("ide/list-organizations", {
+      //   method: "GET",
+      // });
+
+      // const { organizations } = (await resp.json()) as any;
+      // return organizations;
+      return [];
     } catch (e) {
       return [];
     }
@@ -170,11 +174,12 @@ export class ControlPlaneClient {
       : "ide/list-assistant-full-slugs";
 
     try {
-      const resp = await this.request(url, {
-        method: "GET",
-      });
-      const { fullSlugs } = (await resp.json()) as any;
-      return fullSlugs;
+      // const resp = await this.request(url, {
+      //   method: "GET",
+      // });
+      // const { fullSlugs } = (await resp.json()) as any;
+      // return fullSlugs;
+      return [];
     } catch (e) {
       return null;
     }

@@ -30,14 +30,14 @@ export class DebuggTransport extends AxiosTransport {
     super({ baseUrl, token });
     this.ide = ide;
   }
-  
+
   /*
    Nearly every api call is going to need the information about the project. 
    This function will add the project information to the call.
   */
-   public async addProjectToCall(): Promise<{ 
-    repoName: string | undefined, 
-    repoPath: string | undefined, 
+  public async addProjectToCall(): Promise<{
+    repoName: string | undefined,
+    repoPath: string | undefined,
     branchName: string | undefined,
     filePath?: string | undefined,
   }> {
@@ -46,7 +46,7 @@ export class DebuggTransport extends AxiosTransport {
     console.log("curdirs -", curdirs);
     const curdir = curdirs?.[0];
     const gitRootPath = (await this.ide.getGitRootPath(curdir))?.replace('file://', "");
-    if (!gitRootPath) return { repoName: undefined, repoPath: undefined, branchName: undefined};
+    if (!gitRootPath) return { repoName: undefined, repoPath: undefined, branchName: undefined };
     const repoName = await this.ide.getRepoName(gitRootPath);
     const branchName = await this.ide.getBranch(gitRootPath);
     const extraParams = { repoName, repoPath: gitRootPath, branchName, isExtension: true };
@@ -76,6 +76,7 @@ export class DebuggTransport extends AxiosTransport {
 }
 
 export class DebuggAIServerClient implements IDebuggAIServerClient {
+  private cachedAccessTokenRefresh: boolean = false;
   private tx: DebuggTransport | undefined;
   private accessToken: string | undefined;
   url: URL | undefined;
@@ -87,7 +88,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   coverage: CoverageService | undefined;
   e2es: E2esService | undefined;
   users: UsersService | undefined;
-  
+
   constructor(
     private readonly configHandler: ConfigHandler,
     private readonly ide: IDE,
@@ -111,7 +112,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.e2es = createE2esService(this.tx);
     this.users = createUsersService(this.tx);
   }
-  
+
   public async updateSessionInfo(sessionInfo?: ControlPlaneSessionInfo) {
     console.log("Updating Debugg AI client session info...", sessionInfo);
     await this.init();
@@ -125,9 +126,17 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     let accessToken =
       await this.configHandler.controlPlaneClient.getAccessToken();
     if (!accessToken) {
-      await this.configHandler.reloadConfig();
-      accessToken = await this.configHandler.controlPlaneClient.getAccessToken();
+      // If we don't have an access token, we need to refresh it
+      if (!this.cachedAccessTokenRefresh) {
+        this.cachedAccessTokenRefresh = true;
+        await this.configHandler.reloadConfig();
+        accessToken = await this.configHandler.controlPlaneClient.getAccessToken();
+      } 
+      // Check again if we have an access token, if not, throw an error
       if (!accessToken) {
+        // Don't loop ourselves forever if we don't have an access token
+        console.error("No access token found");
+        this.cachedAccessTokenRefresh = false;
         throw new Error("No access token found");
       }
     }
@@ -137,7 +146,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   public async awaitInit() {
     await this.init();
   }
-  
+
   /**
    * Get the server URL based on the deployment environment
    * @returns The server URL
@@ -158,12 +167,12 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   }> {
     const repoName = await this.ide.getRepoName(filePath);
     if (!repoName) {
-     console.debug("No repo name found for file");
+      console.debug("No repo name found for file");
     }
     let repoPath = await this.ide.getGitRootPath(filePath);
     if (!repoPath) {
       console.debug("No repo path found for file");
-    } else{
+    } else {
       repoPath = repoPath?.replace('file://', "");
     }
     const branchName = await this.ide.getBranch(filePath);
@@ -253,5 +262,5 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
       }),
     });
   }
-  
+
 }

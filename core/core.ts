@@ -1110,18 +1110,54 @@ export class Core {
 
     // E2E Tests Handlers
     on("e2eTests/fetchE2eTests", async ({data: {filters, pagination, search}}) => {
-      const client = await this.debuggAIServerClientPromise;
-      const e2es = client.e2es;
-      if (!e2es) throw new Error("E2e service not available");
-      const params = {
-        ...filters,
-        ...pagination,
-        search,
+      const { config } = await this.configHandler.loadConfig();
+      if (!config) {
+        console.error("Config not loaded");
+        return {
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        }
+      };
+
+      let retried = null;
+      while (!retried) {
+        const client = await this.debuggAIServerClientPromise;
+        const e2es = client.e2es;
+        if (e2es) {
+          const params = {
+            ...filters,
+            ...pagination,
+            search,
+          }
+          console.log("Listing E2E tests", params);
+          try {
+            const tests = await e2es.listE2eTests(params);
+            return tests;
+          } catch (err: any) {
+            if (err.detail === "Authentication credentials were not provided.") {
+              console.error("Authentication credentials were not provided.");
+              await this.configHandler.reloadConfig();
+            }
+            console.error("Error listing E2E tests:", err);
+          }
+        } else {
+          console.error("E2e service not available");
+        };
+        if (retried === null) {
+          retried = false;
+        } else {
+          retried = true;
+        }
       }
-      console.log("Listing E2E tests", params);
-      
-      const tests = await e2es.listE2eTests(params);
-      return tests;
+
+      return {
+        count: 0,
+        next: null,
+        previous: null,
+        results: [],
+      }
     });
 
     on("e2eTests/runE2eTest", async ({data: {uuid}}) => {

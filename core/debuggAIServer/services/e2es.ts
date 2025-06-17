@@ -232,9 +232,9 @@ export const createE2esService = (tx: DebuggTransport): E2esService => ({
             console.log("Raw API response:", response);
             return response;
 
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error listing E2E tests:", err);
-            return null;
+            throw err;
         }
 
     },

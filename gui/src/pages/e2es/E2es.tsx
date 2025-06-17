@@ -10,7 +10,7 @@ import E2eTests from "./E2eTestsPage";
 
 function E2esPage() {
   useNavigationListener();
-  const { session } = useAuth();
+  const { session, logout } = useAuth();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const ideMessenger = useContext(IdeMessengerContext);
