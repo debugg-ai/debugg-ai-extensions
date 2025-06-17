@@ -1024,7 +1024,7 @@ export class Core {
       await this.configHandler.reloadConfig();
       const client = await this.debuggAIServerClientPromise;
       if (client) {
-        client.updateSessionInfo();
+        await client.updateSessionInfo();
       }
     });
 
@@ -1046,7 +1046,7 @@ export class Core {
       );
       const client = await this.debuggAIServerClientPromise;
       if (client) {
-        client.updateSessionInfo(msg.data.sessionInfo);
+        await client.updateSessionInfo(msg.data.sessionInfo);
       }
     });
     on("auth/getAuthUrl", async (msg) => {
@@ -1119,6 +1119,7 @@ export class Core {
         search,
       }
       console.log("Listing E2E tests", params);
+      
       const tests = await e2es.listE2eTests(params);
       return tests;
     });

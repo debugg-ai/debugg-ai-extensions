@@ -49,7 +49,7 @@ export class DebuggTransport extends AxiosTransport {
     if (!gitRootPath) return { repoName: undefined, repoPath: undefined, branchName: undefined};
     const repoName = await this.ide.getRepoName(gitRootPath);
     const branchName = await this.ide.getBranch(gitRootPath);
-    const extraParams = { repoName, repoPath: gitRootPath, branchName };
+    const extraParams = { repoName, repoPath: gitRootPath, branchName, isExtension: true };
 
     console.log("extraParams -", extraParams);
     if (await this.ide.getCurrentFile()) {
@@ -64,7 +64,8 @@ export class DebuggTransport extends AxiosTransport {
 
   async get<T = unknown>(url: string, params?: any, addProjectToCall?: boolean) {
     const extraParams = addProjectToCall ? await this.addProjectToCall() : {};
-    return super.get<T>(url, { ...params, ...extraParams });
+    const getResponse = await super.get<T>(url, { ...params, ...extraParams });
+    return getResponse;
   }
 
   async post<T = unknown>(url: string, data?: any, cfg?: AxiosRequestConfig, addProjectToCall?: boolean) {
@@ -113,7 +114,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   
   public async updateSessionInfo(sessionInfo?: ControlPlaneSessionInfo) {
     console.log("Updating Debugg AI client session info...", sessionInfo);
-    this.init();
+    await this.init();
   }
 
   public async getUserId(): Promise<string | undefined> {
@@ -121,10 +122,14 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   }
 
   private async getAccessToken(): Promise<string> {
-    const accessToken =
+    let accessToken =
       await this.configHandler.controlPlaneClient.getAccessToken();
     if (!accessToken) {
-      throw new Error("No access token found");
+      await this.configHandler.reloadConfig();
+      accessToken = await this.configHandler.controlPlaneClient.getAccessToken();
+      if (!accessToken) {
+        throw new Error("No access token found");
+      }
     }
     return accessToken;
   }
