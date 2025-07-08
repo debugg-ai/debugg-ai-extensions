@@ -56,5 +56,8 @@
   "[typescriptreact]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
-  "cursorpyright.analysis.extraPaths": []
+  "cursorpyright.analysis.extraPaths": [],
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  }
 }

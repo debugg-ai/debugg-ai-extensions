@@ -32,8 +32,12 @@ const enableControlServerBeta = workspace
     .getConfiguration(EXTENSION_NAME)
     .get<boolean>("enableContinueForTeams", false);
 
+const debuggAiTestEnv = workspace
+    .getConfiguration(EXTENSION_NAME)
+    .get<"none" | "local" | "production" | "staging">("debuggAiTestEnvironment", "production");
+
 const controlPlaneEnv = getControlPlaneEnvSync(
-    true ? "production" : "none",
+    debuggAiTestEnv,
     enableControlServerBeta,
 );
 console.log("Control plane env:", controlPlaneEnv);
@@ -287,6 +291,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
             refresh_token: refreshToken,
             client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
             client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
+            server: controlPlaneEnv.CONTROL_PLANE_URL
         });
         const response = await axios.post(TOKEN_REFRESH_ENDPOINT, {
             grant_type: "refresh_token",

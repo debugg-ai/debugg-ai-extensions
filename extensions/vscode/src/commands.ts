@@ -47,11 +47,15 @@ import { pullErrorsAndHighlight } from "./debug/pullErrors";
 import { showSnippetWebview } from "./debug/webviews/snippetWebview";
 import { DebuggGuiWebviewViewProvider } from "./DebuggGUIWebviewViewProvider";
 import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
+import { CommitTester } from "./test/code-gen/commitTester";
 import E2eTestRunner from "./test/e2e-agents/e2eRunner";
 import E2eSuiteGenerator from "./test/e2e-agents/e2eSuiteGen";
 import { start } from "./tunnels/ngrok";
 import { post } from "./util/axiosNaming";
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
+
+// Global commit tester instance
+let commitTester: CommitTester | null = null;
 
 let fullScreenPanel: vscode.WebviewPanel | undefined;
 
@@ -1433,6 +1437,99 @@ const getCommandsMap: (
           },
         });
 
+      },
+
+      // Commit Tester Commands
+      "debugg-ai.startCommitTesting": async () => {
+        captureCommandTelemetry("debugg-ai.startCommitTesting");
+        
+        if (!commitTester) {
+          const client = await debuggAIServerClientPromise;
+          commitTester = new CommitTester(client, ide, configHandler, extensionContext);
+        }
+        
+        await commitTester.initialize();
+      },
+
+      "debugg-ai.stopCommitTesting": async () => {
+        captureCommandTelemetry("debugg-ai.stopCommitTesting");
+        
+        if (commitTester) {
+          commitTester.stopMonitoring();
+          vscode.window.showInformationMessage("Commit testing stopped");
+        } else {
+          vscode.window.showWarningMessage("Commit testing was not running");
+        }
+      },
+
+      "debugg-ai.getCommitTestingStatus": async () => {
+        captureCommandTelemetry("debugg-ai.getCommitTestingStatus");
+        
+        if (commitTester) {
+          const isMonitoring = commitTester.isMonitoringCommits();
+          const outputDir = commitTester.getTestOutputDirectory();
+          
+          vscode.window.showInformationMessage(
+            `Commit testing is ${isMonitoring ? 'active' : 'inactive'}. Test output directory: ${outputDir}`
+          );
+        } else {
+          vscode.window.showInformationMessage("Commit testing is not initialized");
+        }
+      },
+
+      "debugg-ai.setCommitTestOutputDirectory": async () => {
+        captureCommandTelemetry("debugg-ai.setCommitTestOutputDirectory");
+        
+        const newDir = await vscode.window.showInputBox({
+          prompt: 'Enter the test output directory path',
+          value: commitTester?.getTestOutputDirectory() || 'tests/playwright'
+        });
+        
+        if (newDir && commitTester) {
+          commitTester.setTestOutputDirectory(newDir);
+          vscode.window.showInformationMessage(`Test output directory set to: ${newDir}`);
+        }
+      },
+
+      "debugg-ai.generateTestsForWorkingChanges": async () => {
+        captureCommandTelemetry("debugg-ai.generateTestsForWorkingChanges");
+        
+        if (!commitTester) {
+          const client = await debuggAIServerClientPromise;
+          commitTester = new CommitTester(client, ide, configHandler, extensionContext);
+        }
+        
+        vscode.window.setStatusBarMessage("Generating tests for working changes...", 2500);
+        
+        try {
+          const result = await commitTester.generateTestsForWorkingChanges();
+          
+          if (result.success) {
+            vscode.window.showInformationMessage(
+              `Successfully generated ${result.testFiles.length} test files for working changes. Check the output directory: ${commitTester.getTestOutputDirectory()}`
+            );
+            
+            // Optionally open the test output directory
+            const openDir = await vscode.window.showInformationMessage(
+              `Generated ${result.testFiles.length} test files. Would you like to open the test directory?`,
+              'Yes', 'No'
+            );
+            
+            if (openDir === 'Yes') {
+              const testDirUri = vscode.Uri.file(commitTester.getTestOutputDirectory());
+              await vscode.commands.executeCommand('vscode.openFolder', testDirUri);
+            }
+          } else {
+            vscode.window.showErrorMessage(
+              `Failed to generate tests: ${result.error || 'Unknown error'}`
+            );
+          }
+        } catch (error) {
+          console.error('[CommitTester] Error in generateTestsForWorkingChanges command:', error);
+          vscode.window.showErrorMessage(
+            `Error generating tests: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
       }
     }
   };
@@ -1530,6 +1627,9 @@ export function registerAllCommands(
 ) {
   registerCopyBufferSpy(context, core);
 
+  // Initialize commit tester automatically
+  initializeCommitTester(extensionContext, ide, configHandler, debuggAIServerClientPromise);
+
   for (const [command, callback] of Object.entries(
     getCommandsMap(
       ide,
@@ -1548,5 +1648,26 @@ export function registerAllCommands(
     context.subscriptions.push(
       vscode.commands.registerCommand(command, callback),
     );
+  }
+}
+
+/**
+ * Initialize the commit tester automatically when the extension starts
+ */
+async function initializeCommitTester(
+  context: vscode.ExtensionContext,
+  ide: VsCodeIde,
+  configHandler: ConfigHandler,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>
+) {
+  try {
+    // Wait a bit for the extension to fully load
+    setTimeout(async () => {
+      const client = await debuggAIServerClientPromise;
+      commitTester = new CommitTester(client, ide, configHandler, context);
+      await commitTester.initialize();
+    }, 2000);
+  } catch (error) {
+    console.error('[CommitTester] Failed to auto-initialize:', error);
   }
 }

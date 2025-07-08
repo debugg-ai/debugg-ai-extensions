@@ -13,6 +13,7 @@ import type {
   Problem,
   Range,
   RangeInFile,
+  Repository,
   TerminalOptions,
   TestController,
   TestRunRequest,
@@ -83,6 +84,7 @@ export type ToIdeFromWebviewOrCoreProtocol = {
 
   // Git
   getBranch: [{ dir: string }, string];
+  getRepo: [{ dir: string }, Repository | undefined];
   getRepoName: [{ dir: string }, string | undefined];
 
   showToast: [

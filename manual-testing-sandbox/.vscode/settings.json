@@ -1,3 +1,4 @@
 {
-    "debugg-ai.debuggAiServerPort": 3000
+    "debugg-ai.debuggAiServerPort": 3000,
+    "debugg-ai.debuggAiTestEnvironment": "local"
 }

@@ -13,6 +13,7 @@ import type {
   Problem,
   Range,
   RangeInFile,
+  Repository,
   TerminalOptions,
   TestController,
   TestRunRequest,
@@ -68,6 +69,10 @@ export class MessageIde implements IDE {
   showToast: IDE["showToast"] = (...params) => {
     return this.request("showToast", params);
   };
+
+  getRepo(dir: string): Promise<Repository | undefined> {
+    return this.request("getRepo", { dir });
+  }
 
   getRepoName(dir: string): Promise<string | undefined> {
     return this.request("getRepoName", { dir });

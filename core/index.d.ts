@@ -722,6 +722,8 @@ export interface IDE {
 
   getGitRootPath(dir: string): Promise<string | undefined>;
 
+  getRepo(dir: string): Promise<Repository | undefined>;
+
   listDir(dir: string): Promise<[string, FileType][]>;
 
   getFileStats(files: string[]): Promise<FileStatsMap>;
@@ -1408,6 +1410,17 @@ export type PackageDocsResult = {
     | { error: string; details?: never }
     | { details: PackageDetailsSuccess; error?: never }
   );
+
+export interface Repository {
+  readonly rootUri: any; // Uri from vscode
+  readonly state: RepositoryState;
+  readonly onDidCommit: any; // Event<void>
+}
+
+export interface RepositoryState {
+  readonly HEAD: any; // Branch | undefined
+  readonly onDidChange: any; // Event<void>
+}
 
 export interface TerminalOptions {
   reuseTerminal?: boolean;

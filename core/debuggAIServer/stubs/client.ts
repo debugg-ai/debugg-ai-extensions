@@ -111,7 +111,9 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.coverage = createCoverageService(this.tx);
     this.e2es = createE2esService(this.tx);
     this.users = createUsersService(this.tx);
+
   }
+
 
   public async updateSessionInfo(sessionInfo?: ControlPlaneSessionInfo) {
     console.log("Updating Debugg AI client session info...", sessionInfo);
@@ -131,12 +133,15 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
         this.cachedAccessTokenRefresh = true;
         await this.configHandler.reloadConfig();
         accessToken = await this.configHandler.controlPlaneClient.getAccessToken();
+
+        setTimeout(() => {
+          this.cachedAccessTokenRefresh = false;
+        }, 30_000);
       } 
       // Check again if we have an access token, if not, throw an error
       if (!accessToken) {
         // Don't loop ourselves forever if we don't have an access token
         console.error("No access token found");
-        this.cachedAccessTokenRefresh = false;
         throw new Error("No access token found");
       }
     }

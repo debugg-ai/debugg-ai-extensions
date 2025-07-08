@@ -624,7 +624,7 @@ class VsCodeIde implements IDE {
         "enableDebuggAiForTeams",
         false,
       ),
-      debuggAiTestEnvironment: "production",
+      debuggAiTestEnvironment: settings.get<"none" | "local" | "production" | "staging">("debuggAiTestEnvironment", "production"),
       pauseCodebaseIndexOnStart: settings.get<boolean>(
         "pauseCodebaseIndexOnStart",
         false,

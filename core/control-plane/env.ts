@@ -2,8 +2,8 @@ import * as fs from "node:fs";
 
 import { IdeSettings } from "..";
 import {
-    getLocalEnvironmentDotFilePath,
-    getStagingEnvironmentDotFilePath,
+  getLocalEnvironmentDotFilePath,
+  getStagingEnvironmentDotFilePath,
 } from "../util/paths";
 
 export interface ControlPlaneEnv {

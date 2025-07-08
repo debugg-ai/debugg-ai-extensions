@@ -324,7 +324,14 @@ export function getPathToRemoteConfig(remoteConfigServerUrl: string): string {
 export function getConfigJsonPathForRemote(
   remoteConfigServerUrl: string,
 ): string {
-  return path.join(getPathToRemoteConfig(remoteConfigServerUrl), "config.json");
+  const p = path.join(getPathToRemoteConfig(remoteConfigServerUrl), "config.json");
+  if (!fs.existsSync(p)) {
+    // Read the local config.json
+    const localConfig = fs.readFileSync(getConfigJsonPath(), "utf8");
+    const localConfigJson = JSONC.parse(localConfig);
+    fs.writeFileSync(p, JSON.stringify(localConfigJson, null, 2));
+  }
+  return p;
 }
 
 export function getConfigJsPathForRemote(

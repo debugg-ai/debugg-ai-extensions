@@ -13,6 +13,7 @@ import {
   Problem,
   Range,
   RangeInFile,
+  Repository,
   TerminalOptions,
   TestController,
   TestRunRequest,
@@ -225,6 +226,10 @@ class FileSystemIde implements IDE {
   }
 
   getCurrentFile(): Promise<undefined> {
+    return Promise.resolve(undefined);
+  }
+
+  getRepo(dir: string): Promise<Repository | undefined> {
     return Promise.resolve(undefined);
   }
 

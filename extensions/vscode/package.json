@@ -2,7 +2,7 @@
   "name": "debugg-ai",
   "icon": "media/icon.png",
   "author": "Debugg Inc",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "repository": {
     "type": "git",
     "url": "https://github.com/debugg-ai/debugg-ai-extensions"
@@ -128,6 +128,16 @@
           "type": "string",
           "default": null,
           "markdownDescription": "If your team is set up to use shared configuration, enter your user token here and your server URL above to enable automatic syncing."
+        },
+        "debugg-ai.enableCommitTesting": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically monitor git commits and generate E2E tests when new commits are detected."
+        },
+        "debugg-ai.debuggAiTestEnvironment": {
+          "type": "string",
+          "default": "local",
+          "description": ""
         }
       }
     },
@@ -372,6 +382,36 @@
         "command": "debugg-ai.createNewE2eTest",
         "category": "Debugg AI",
         "title": "Create & Run New E2E Test",
+        "group": "Debugg AI"
+      },
+      {
+        "command": "debugg-ai.startCommitTesting",
+        "category": "Debugg AI",
+        "title": "Start Commit Testing",
+        "group": "Debugg AI"
+      },
+      {
+        "command": "debugg-ai.stopCommitTesting",
+        "category": "Debugg AI",
+        "title": "Stop Commit Testing",
+        "group": "Debugg AI"
+      },
+      {
+        "command": "debugg-ai.getCommitTestingStatus",
+        "category": "Debugg AI",
+        "title": "Get Commit Testing Status",
+        "group": "Debugg AI"
+      },
+      {
+        "command": "debugg-ai.setCommitTestOutputDirectory",
+        "category": "Debugg AI",
+        "title": "Set Commit Test Output Directory",
+        "group": "Debugg AI"
+      },
+      {
+        "command": "debugg-ai.generateTestsForWorkingChanges",
+        "category": "Debugg AI",
+        "title": "Generate Tests for Working Changes",
         "group": "Debugg AI"
       }
     ],
@@ -713,7 +753,7 @@
     "@vscode/vsce": "^2.22.0",
     "cargo-cp-artifact": "^0.1",
     "chai": "^4.5.0",
-    "esbuild": "0.17.19",
+    "esbuild": "^0.17.19",
     "esbuild-visualizer": "^0.6.0",
     "eslint": "^8.28.0",
     "glob": "^8.0.3",
@@ -743,7 +783,6 @@
     "dbinfoz": "^0.14.0",
     "diff": "^7.0.0",
     "downshift": "^7.6.0",
-    "esbuild": "0.17.19",
     "express": "^4.18.2",
     "fkill": "^8.1.0",
     "follow-redirects": "^1.15.4",
