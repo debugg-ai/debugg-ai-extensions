@@ -1,6 +1,6 @@
 // services/issues.ts
 import { DebuggTransport } from "../stubs/client";
-import { E2eRun, E2eTest, E2eTestSuite, PaginatedResponse } from "../types";
+import { E2eRun, E2eTest, E2eTestCommitSuite, E2eTestSuite, PaginatedResponse } from "../types";
 
 
 export interface E2esService {
@@ -18,8 +18,11 @@ export interface E2esService {
     getE2eTestSuite(uuid: string, params?: Record<string, any>): Promise<E2eTestSuite | null>;
     runE2eTestSuite(uuid: string, params?: Record<string, any>): Promise<E2eTestSuite | null>;
 
-    createE2eCommitSuite(description: string, params?: Record<string, any>): Promise<E2eTestSuite | null>;
-    runE2eCommitSuite(uuid: string, params?: Record<string, any>): Promise<E2eTestSuite | null>;
+    // Commit suites. These are used to generate tests for a given commit & branch. Commit suites can
+    // span multiple Test Suites as they are change-based, not feature-based.
+    createE2eCommitSuite(description: string, params?: Record<string, any>): Promise<E2eTestCommitSuite | null>;
+    runE2eCommitSuite(uuid: string, params?: Record<string, any>): Promise<E2eTestCommitSuite | null>;
+    getE2eCommitSuite(uuid: string, params?: Record<string, any>): Promise<E2eTestCommitSuite | null>;
 }
 
 const paramsToBody = (params: Record<string, any>) => {
@@ -300,11 +303,11 @@ export const createE2esService = (tx: DebuggTransport): E2esService => ({
     async createE2eCommitSuite(
         description: string,
         params?: Record<string, any>
-    ): Promise<E2eTestSuite | null> {
+    ): Promise<E2eTestCommitSuite | null> {
         try {
             const serverUrl = "api/v1/commit-suites/";
             const body = paramsToBody({...params, description});    
-            const response = await tx.post<E2eTestSuite>(serverUrl, { ...body });
+            const response = await tx.post<E2eTestCommitSuite>(serverUrl, { ...body });
             console.log("Raw API response:", response);
             return response;
         } catch (err) {
@@ -316,10 +319,10 @@ export const createE2esService = (tx: DebuggTransport): E2esService => ({
     async runE2eCommitSuite(
         uuid: string,
         params?: Record<string, any>
-    ): Promise<E2eTestSuite | null> {
+    ): Promise<E2eTestCommitSuite | null> {
         try {
             const serverUrl = `api/v1/commit-suites/${uuid}/run/`;
-            const response = await tx.post<E2eTestSuite>(serverUrl, { ...params });
+            const response = await tx.post<E2eTestCommitSuite>(serverUrl, { ...params });
             console.log("Raw API response:", response);
             return response;
         } catch (err) {
@@ -327,7 +330,20 @@ export const createE2esService = (tx: DebuggTransport): E2esService => ({
             return null;
         }
     },
-
+    async getE2eCommitSuite(
+        uuid: string,
+        params?: Record<string, any>
+    ): Promise<E2eTestCommitSuite | null> {
+        try {
+            const serverUrl = `api/v1/commit-suites/${uuid}/`;
+            const response = await tx.get<E2eTestCommitSuite>(serverUrl, { ...params });    
+            console.log("Raw API response:", response);
+            return response;
+        } catch (err) {
+            console.error("Error fetching E2E commit suite:", err);
+            return null;
+        }
+    },
     formatRunResult(result: E2eRun): string {
         if (!result) return 'No result data available.';
         // const failureOutput = failures.map(f => 

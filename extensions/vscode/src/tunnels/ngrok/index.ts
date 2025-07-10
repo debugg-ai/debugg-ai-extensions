@@ -266,6 +266,23 @@ export const setAuthToken = async (token: string) => {
   }
 };
 
+export async function startNgrokTunnel(authToken: string, localPort: number, domain: string) {
+  try {
+      await start({
+          addr: localPort,
+          hostname: domain,
+          authtoken: authToken,
+          onLogEvent: (data: any) => {
+              console.log(`${localPort} | ${domain} | ngrok log: ${data}`);
+          },
+      });
+      console.log(`Tunnel started at: ${domain}`);
+      return domain;
+  } catch (err) {
+      console.error('Error starting ngrok tunnel:', err);
+  }
+}
+
 export const downloadBinary = () => {
   const binaryLocations = [
     join(basePath, 'ngrok'),

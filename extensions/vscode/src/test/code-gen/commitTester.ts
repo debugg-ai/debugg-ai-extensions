@@ -594,11 +594,11 @@ Focus on testing the user-facing functionality that was affected by these change
       
 
       // Wait for test completion and save files
-      const testFiles = await this.waitForTestCompletionAndSaveFiles(e2eTest);
+      // const testFiles = await this.waitForTestCompletionAndSaveFiles(e2eTest);
       
       return {
         success: true,
-        testFiles,
+        testFiles: [],
       };
       
     } catch (error) {

@@ -1499,7 +1499,7 @@ const getCommandsMap: (
           commitTester = new CommitTester(client, ide, configHandler, extensionContext);
         }
         
-        vscode.window.setStatusBarMessage("Generating tests for working changes...", 2500);
+        vscode.window.setStatusBarMessage("Generating tests for working changes...", 1500);
         
         try {
           const result = await commitTester.generateTestsForWorkingChanges();

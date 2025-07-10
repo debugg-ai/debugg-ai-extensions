@@ -1,81 +1,91 @@
 import chalk from "chalk";
 import type { E2eTestSuite } from "core/debuggAIServer/types";
 import * as vscode from "vscode";
-
-
-type StepStatus = 'pending' | 'success' | 'error' | 'failed' | 'skipped';
-
-interface Step {
-    label: string;
-    status: StepStatus;
-}
+import { handlePollUpdateFn, Status, TestState } from "../e2e-agents/types";
+import { TerminalFormatter } from "./terminalFormatter";
 
 export class SuiteGenFormatter {
-    private runVsTestRunner: vscode.TestRun;
+    private formatter: TerminalFormatter;
     private suite: E2eTestSuite;
-    private steps: Step[] = [];
+    private state: TestState;
 
     constructor(runVsTestRunner: vscode.TestRun, suite: E2eTestSuite) {
-        this.runVsTestRunner = runVsTestRunner;
+        this.formatter = new TerminalFormatter(runVsTestRunner, { 
+            title: "🧪 E2E Test Progress",
+            showStepNumbers: true,
+            stepLabelWidth: 30,
+            autoClear: true,
+            showProgressBar: false
+        });
         this.suite = suite;
+        
+        // Initialize state
+        this.state = {
+            testObject: {
+                uuid: suite.uuid || 'unknown',
+                description: suite.description || 'E2E Test Suite',
+                title: suite.name || 'E2E Test Suite',
+                status: suite.completed ? 'success' : 'running',
+                object: suite
+            },
+            testResults: null,
+            stepNumber: 0,
+            completed: suite.completed || false,
+            status: suite.completed ? 'success' : 'running',
+            steps: [],
+            handlePollUpdate: handlePollUpdateFn
+        };
     }
 
-    updateStep(label: string, status: StepStatus): void {
-        const existing = this.steps.find((s) => s.label === label);
-        if (existing) {
-            existing.status = status;
-        } else {
-            this.steps.push({ label, status });
-        }
+    updateStep(label: string, status: Status): void {
+        this.state = TerminalFormatter.updateStep(this.state, label, status);
+        this.formatter.printState(this.state);
+    }
 
-        console.log('updating step. steps ->', this.steps);
-
-        // Clear terminal and redraw
-        this.runVsTestRunner.appendOutput("\x1Bc"); // ANSI clear screen
-        this.runVsTestRunner.appendOutput(
-            chalk.bold("🧪 E2E Test Progress") +
-            `\r\n${this.steps
-                .map((s, i) => {
-                    const icon =
-                        s.status === "pending"
-                            ? chalk.yellow("⏳")
-                            : s.status === "success"
-                                ? chalk.green("✅")
-                                : chalk.red("❌");
-                    return `${chalk.dim(`Step ${i + 1}:`)} ${s.label.padEnd(
-                        30
-                    )} ${icon}`;
-                })
-                .join("\r\n")}`
-        );
+    addStep(label: string, status: Status = 'pending', details?: string): void {
+        this.state = TerminalFormatter.addStep(this.state, label, status, details);
+        this.formatter.printState(this.state);
     }
 
     formatMarkdownSummary(suite: E2eTestSuite): string {
-        const header = chalk.bold(`🧪 Test Suite: ${suite.name}`);
+        const header = chalk.bold(`🧪 Test Suite: ${suite.name ?? 'Unknown'}`);
         const description = chalk.dim(`Description: ${suite.description ?? "None"}`);
-        const tests = suite.tests?.map(test => `- ${test.name}: ${test.curRun?.outcome ?? "pending"}`).join("\n") ?? "No tests available";
+        const tests = suite.tests?.map(test => `- ${test.name ?? 'Unknown'}: ${(test as any).curRun?.outcome ?? "pending"}`).join("\n") ?? "No tests available";
 
         return `${header}\n${description}\n\nTests:\n\n${tests}`;
     }
+
     formatSuiteSummary(): string {
-        const header = chalk.bold(`🧪 Test Suite: ${this.suite.name}`);
+        const header = chalk.bold(`🧪 Test Suite: ${this.suite.name ?? 'Unknown'}`);
         const description = chalk.dim(`Description: ${this.suite.description ?? "None"}`);
-        const tests = this.suite.tests?.map(test => `- ${test.name}: ${test.curRun?.outcome ?? ""}`).join("\r\n") ?? "No tests available";
+        const tests = this.suite.tests?.map(test => `- ${test.name ?? 'Unknown'}: ${(test as any).curRun?.outcome ?? ""}`).join("\r\n") ?? "No tests available";
 
         return `${header}\r\n${description}\r\nTests:\r\n${tests}`;
     }
+
     printToTestRun(suite?: E2eTestSuite | null): void {
         if (suite) {
             this.suite = suite;
+            this.state.testObject!.object = suite;
+            this.state.completed = suite.completed || false;
+            this.state.status = suite.completed ? 'success' : 'running';
         }
-        this.runVsTestRunner.appendOutput("\x1Bc"); // ANSI clear screen
-        this.runVsTestRunner.appendOutput("\r\n");
-        this.runVsTestRunner.appendOutput(this.formatSuiteSummary() + "\r\n");
+        
+        // Clear steps and print current state
+        this.state.steps = [];
+        this.state.stepNumber = 0;
+        this.formatter.printState(this.state);
     }
 
     printToSummarySection(suite: E2eTestSuite, testItem: vscode.TestItem | null): void {
+        // Update state with completion
+        this.state.completed = true;
+        this.state.status = suite.completed ? 'success' : 'failed';
+        
+        // Print final state
+        this.formatter.printState(this.state);
+        
         // The summary section uses markdown not terminal output
-
         const markdown = new vscode.MarkdownString(
             `\n\n**🧪 E2E Test Completed**\n\n${this.formatMarkdownSummary(suite)}`
         );
@@ -83,14 +93,35 @@ export class SuiteGenFormatter {
         markdown.isTrusted = true;
 
         const duration = suite.completedAt ? new Date(suite.completedAt).getTime() - new Date(suite.timestamp).getTime() : 0;
-        if (testItem) {
+        
+        // Access the output channel through the formatter
+        const outputChannel = this.formatter['outputChannel'] as any;
+        
+        if (testItem && outputChannel) {
             if (suite.completed) {
-                this.runVsTestRunner.passed(testItem, duration);
+                outputChannel.passed(testItem, duration);
             } else {
-                this.runVsTestRunner.failed(testItem, new vscode.TestMessage(markdown), duration);
+                outputChannel.failed(testItem, new vscode.TestMessage(markdown), duration);
             }
         }
 
-        this.runVsTestRunner.end();
+        if (outputChannel) {
+            outputChannel.end();
+        }
+    }
+
+    /**
+     * Get the current test state
+     */
+    getState(): TestState {
+        return { ...this.state };
+    }
+
+    /**
+     * Update the test state
+     */
+    updateState(newState: Partial<TestState>): void {
+        this.state = { ...this.state, ...newState };
+        this.formatter.printState(this.state);
     }
 }

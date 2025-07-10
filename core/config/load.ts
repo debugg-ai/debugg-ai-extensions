@@ -98,6 +98,22 @@ export async function resolveSerializedConfig(
   try {
     const content = fs.readFileSync(filepath, "utf8");
     config = JSON.parse(content) as unknown as SerializedDebuggAiConfig;
+
+    if (!config.vectorDatabaseOpts?.apiKey) {
+      try {
+        const debuggAIServerClient = new DebuggAIServerClient(
+          configHandler,
+          ide
+        );
+        await debuggAIServerClient.awaitInit();
+        console.log("DebuggAIServerClient initialized");
+        config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
+        console.log("Loaded remote config", config);
+      } catch (e) {
+        console.error("Error loading remote config", e);
+        throw e;
+      }
+    }
   } catch (e) {
     console.error("Error parsing config.json, attempting to load remote for file", filepath);
 

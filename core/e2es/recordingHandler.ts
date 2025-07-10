@@ -7,20 +7,25 @@ import { IDE } from "../index.js";
 
 
 export async function fetchAndOpenGif(ide: IDE, projectRoot: string, recordingUrl: string, testName: string, testId: string): Promise<void> {
-    let cacheDir = path.join(projectRoot, ".debugg-ai", "e2e-runs");
-    console.log('....downloading gif....')
-    console.log('cacheDir', cacheDir);
-    console.log('testId', testId);
-    console.log('recordingUrl', recordingUrl);
-    let localUrl = recordingUrl.replace('localhost', 'localhost:8002');
-    console.log('localUrl', localUrl);
+    let cacheDir = path.join(projectRoot, ".debugg-ai");
 
     if (cacheDir.includes("file:")) {
         cacheDir = cacheDir.replace("file:", "");
     }
     await fs.promises.mkdir(cacheDir, { recursive: true });
+    // Create a subdirectory for the gif
+    let gifDir = path.join(cacheDir, "e2e-runs");
+    await fs.promises.mkdir(gifDir, { recursive: true });
 
-    const filePath = path.join(cacheDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}.gif`);
+    console.log('....downloading gif....')
+    console.log('cacheDir', cacheDir);
+    console.log('gifDir', gifDir);
+    console.log('testId', testId);
+    console.log('recordingUrl', recordingUrl);
+    let localUrl = recordingUrl.replace('localhost', 'localhost:8002');
+    console.log('localUrl', localUrl);
+
+    const filePath = path.join(gifDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}.gif`);
     const fileUrl = new URL(localUrl);
 
     const file = fs.createWriteStream(filePath);

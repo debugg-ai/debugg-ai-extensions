@@ -79,6 +79,8 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   private cachedAccessTokenRefresh: boolean = false;
   private tx: DebuggTransport | undefined;
   private accessToken: string | undefined;
+  private initialized: boolean = false;
+  private initStarted: boolean = false;
   url: URL | undefined;
 
   // Public “sub‑APIs”
@@ -89,6 +91,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   e2es: E2esService | undefined;
   users: UsersService | undefined;
 
+
   constructor(
     private readonly configHandler: ConfigHandler,
     private readonly ide: IDE,
@@ -98,6 +101,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   }
 
   private async init() {
+    this.initStarted = true;
     const serverUrl = await this.getServerUrl();
     console.log("Server URL:", serverUrl);
 
@@ -111,13 +115,14 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.coverage = createCoverageService(this.tx);
     this.e2es = createE2esService(this.tx);
     this.users = createUsersService(this.tx);
-
+    this.initialized = true;
   }
 
 
   public async updateSessionInfo(sessionInfo?: ControlPlaneSessionInfo) {
     console.log("Updating Debugg AI client session info...", sessionInfo);
     await this.init();
+    this.accessToken = sessionInfo?.accessToken;
   }
 
   public async getUserId(): Promise<string | undefined> {
@@ -149,7 +154,13 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   }
 
   public async awaitInit() {
-    await this.init();
+    if (!this.initialized && !this.initStarted) {
+      await this.init();
+    } else if (!this.initialized && this.initStarted) {
+      console.log("Waiting for init to complete...");
+      await new Promise(resolve => setTimeout(resolve, 100));
+      await this.awaitInit();
+    }
   }
 
   /**

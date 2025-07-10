@@ -21,6 +21,23 @@ export interface AxiosResponse<T> {
     config: AxiosRequestConfig;
 }
 
+// Base types for common fields
+interface BaseModel {
+    id: number;
+    uuid: string;
+    timestamp: string; // ISO datetime string
+    lastMod: string; // ISO datetime string
+}
+
+// User information (from PublicUserInfoSerializer)
+interface PublicUserInfo {
+    uuid: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    company: string; // company name
+}
+
 export interface Message {
     uuid: string;
     sender: string;
@@ -268,6 +285,36 @@ export interface E2eTestSuite {
     tunnelKey?: string | null;
 }
 
+// Main E2eTestCommitSuite interface (from E2eTestCommitSuiteSerializer)
+export interface E2eTestCommitSuite {
+    id: number;
+    uuid: string;
+    commitHash: string | null;
+    commitHashShort: string | null; // first 8 characters of commit hash
+    project: number; // project ID
+    projectName: string | null;
+    description: string;
+    summarizedChanges: string | null;
+    tests: E2eTest[];
+    createdBy: PublicUserInfo | null;
+    timestamp: string;
+    lastMod: string;
+}
+
+// Simplified E2eTestCommitSuite interface (from SimpleE2eTestCommitSuiteSerializer)
+export interface SimpleE2eTestCommitSuite {
+    id: number;
+    uuid: string;
+    commitHash: string | null;
+    commitHashShort: string | null; // first 8 characters of commit hash
+    project: number; // project ID
+    projectName: string | null;
+    summarizedChanges: string | null;
+    testCount: number; // count of tests in this commit suite
+    createdBy: PublicUserInfo | null;
+    timestamp: string;
+    lastMod: string;
+}
 // Supporting interfaces (adjust fields as necessary)
 export interface TestFeature {
     id: number;
