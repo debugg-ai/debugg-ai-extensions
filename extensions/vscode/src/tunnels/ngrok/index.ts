@@ -116,10 +116,29 @@ const getTunnelToStart: (
     quickPick.show();
   });
 
+export const checkTunnelIsRunning = async (options?: Ngrok.Options) => {
+  const api = getApi();
+  if (!api) {
+    return false;
+  }
+  const tunnels = await getActiveTunnels(api);
+
+  for (const tunnel of tunnels) {
+    if (tunnel.public_url === options?.hostname) {
+      return true;
+    }
+  }
+  return tunnels.length > 0;
+};
+
 export const start = async (options?: Ngrok.Options) => {
   const config = await getConfig();
   const tunnel = options || (await getTunnelToStart(config));
   if (typeof tunnel !== 'undefined') {
+    const isRunning = await checkTunnelIsRunning(tunnel);
+    if (isRunning) {
+      return;
+    }
     const configPath = getConfigPath();
     if (existsSync(configPath)) {
       tunnel.configPath = configPath;
@@ -128,22 +147,6 @@ export const start = async (options?: Ngrok.Options) => {
       tunnel.binPath = binPath;
       try {
         const url = await connect(tunnel);
-        // showStatusBarItem();
-        // const action = await window.showInformationMessage(
-        //   `ngrok is forwarding ${url}.`,
-        //   'Copy to clipboard',
-        //   'Open in browser',
-        //   'Show QR code'
-        // );
-        // switch (action) {
-        //   case 'Copy to clipboard':
-        //     await env.clipboard.writeText(url);
-        //     window.showInformationMessage(`Copied "${url}" to your clipboard.`);
-        //     break;
-        //   case 'Open in browser':
-        //     env.openExternal(Uri.parse(url));
-        //     break;
-        // }
       } catch (error) {
         window.showErrorMessage(`There was an error starting your tunnel.`);
         console.error(error);
