@@ -39,7 +39,7 @@ export interface TestResults {
 }
 
 export interface TestHandlerOptions {
-    testParams: Record<string, any>;
+    testParams?: Record<string, any>;
     timeoutMinutes?: number;
     title?: string;
     showProgressBar?: boolean;

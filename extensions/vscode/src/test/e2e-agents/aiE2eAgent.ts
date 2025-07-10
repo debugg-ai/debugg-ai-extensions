@@ -23,7 +23,7 @@ export class AiE2eAgent {
     private client: DebuggAIServerClient;
     private agentOptions: AiE2eAgentOptions;
     private objectCallbacks: E2eObjectCallbacks;
-    private testHandler: E2eRemoteTestHandler;
+    public testHandler: E2eRemoteTestHandler;
 
     constructor(client: DebuggAIServerClient, options: AiE2eAgentOptions) {
         this.client = client;

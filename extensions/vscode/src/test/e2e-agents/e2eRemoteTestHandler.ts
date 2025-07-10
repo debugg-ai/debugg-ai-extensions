@@ -39,6 +39,7 @@ export class E2esTestHandler extends RemoteTestHandler {
      */
     protected getParams(): Record<string, any> {
         return {
+            ...this.options.testParams,
             filePath: this.repositoryInfo?.filePath ?? "",
             repoName: this.repositoryInfo?.repoName ?? "",
             branchName: this.repositoryInfo?.branchName ?? "",
@@ -47,7 +48,7 @@ export class E2esTestHandler extends RemoteTestHandler {
     }
 
     protected getDescription(): string {
-        return this.options.testParams.description ?? "E2E Test";
+        return this.options.testParams?.description ?? "E2E Test";
     }
 
     /**

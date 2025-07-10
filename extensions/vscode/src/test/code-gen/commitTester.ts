@@ -149,6 +149,7 @@ export class CommitTester {
     const gitExtension = vscode.extensions.getExtension<GitExtension>('vscode.git');
 
     if (!gitExtension) {
+      console.log('[CommitTester] Git extension not found');
       return undefined;
     }
 
@@ -543,7 +544,11 @@ Focus on testing the user-facing functionality that was affected by these change
   /**
    * Generate tests for current working changes (uncommitted changes)
    */
-  async generateTestsForWorkingChanges(): Promise<TestGenerationResult> {
+  async generateTestsForWorkingChanges(): Promise<{
+    workingChanges: WorkingChanges;
+    branchInfo: {branch: string, commitHash: string};
+    testFiles?: string[];
+  }> {
     try {
       console.log('[CommitTester] Generating tests for current working changes');
       
@@ -551,9 +556,15 @@ Focus on testing the user-facing functionality that was affected by these change
       const workspaceDir = await this.getCurrentWorkspaceDir();
       if (!workspaceDir) {
         return {
-          success: false,
-          testFiles: [],
-          error: 'No git repository found'
+          workingChanges: {
+            changes: [],
+            branchInfo: {
+              branch: '',
+              commitHash: ''
+            }
+          },
+          branchInfo: {branch: '', commitHash: ''},
+          testFiles: []
         };
       }
 
@@ -563,9 +574,15 @@ Focus on testing the user-facing functionality that was affected by these change
       
       if (!workingChanges.changes.length) {
         return {
-          success: false,
-          testFiles: [],
-          error: 'No working changes found'
+          workingChanges: {
+            changes: [],
+            branchInfo: {
+              branch: '',
+              commitHash: ''
+            }
+          },
+          branchInfo: {branch: '', commitHash: ''},
+          testFiles: []
         };
       }
 
@@ -597,16 +614,23 @@ Focus on testing the user-facing functionality that was affected by these change
       // const testFiles = await this.waitForTestCompletionAndSaveFiles(e2eTest);
       
       return {
-        success: true,
-        testFiles: [],
+        workingChanges: workingChanges,
+        branchInfo: branchInfo,
+        testFiles: []
       };
       
     } catch (error) {
       console.error('[CommitTester] Error generating tests for working changes:', error);
       return {
-        success: false,
-        testFiles: [],
-        error: error instanceof Error ? error.message : String(error)
+        workingChanges: {
+          changes: [],
+          branchInfo: {
+            branch: '',
+            commitHash: ''
+          }
+        },
+        branchInfo: {branch: '', commitHash: ''},
+        testFiles: []
       };
     }
   }

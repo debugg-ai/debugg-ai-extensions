@@ -48,6 +48,7 @@ import { showSnippetWebview } from "./debug/webviews/snippetWebview";
 import { DebuggGuiWebviewViewProvider } from "./DebuggGUIWebviewViewProvider";
 import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
 import { CommitTester } from "./test/code-gen/commitTester";
+import { AiE2eAgent } from "./test/e2e-agents/aiE2eAgent";
 import E2eTestRunner from "./test/e2e-agents/e2eRunner";
 import E2eSuiteGenerator from "./test/e2e-agents/e2eSuiteGen";
 import { start } from "./tunnels/ngrok";
@@ -1493,37 +1494,35 @@ const getCommandsMap: (
 
       "debugg-ai.generateTestsForWorkingChanges": async () => {
         captureCommandTelemetry("debugg-ai.generateTestsForWorkingChanges");
+        const client = await debuggAIServerClientPromise;
+        const { config } = await configHandler.loadConfig();
+        let localPortConfig = config?.debuggAiServerPort;
         
         if (!commitTester) {
-          const client = await debuggAIServerClientPromise;
           commitTester = new CommitTester(client, ide, configHandler, extensionContext);
         }
         
         vscode.window.setStatusBarMessage("Generating tests for working changes...", 1500);
         
         try {
-          const result = await commitTester.generateTestsForWorkingChanges();
-          
-          if (result.success) {
-            vscode.window.showInformationMessage(
-              `Successfully generated ${result.testFiles.length} test files for working changes. Check the output directory: ${commitTester.getTestOutputDirectory()}`
-            );
-            
-            // Optionally open the test output directory
-            const openDir = await vscode.window.showInformationMessage(
-              `Generated ${result.testFiles.length} test files. Would you like to open the test directory?`,
-              'Yes', 'No'
-            );
-            
-            if (openDir === 'Yes') {
-              const testDirUri = vscode.Uri.file(commitTester.getTestOutputDirectory());
-              await vscode.commands.executeCommand('vscode.openFolder', testDirUri);
-            }
-          } else {
-            vscode.window.showErrorMessage(
-              `Failed to generate tests: ${result.error || 'Unknown error'}`
-            );
-          }
+          const changes = await commitTester.generateTestsForWorkingChanges();
+
+          const aiE2eAgent = new AiE2eAgent(client, {
+            testParams: {
+              description: "Generate tests for working changes",
+              changes: changes
+            },
+            title: "Generate tests for working changes",
+            testObjectType: "commit-suite",
+            testRunType: "generate",
+            remote: true,
+            localServerPort: localPortConfig ?? 3000,
+          });
+
+          // Actually run the handler to process the request
+          await aiE2eAgent.testHandler.run();
+          // TODO: handle the final state and results if needed
+
         } catch (error) {
           console.error('[CommitTester] Error in generateTestsForWorkingChanges command:', error);
           vscode.window.showErrorMessage(
