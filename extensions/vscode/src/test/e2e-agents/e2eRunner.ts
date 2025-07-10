@@ -53,23 +53,6 @@ async function startNgrokTunnel(authToken: string, localPort: number, domain: st
                 console.log(`${localPort} | ${domain} | ngrok log: ${data}`);
             },
         });
-        // console.log('Clearing ngrok tunnels');
-        // await ngrok.disconnect();
-        // console.log('Tunnels disconnected');
-
-        // console.log(`Starting ngrok tunnel for ${domain} on port ${localPort}`);
-        // const listener = await ngrok.connect({
-        //     configPath: path.join(__dirname, 'ngrok-config.yml'),
-        //     addr: localPort,
-        //     authtoken: '2xWBRboVuXUJkwVF2H4motEE6fI_2prPjBgL3ky8UW9WVNLxC',
-        //     hostname: domain,
-        //     onLogEvent: (data: any) => {
-        //         console.log(`Ngrok log event: ${data}`);
-        //     },
-        // }).catch((err: any) => {
-        //     console.error('Failed to connect ngrok:', err);
-        //     throw err; // Re-throw to be caught by outer try-catch
-        // });
         return domain;
     } catch (err) {
         console.error('Error starting ngrok tunnel:', err);

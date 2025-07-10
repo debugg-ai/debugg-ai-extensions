@@ -211,29 +211,29 @@ export type E2eRunOutcome = 'pending' | 'skipped' | 'unknown' | 'pass' | 'fail';
 export type E2eRunType = 'generate' | 'run';
 
 export interface E2eRunMetrics {
-  executionTime: number;
-  numSteps: number;
+    executionTime: number;
+    numSteps: number;
 }
 
 
 export interface E2eRun {
-  id: number;
-  uuid: string;
-  timestamp: string;
-  lastModified: string;
-  key: string;
-  runType: E2eRunType;
-  test?: E2eTest | null;
-  tunnelKey?: string | null;
-  status: E2eRunStatus;
-  outcome: E2eRunOutcome;
-  conversations?: Conversation[]; // array of Conversations
-  startedBy?: number | null;
-  runOnHost?: number | null;
-  targetUrl?: string | null;
-  runGif?: string | null;  // Url to the gif file containing the run
-  runJson?: string | null;  // Url to the json file containing the run data
-  metrics?: E2eRunMetrics | null;
+    id: number;
+    uuid: string;
+    timestamp: string;
+    lastModified: string;
+    key: string;
+    runType: E2eRunType;
+    test?: E2eTest | null;
+    tunnelKey?: string | null;
+    status: E2eRunStatus;
+    outcome: E2eRunOutcome;
+    conversations?: Conversation[]; // array of Conversations
+    startedBy?: number | null;
+    runOnHost?: number | null;
+    targetUrl?: string | null;
+    runGif?: string | null;  // Url to the gif file containing the run
+    runJson?: string | null;  // Url to the json file containing the run data
+    metrics?: E2eRunMetrics | null;
 }
 
 export interface E2eTestSuite {
@@ -255,43 +255,66 @@ export interface E2eTestSuite {
     userRole?: UserRole | null;
     deviceType?: DeviceType | null;
     region?: Region | null;
-  
+
     // Writable foreign key fields
     featureId?: number | null;
     testTypeId?: number | null;
     userRoleId?: number | null;
     deviceTypeId?: number | null;
     regionId?: number | null;
-  
+
     timestamp: string;
     lastMod: string;
     tunnelKey?: string | null;
-  }
-  
-  // Supporting interfaces (adjust fields as necessary)
-  export interface TestFeature {
+}
+
+// Supporting interfaces (adjust fields as necessary)
+export interface TestFeature {
     id: number;
     name: string;
     description?: string;
-  }
-  
-  export interface TestType {
+}
+
+export interface TestType {
     id: number;
     name: string;
-  }
-  
-  export interface UserRole {
+}
+
+export interface UserRole {
     id: number;
     name: string;
-  }
-  
-  export interface DeviceType {
+}
+
+export interface DeviceType {
     id: number;
     name: string;
-  }
-  
-  export interface Region {
+}
+
+export interface Region {
     id: number;
     name: string;
-  }
-  
+}
+
+export interface CommitInfo {
+    hash: string;
+    message: string;
+    author: string;
+    date: string;
+    files: string[];
+    diff: string;
+}
+
+export interface WorkingChange {
+    status: string;
+    file: string;
+    diff?: string;
+}
+
+export interface WorkingChanges {
+    changes: WorkingChange[];
+    branchInfo: {
+        branch: string;
+        commitHash: string;
+    };
+}
+

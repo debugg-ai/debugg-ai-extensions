@@ -1,0 +1,162 @@
+{
+  "sampleCommitInfo": {
+    "hash": "a1b2c3d4e5f6789012345678901234567890abcd",
+    "message": "feat: Add user authentication system with login/logout functionality",
+    "author": "John Doe <john.doe@example.com>",
+    "date": "2024-01-15T10:30:00Z",
+    "files": [
+      "src/auth/LoginForm.tsx",
+      "src/auth/LogoutButton.tsx",
+      "src/auth/AuthContext.tsx",
+      "src/auth/types.ts",
+      "src/components/Header.tsx",
+      "tests/auth/login.test.ts",
+      "package.json"
+    ],
+    "diff": "diff --git a/src/auth/LoginForm.tsx b/src/auth/LoginForm.tsx\nnew file mode 100644\nindex 0000000..a1b2c3d\n--- /dev/null\n+++ b/src/auth/LoginForm.tsx\n@@ -0,0 +1,45 @@\n+import React, { useState } from 'react';\n+import { useAuth } from './AuthContext';\n+\n+interface LoginFormProps {\n+  onSuccess?: () => void;\n+}\n+\n+export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {\n+  const [email, setEmail] = useState('');\n+  const [password, setPassword] = useState('');\n+  const [loading, setLoading] = useState(false);\n+  const { login } = useAuth();\n+\n+  const handleSubmit = async (e: React.FormEvent) => {\n+    e.preventDefault();\n+    setLoading(true);\n+    \n+    try {\n+      await login(email, password);\n+      onSuccess?.();\n+    } catch (error) {\n+      console.error('Login failed:', error);\n+    } finally {\n+      setLoading(false);\n+    }\n+  };\n+\n+  return (\n+    <form onSubmit={handleSubmit} className=\"login-form\">\n+      <div className=\"form-group\">\n+        <label htmlFor=\"email\">Email:</label>\n+        <input\n+          type=\"email\"\n+          id=\"email\"\n+          value={email}\n+          onChange={(e) => setEmail(e.target.value)}\n+          required\n+        />\n+      </div>\n+      <div className=\"form-group\">\n+        <label htmlFor=\"password\">Password:</label>\n+        <input\n+          type=\"password\"\n+          id=\"password\"\n+          value={password}\n+          onChange={(e) => setPassword(e.target.value)}\n+          required\n+        />\n+      </div>\n+      <button type=\"submit\" disabled={loading}>\n+        {loading ? 'Logging in...' : 'Login'}\n+      </button>\n+    </form>\n+  );\n+};\n"
+  },
+  "sampleWorkingChanges": {
+    "changes": [
+      {
+        "status": "M",
+        "file": "src/components/Header.tsx",
+        "diff": "diff --git a/src/components/Header.tsx b/src/components/Header.tsx\nindex a1b2c3d..e5f6789 100644\n--- a/src/components/Header.tsx\n+++ b/src/components/Header.tsx\n@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';\n \n export const Header: React.FC = () => {\n   const { user, logout } = useAuth();\n+  const [isMenuOpen, setIsMenuOpen] = useState(false);\n \n   return (\n     <header className=\"header\">\n@@ -12,6 +13,12 @@ export const Header: React.FC = () => {\n         <h1>My App</h1>\n       </div>\n       <nav className=\"nav\">\n+        <button\n+          className=\"menu-toggle\"\n+          onClick={() => setIsMenuOpen(!isMenuOpen)}\n+        >\n+          Menu\n+        </button>\n         {user ? (\n           <div className=\"user-menu\">\n             <span>Welcome, {user.name}</span>\n@@ -19,6 +26,7 @@ export const Header: React.FC = () => {\n           </div>\n         ) : (\n           <Link to=\"/login\">Login</Link>\n+        )}\n       </nav>\n     </header>\n   );\n"
+      },
+      {
+        "status": "A",
+        "file": "src/auth/LogoutButton.tsx",
+        "diff": "diff --git a/src/auth/LogoutButton.tsx b/src/auth/LogoutButton.tsx\nnew file mode 100644\nindex 0000000..f1a2b3c\n--- /dev/null\n+++ b/src/auth/LogoutButton.tsx\n@@ -0,0 +1,25 @@\n+import React from 'react';\n+import { useAuth } from './AuthContext';\n+\n+interface LogoutButtonProps {\n+  className?: string;\n+  children?: React.ReactNode;\n+}\n+\n+export const LogoutButton: React.FC<LogoutButtonProps> = ({ \n+  className = '', \n+  children = 'Logout' \n+}) => {\n+  const { logout } = useAuth();\n+\n+  const handleLogout = async () => {\n+    try {\n+      await logout();\n+    } catch (error) {\n+      console.error('Logout failed:', error);\n+    }\n+  };\n+\n+  return (\n+    <button className={className} onClick={handleLogout}>\n+      {children}\n+    </button>\n+  );\n+};\n"
+      },
+      {
+        "status": "D",
+        "file": "src/components/OldHeader.tsx",
+        "diff": "diff --git a/src/components/OldHeader.tsx b/src/components/OldHeader.tsx\ndeleted file mode 100644\nindex a1b2c3d..0000000\n--- a/src/components/OldHeader.tsx\n+++ /dev/null\n@@ -1,45 +0,0 @@\n-import React from 'react';\n-import { Link } from 'react-router-dom';\n-\n-export const OldHeader: React.FC = () => {\n-  return (\n-    <header className=\"old-header\">\n-      <div className=\"logo\">\n-        <h1>My App</h1>\n-      </div>\n-      <nav className=\"nav\">\n-        <Link to=\"/\">Home</Link>\n-        <Link to=\"/about\">About</Link>\n-        <Link to=\"/contact\">Contact</Link>\n-      </nav>\n-    </header>\n-  );\n-};\n"
+      }
+    ],
+    "branchInfo": {
+      "branch": "feature/user-auth",
+      "commitHash": "a1b2c3d4e5f6789012345678901234567890abcd"
+    }
+  },
+  "sampleTestDescription": "Generate comprehensive E2E tests for the user authentication system changes. The changes include:\n\n- Added LoginForm component with email/password fields and form validation\n- Added LogoutButton component for user logout functionality\n- Modified Header component to include user menu and authentication state\n- Removed old header component\n- Added authentication context and types\n\nPlease generate Playwright tests that:\n1. Test the login flow with valid and invalid credentials\n2. Test the logout functionality\n3. Test the header component's responsive behavior with authentication state\n4. Test form validation and error handling\n5. Test the user menu interactions\n6. Include accessibility tests for the authentication components\n7. Test edge cases like network errors and session timeouts",
+  "sampleApiRequest": {
+    "endpoint": "/e2es/consolidate-changes/",
+    "method": "POST",
+    "body": {
+      "repository": {
+        "name": "my-react-app",
+        "path": "/Users/developer/projects/my-react-app",
+        "url": "https://github.com/username/my-react-app"
+      },
+      "branchInfo": {
+        "branch": "feature/user-auth",
+        "commitHash": "a1b2c3d4e5f6789012345678901234567890abcd"
+      },
+      "workingChanges": {
+        "changes": [
+          {
+            "status": "M",
+            "file": "src/components/Header.tsx",
+            "diff": "diff --git a/src/components/Header.tsx b/src/components/Header.tsx\nindex a1b2c3d..e5f6789 100644\n--- a/src/components/Header.tsx\n+++ b/src/components/Header.tsx\n@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';\n \n export const Header: React.FC = () => {\n   const { user, logout } = useAuth();\n+  const [isMenuOpen, setIsMenuOpen] = useState(false);\n \n   return (\n     <header className=\"header\">\n@@ -12,6 +13,12 @@ export const Header: React.FC = () => {\n         <h1>My App</h1>\n       </div>\n       <nav className=\"nav\">\n+        <button\n+          className=\"menu-toggle\"\n+          onClick={() => setIsMenuOpen(!isMenuOpen)}\n+        >\n+          Menu\n+        </button>\n         {user ? (\n           <div className=\"user-menu\">\n             <span>Welcome, {user.name}</span>\n@@ -19,6 +26,7 @@ export const Header: React.FC = () => {\n           </div>\n         ) : (\n           <Link to=\"/login\">Login</Link>\n+        )}\n       </nav>\n     </header>\n   );\n"
+          },
+          {
+            "status": "A",
+            "file": "src/auth/LogoutButton.tsx",
+            "diff": "diff --git a/src/auth/LogoutButton.tsx b/src/auth/LogoutButton.tsx\nnew file mode 100644\nindex 0000000..f1a2b3c\n--- /dev/null\n+++ b/src/auth/LogoutButton.tsx\n@@ -0,0 +1,25 @@\n+import React from 'react';\n+import { useAuth } from './AuthContext';\n+\n+interface LogoutButtonProps {\n+  className?: string;\n+  children?: React.ReactNode;\n+\n+export const LogoutButton: React.FC<LogoutButtonProps> = ({ \n+  className = '', \n+  children = 'Logout' \n+}) => {\n+  const { logout } = useAuth();\n+\n+  const handleLogout = async () => {\n+    try {\n+      await logout();\n+    } catch (error) {\n+      console.error('Logout failed:', error);\n+    }\n+  };\n+\n+  return (\n+    <button className={className} onClick={handleLogout}>\n+      {children}\n+    </button>\n+  );\n+};\n"
+          }
+        ]
+      },
+      "commitInfo": {
+        "hash": "a1b2c3d4e5f6789012345678901234567890abcd",
+        "message": "feat: Add user authentication system with login/logout functionality",
+        "author": "John Doe <john.doe@example.com>",
+        "date": "2024-01-15T10:30:00Z",
+        "files": [
+          "src/auth/LoginForm.tsx",
+          "src/auth/LogoutButton.tsx",
+          "src/auth/AuthContext.tsx",
+          "src/auth/types.ts",
+          "src/components/Header.tsx",
+          "tests/auth/login.test.ts",
+          "package.json"
+        ]
+      }
+    }
+  },
+  "sampleApiResponse": {
+    "endpoint": "/e2es/consolidate-changes/",
+    "response": {
+      "success": true,
+      "testDescriptions": [
+        {
+          "id": "test-001",
+          "title": "User Login Flow",
+          "description": "Test the complete user login flow including form validation, successful login, and error handling",
+          "priority": "high",
+          "tags": ["authentication", "login", "form-validation"]
+        },
+        {
+          "id": "test-002", 
+          "title": "User Logout Flow",
+          "description": "Test the logout functionality and verify user session is properly cleared",
+          "priority": "high",
+          "tags": ["authentication", "logout", "session"]
+        },
+        {
+          "id": "test-003",
+          "title": "Header Component Authentication State",
+          "description": "Test the header component displays correctly based on authentication state (logged in vs logged out)",
+          "priority": "medium",
+          "tags": ["ui", "header", "authentication-state"]
+        },
+        {
+          "id": "test-004",
+          "title": "User Menu Interactions",
+          "description": "Test the user menu dropdown functionality and navigation options",
+          "priority": "medium",
+          "tags": ["ui", "menu", "dropdown", "navigation"]
+        },
+        {
+          "id": "test-005",
+          "title": "Authentication Error Handling",
+          "description": "Test various error scenarios including invalid credentials, network errors, and server failures",
+          "priority": "high",
+          "tags": ["error-handling", "authentication", "network"]
+        }
+      ],
+      "recommendedTestFramework": "playwright",
+      "estimatedTestCount": 5,
+      "complexity": "medium"
+    }
+  },
+  "sampleGeneratedTest": {
+    "filename": "tests/auth/user-authentication.spec.ts",
+    "content": "import { test, expect } from '@playwright/test';\n\nconst BASE_URL = process.env.BASE_URL || 'http://localhost:3000';\n\ntest.describe('User Authentication', () => {\n  test.beforeEach(async ({ page }) => {\n    await page.goto(BASE_URL);\n  });\n\n  test('should display login form when user is not authenticated', async ({ page }) => {\n    await page.goto(`${BASE_URL}/login`);\n    \n    await expect(page.locator('form.login-form')).toBeVisible();\n    await expect(page.locator('input[type=\"email\"]')).toBeVisible();\n    await expect(page.locator('input[type=\"password\"]')).toBeVisible();\n    await expect(page.locator('button[type=\"submit\"]')).toBeVisible();\n  });\n\n  test('should successfully login with valid credentials', async ({ page }) => {\n    await page.goto(`${BASE_URL}/login`);\n    \n    await page.fill('input[type=\"email\"]', 'test@example.com');\n    await page.fill('input[type=\"password\"]', 'password123');\n    await page.click('button[type=\"submit\"]');\n    \n    // Wait for successful login\n    await expect(page.locator('.user-menu')).toBeVisible();\n    await expect(page.locator('text=Welcome, Test User')).toBeVisible();\n  });\n\n  test('should show error message with invalid credentials', async ({ page }) => {\n    await page.goto(`${BASE_URL}/login`);\n    \n    await page.fill('input[type=\"email\"]', 'invalid@example.com');\n    await page.fill('input[type=\"password\"]', 'wrongpassword');\n    await page.click('button[type=\"submit\"]');\n    \n    // Wait for error message\n    await expect(page.locator('.error-message')).toBeVisible();\n    await expect(page.locator('text=Invalid credentials')).toBeVisible();\n  });\n\n  test('should successfully logout user', async ({ page }) => {\n    // First login\n    await page.goto(`${BASE_URL}/login`);\n    await page.fill('input[type=\"email\"]', 'test@example.com');\n    await page.fill('input[type=\"password\"]', 'password123');\n    await page.click('button[type=\"submit\"]');\n    \n    // Verify logged in\n    await expect(page.locator('.user-menu')).toBeVisible();\n    \n    // Logout\n    await page.click('button:has-text(\"Logout\")');\n    \n    // Verify logged out\n    await expect(page.locator('a:has-text(\"Login\")')).toBeVisible();\n    await expect(page.locator('.user-menu')).not.toBeVisible();\n  });\n\n  test('should toggle user menu when menu button is clicked', async ({ page }) => {\n    // Login first\n    await page.goto(`${BASE_URL}/login`);\n    await page.fill('input[type=\"email\"]', 'test@example.com');\n    await page.fill('input[type=\"password\"]', 'password123');\n    await page.click('button[type=\"submit\"]');\n    \n    // Click menu toggle\n    await page.click('.menu-toggle');\n    \n    // Verify menu is expanded\n    await expect(page.locator('.user-menu')).toBeVisible();\n    \n    // Click again to close\n    await page.click('.menu-toggle');\n    \n    // Verify menu is collapsed\n    await expect(page.locator('.user-menu')).not.toBeVisible();\n  });\n});\n"
+  },
+  "usageInstructions": {
+    "description": "This sample file contains example data structures that can be used to test the commit tester API endpoints.",
+    "endpoints": [
+      {
+        "name": "Consolidate Changes",
+        "url": "/e2es/consolidate-changes/",
+        "method": "POST",
+        "description": "Send working changes and commit info to get test descriptions",
+        "sampleData": "Use the 'sampleApiRequest' object as the request body"
+      },
+      {
+        "name": "Generate Tests",
+        "url": "/e2es/generate-tests/",
+        "method": "POST", 
+        "description": "Send test descriptions to generate actual test files",
+        "sampleData": "Use the test descriptions from the consolidate-changes response"
+      }
+    ],
+    "testingSteps": [
+      "1. Use the sample commit info to simulate a git commit",
+      "2. Use the sample working changes to test uncommitted changes",
+      "3. Send the sample API request to test the consolidate-changes endpoint",
+      "4. Use the response to test the generate-tests endpoint",
+      "5. Verify the generated test files match the expected structure"
+    ]
+  }
+} 

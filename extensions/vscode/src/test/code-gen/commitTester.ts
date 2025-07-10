@@ -1,21 +1,12 @@
 import { ConfigHandler } from 'core/config/ConfigHandler';
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
-import { E2eTest } from 'core/debuggAIServer/types';
+import { CommitInfo, E2eTest, WorkingChange, WorkingChanges } from 'core/debuggAIServer/types';
 import { E2eTestHandler } from 'core/e2es/e2eTestHandler';
 import { NgrokTunnelClient } from 'core/e2es/ngrok-service';
 import { IDE } from 'core/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-
-export interface CommitInfo {
-  hash: string;
-  message: string;
-  author: string;
-  date: string;
-  files: string[];
-  diff: string;
-}
 
 export interface TestGenerationResult {
   success: boolean;
@@ -568,9 +559,9 @@ Focus on testing the user-facing functionality that was affected by these change
 
       // Get current branch and working changes
       const branchInfo = await this.getCurrentBranchInfo(workspaceDir);
-      const workingChanges = await this.getWorkingChanges(workspaceDir);
+      const workingChanges = await this.getWorkingChanges(workspaceDir, branchInfo);
       
-      if (!workingChanges.length) {
+      if (!workingChanges.changes.length) {
         return {
           success: false,
           testFiles: [],
@@ -578,22 +569,29 @@ Focus on testing the user-facing functionality that was affected by these change
         };
       }
 
+      // Structure the working changes properly
+      // Send them to the server at /e2es/consolidate-changes/
+      //    - repository information
+      //    - branch information
+      //    - working changes
+      //    - commit hash
+      //    - commit message
+      //    - author
+      //    - date
+      //    - changed files
+      // The server will respond with a list of test descriptions
+
+      // We should not re-create how we run tests. Respond with descriptions
+      //   and just let our existing test run commands handle it.
+      // Send the new descriptions to the server at /e2es/generate-tests/ to create them
+      // Wait for the tests to complete
+      // Save the test files
+      // Return the test files
+
+
       // Create a description of the working changes
-      const changeDescription = this.createWorkingChangesDescription(workingChanges, branchInfo);
+      // const changeDescription = this.createWorkingChangesDescription(workingChanges, branchInfo);
       
-      // Generate tests using the E2E test handler
-      const { config } = await this.configHandler.loadConfig();
-      const localPort = config?.debuggAiServerPort || 3000;
-      
-      const e2eTest = await this.e2eTestHandler.runE2eTest(changeDescription, localPort);
-      
-      if (!e2eTest) {
-        return {
-          success: false,
-          testFiles: [],
-          error: 'Failed to generate E2E test'
-        };
-      }
 
       // Wait for test completion and save files
       const testFiles = await this.waitForTestCompletionAndSaveFiles(e2eTest);
@@ -645,10 +643,10 @@ Focus on testing the user-facing functionality that was affected by these change
 
   /**
    * Get working changes (modified, added, deleted files)
-   */
-  private async getWorkingChanges(workspaceDir: string): Promise<Array<{status: string, file: string, diff?: string}>> {
+    */
+    private async getWorkingChanges(workspaceDir: string, branchInfo: {branch: string, commitHash: string}): Promise<WorkingChanges> {
     const [statusOutput] = await this.ide.subprocess(`git status --porcelain`, workspaceDir);
-    const changes: Array<{status: string, file: string, diff?: string}> = [];
+    const changes: WorkingChange[] = [];
     
     for (const line of statusOutput.split('\n').filter((l: string) => l.trim())) {
       const status = line.substring(0, 2).trim();
@@ -676,7 +674,13 @@ Focus on testing the user-facing functionality that was affected by these change
       }
     }
     
-    return changes;
+    return {
+      changes,
+      branchInfo: {
+        branch: branchInfo.branch,
+        commitHash: branchInfo.commitHash
+      }
+    };
   }
 
   /**
