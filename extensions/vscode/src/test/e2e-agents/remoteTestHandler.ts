@@ -67,9 +67,21 @@ export abstract class RemoteTestHandler extends TestHandler {
         console.log("Remote test handler initialized");
 
         // Create the test object
-        await this.getTestObject();
+        const testObject = await this.getTestObject();
+        if (!testObject.object) {
+            console.error("No test object created, skipping test");
+            return;
+        }
 
         console.log("Test object created");
+        if (testObject.status === "failed") {
+            console.error("Test object created but failed to start, skipping test");
+            return;
+        }
+        if (testObject.status === "completed") {
+            console.error("Test object created but set immediately to completed, skipping test");
+            return;
+        }
         
         // Use the object to configure and start the tunnel
         await this.configureAndStartTunnel();

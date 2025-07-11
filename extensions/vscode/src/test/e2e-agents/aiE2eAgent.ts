@@ -72,10 +72,16 @@ export class AiE2eAgent {
             if (!result) {
                 throw new Error("Failed to create object");
             }
+            let status = "running";
+            switch (testObjectType) {
+                case "commit-suite":
+                    status = (result as unknown as E2eTestCommitSuite).runStatus;
+                    break;
+            }
             return {
                 uuid: result.uuid,
                 description: result.description,
-                status: "running",
+                status: result.runStatus,
                 object: result
             };
         }
@@ -104,11 +110,10 @@ export class AiE2eAgent {
             switch (testObjectType) {
                 case "e2e-test":
                     status = (result as unknown as E2eTest).curRun?.status ?? "running";
-                    break;
                 case "test-suite":
                     status = (result as unknown as E2eTestSuite).completed ? "completed" : "running";
                 case "commit-suite":
-                    status = result.tests.every(test => test.curRun?.status === "completed") ? "completed" : "running";
+                    status = (result as unknown as E2eTestCommitSuite).runStatus;
             }
             return {
                 uuid: result.uuid,

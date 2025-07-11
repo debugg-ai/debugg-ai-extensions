@@ -19,7 +19,7 @@ export abstract class TestHandler {
     protected isRunning: boolean = false;
     protected cleanupCallbacks: (() => void)[] = [];
     protected pollingInterval: number;
-    protected testState: TestState;
+    public testState: TestState;
     protected options: TestHandlerOptions;
 
     constructor(client: DebuggAIServerClient, options: TestHandlerOptions) {
@@ -73,6 +73,13 @@ export abstract class TestHandler {
      */
     public setTestObject(testObject: TestObject): void {
         this.testState.testObject = testObject;
+    }
+
+    /**
+     * Get the test state.
+     */
+    public getTestState(): TestState {
+        return this.testState;
     }
 
     /**
@@ -250,7 +257,7 @@ export abstract class TestHandler {
             // Initialize the test handler
             await this.initialize();
 
-            // Create the test suite
+            // Create the test object
             const testObject = await this.getTestObject();
             if (!testObject) {
                 throw new Error("Failed to create test object");

@@ -296,6 +296,7 @@ export interface E2eTestCommitSuite {
     description: string;
     summarizedChanges: string | null;
     tests: E2eTest[];
+    runStatus: E2eRunStatus;
     createdBy: PublicUserInfo | null;
     timestamp: string;
     lastMod: string;

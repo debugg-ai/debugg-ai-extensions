@@ -1507,6 +1507,11 @@ const getCommandsMap: (
         try {
           const changes = await commitTester.generateTestsForWorkingChanges();
 
+          if (changes.workingChanges.changes.length === 0) {
+            vscode.window.showWarningMessage("No changes to generate tests for");
+            return;
+          }
+
           const aiE2eAgent = new AiE2eAgent(client, {
             testParams: {
               description: "Generate tests for working changes",
@@ -1522,7 +1527,15 @@ const getCommandsMap: (
           // Actually run the handler to process the request
           await aiE2eAgent.testHandler.run();
           // TODO: handle the final state and results if needed
-
+          const testState = aiE2eAgent.testHandler.getTestState();
+          if (testState.testObject) {
+            const testObject = testState.testObject;
+            if (testObject.status === "completed") {
+              vscode.window.showInformationMessage("Tests generated successfully");
+            } else {
+              vscode.window.showErrorMessage("Tests generation failed");
+            }
+          }
         } catch (error) {
           console.error('[CommitTester] Error in generateTestsForWorkingChanges command:', error);
           vscode.window.showErrorMessage(

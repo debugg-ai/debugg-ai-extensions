@@ -58,6 +58,15 @@ export class E2esTestHandler extends RemoteTestHandler {
         // Create E2E test suite
         const testObject = await this.e2eObjectCallbacks.createObject(this.getDescription(), this.getParams());
 
+        if (!testObject.object) {
+            return {
+                uuid: testObject.uuid,
+                description: 'No object created',
+                object: null,
+                status: "failed"
+            }
+        }
+
         // we need to pull out the tunnel information from the test object
         const tunnelKey = testObject.object.tunnelKey;
         if (tunnelKey) {
