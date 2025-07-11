@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import { ConfigHandler } from 'core/config/ConfigHandler';
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
 import { CommitInfo, E2eTest, WorkingChange, WorkingChanges } from 'core/debuggAIServer/types';
@@ -583,9 +585,13 @@ Focus on testing the user-facing functionality that was affected by these change
       }
       console.log('[CommitTester] Workspace directory:', workspaceDir);
 
+      const workspaceDirPath = fileURLToPath(workspaceDir);
+      console.log('[CommitTester] Workspace directory path:', workspaceDirPath);
+
       // Get current branch and working changes
-      const branchInfo = await this.getCurrentBranchInfo(workspaceDir);
-      const workingChanges = await this.getWorkingChanges(workspaceDir, branchInfo);
+      const branchInfo = await this.getCurrentBranchInfo(workspaceDirPath);
+      console.log('[CommitTester] Branch info:', branchInfo);
+      const workingChanges = await this.getWorkingChanges(workspaceDir, workspaceDirPath, branchInfo);
       console.log('[CommitTester] Working changes:', workingChanges);
       if (!workingChanges.changes.length) {
         return nullResult;
@@ -692,14 +698,18 @@ Focus on testing the user-facing functionality that was affected by these change
   /**
    * Get working changes (modified, added, deleted files)
     */
-    private async getWorkingChanges(workspaceDir: string, branchInfo: {branch: string, commitHash: string}): Promise<WorkingChanges> {
+    private async getWorkingChanges(workspaceUri: string, workspaceDir: string, branchInfo: {branch: string, commitHash: string}): Promise<WorkingChanges> {
     const [statusOutput] = await this.ide.subprocess(`git status --porcelain`, workspaceDir);
     const changes: WorkingChange[] = [];
-    
+    console.log('[CommitTester.getWorkingChanges] Status output:', statusOutput);
+
     for (const line of statusOutput.split('\n').filter((l: string) => l.trim())) {
       const status = line.substring(0, 2).trim();
       const file = line.substring(3);
-      
+
+      console.log('[CommitTester.getWorkingChanges] Status:', status);
+      console.log('[CommitTester.getWorkingChanges] File:', file);
+
       if (status === 'M' || status === 'A' || status === 'D') {
         let diff = '';
         if (status === 'M' || status === 'A') {
@@ -719,6 +729,19 @@ Focus on testing the user-facing functionality that was affected by these change
         }
         
         changes.push({ status, file, diff });
+      } else if (status === '??') {
+        // Completely new files have 'diffs' which are just the file contents
+        console.log('[CommitTester.getWorkingChanges] New file:', file);
+        try {
+          const fileUri = path.join(workspaceUri, file);
+          console.log('[CommitTester.getWorkingChanges] File URI:', fileUri);
+          const fileContents = await this.ide.readFile(fileUri.toString());
+          console.log('[CommitTester.getWorkingChanges] Successfully read file contents');
+          changes.push({ status, file, diff: fileContents });
+        } catch (error) {
+          // Ignore diff errors
+          console.error('[CommitTester.getWorkingChanges] Error reading file contents:', error);
+        }
       }
     }
     

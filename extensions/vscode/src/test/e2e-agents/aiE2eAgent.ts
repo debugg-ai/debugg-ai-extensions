@@ -45,7 +45,7 @@ export class AiE2eAgent {
     private setupTestHandler(): E2eRemoteTestHandler {
         const handler = new E2eRemoteTestHandler(
             this.client, 
-            this.agentOptions, 
+            {...this.agentOptions}, 
             {localTunnelPort: this.agentOptions.localServerPort}, 
             this.objectCallbacks,
             this.setupRepositoryInfo()
@@ -156,7 +156,7 @@ export class AiE2eAgent {
     }
 
     private parseStatusFromObject(prevState: TestState, updatedObj: TestObject): Step {
-        switch (this.agentOptions.testObjectType) {
+        switch (this.agentOptions?.testObjectType) {
             case "e2e-test":
                 return this.parseUpdateForE2eTest(prevState, updatedObj);
             case "test-suite":
@@ -171,6 +171,7 @@ export class AiE2eAgent {
         if (!updatedRun) return {
             label: "E2E Test",
             status: "pending",
+            details: "No test object",
             currentState: {
                 evaluationPreviousGoal: "",
                 memory: "",
@@ -269,6 +270,7 @@ export class AiE2eAgent {
         if (!updatedCommitSuite) return {
             label: "E2E Test Commit Suite",
             status: "pending",
+            details: "No commit suite object",
             currentState: {
                 evaluationPreviousGoal: "",
                 memory: "",
@@ -279,7 +281,8 @@ export class AiE2eAgent {
         console.log(`📡 Polled E2E commit suite status: ${updatedCommitSuite.tests.every(test => test.curRun?.status === "completed")}`);
         return {
             label: "E2E Test Commit Suite",
-            status: "pending",
+            status: updatedCommitSuite.runStatus,
+            details: updatedCommitSuite.description,
             currentState: {
                 evaluationPreviousGoal: "",
                 memory: "",

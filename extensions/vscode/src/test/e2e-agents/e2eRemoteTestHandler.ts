@@ -71,7 +71,7 @@ export class E2esTestHandler extends RemoteTestHandler {
         const tunnelKey = testObject.object.tunnelKey;
         if (tunnelKey) {
             this.remoteOptions.remoteTunnelKey = tunnelKey;
-            this.remoteOptions.remoteTunnelUrl = `${tunnelKey}.ngrok.debugg.ai`;
+            this.remoteOptions.remoteTunnelUrl = `${testObject.object.key}.ngrok.debugg.ai`;
         }
 
         return testObject;
@@ -96,6 +96,9 @@ export class E2esTestHandler extends RemoteTestHandler {
         // we need: status, current step, parsed text update
         const step = this.e2eObjectCallbacks.parseStatusFromObject(this.testState, polledUpdate);
 
+        if (!step) {
+            return this.testState;
+        }
         // Update the state for listeners
         this.testState.steps = this.testState.handlePollUpdate(this.testState.steps, step);
         this.testState.stepNumber = this.testState.steps.length;

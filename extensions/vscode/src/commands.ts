@@ -48,7 +48,7 @@ import { showSnippetWebview } from "./debug/webviews/snippetWebview";
 import { DebuggGuiWebviewViewProvider } from "./DebuggGUIWebviewViewProvider";
 import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
 import { CommitTester } from "./test/code-gen/commitTester";
-import { AiE2eAgent } from "./test/e2e-agents/aiE2eAgent";
+import { AiE2eAgent, AiE2eAgentOptions } from "./test/e2e-agents/aiE2eAgent";
 import E2eTestRunner from "./test/e2e-agents/e2eRunner";
 import E2eSuiteGenerator from "./test/e2e-agents/e2eSuiteGen";
 import { start } from "./tunnels/ngrok";
@@ -1522,7 +1522,7 @@ const getCommandsMap: (
             testRunType: "generate",
             remote: true,
             localServerPort: localPortConfig ?? 3000,
-          });
+          } as unknown as AiE2eAgentOptions);
 
           // Actually run the handler to process the request
           await aiE2eAgent.testHandler.run();

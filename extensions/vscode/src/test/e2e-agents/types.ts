@@ -82,7 +82,7 @@ export const handlePollUpdateFn = (steps: Step[], newStep: Step) => {
     if (steps.length === 0) {
         // If no steps, just add the new step
         return [newStep];
-    } else if (steps[steps.length - 1].label === newStep.label) {
+    } else if (steps[steps.length - 1]?.details === newStep?.details) {
         // If the last step is the same as the new step, update the last step
         return steps.map((step, index) => {
             if (index === steps.length - 1) {

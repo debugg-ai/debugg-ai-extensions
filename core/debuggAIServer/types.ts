@@ -296,6 +296,8 @@ export interface E2eTestCommitSuite {
     description: string;
     summarizedChanges: string | null;
     tests: E2eTest[];
+    tunnelKey: string | null;  // Actual api key for ngrok
+    key: string | null;  // UUID key for url endpoint
     runStatus: E2eRunStatus;
     createdBy: PublicUserInfo | null;
     timestamp: string;
@@ -311,6 +313,9 @@ export interface SimpleE2eTestCommitSuite {
     project: number; // project ID
     projectName: string | null;
     summarizedChanges: string | null;
+    tunnelKey: string | null;  // Actual api key for ngrok
+    key: string | null;  // UUID key for url endpoint
+    runStatus: E2eRunStatus;
     testCount: number; // count of tests in this commit suite
     createdBy: PublicUserInfo | null;
     timestamp: string;

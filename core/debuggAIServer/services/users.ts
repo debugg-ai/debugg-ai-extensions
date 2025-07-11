@@ -14,6 +14,8 @@ export const createUsersService = (tx: AxiosTransport): UsersService => ({
      */
     async getUserConfig(): Promise<DebuggAiConfig | null> {
         try {
+            console.log("getUserConfig called");
+            console.log("Transport auth header:", (tx as any).getAuthorizationHeader?.());
             const serverUrl = "api/v1/users/get_ide_config/";
             const response = await tx.get<DebuggAiConfig>(serverUrl);
             console.log("Raw API response:", response);
