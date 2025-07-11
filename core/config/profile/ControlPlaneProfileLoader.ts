@@ -11,12 +11,13 @@ import {
 } from "../../index.js";
 import { ProfileDescription } from "../ProfileLifecycleManager.js";
 
+import { DebuggAIServerClient } from "../../debuggAIServer/stubs/client.js";
 import { ConfigHandler } from "../ConfigHandler";
 import doLoadConfig from "./doLoadConfig.js";
 import { IProfileLoader } from "./IProfileLoader.js";
 
 export default class ControlPlaneProfileLoader implements IProfileLoader {
-  private static RELOAD_INTERVAL = 1000 * 60 * 15; // every 15 minutes
+  private static RELOAD_INTERVAL = 1000 * 60 * 60; // every 60 minutes
 
   description: ProfileDescription;
 
@@ -30,7 +31,8 @@ export default class ControlPlaneProfileLoader implements IProfileLoader {
     private ideSettingsPromise: Promise<IdeSettings>,
     private writeLog: (message: string) => Promise<void>,
     private readonly onReload: () => void,
-    private readonly configHandler: ConfigHandler
+    private readonly configHandler: ConfigHandler,
+    private debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
   ) {
     this.description = {
       id: workspaceId,
@@ -73,7 +75,8 @@ export default class ControlPlaneProfileLoader implements IProfileLoader {
       undefined,
       this.workspaceId,
       undefined,
-      this.configHandler
+      this.configHandler,
+      this.debuggAIServerClientPromise,
     );
   }
 

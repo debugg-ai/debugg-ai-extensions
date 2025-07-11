@@ -93,7 +93,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
 
 
   constructor(
-    private readonly configHandler: ConfigHandler,
+    public readonly configHandler: ConfigHandler,
     private readonly ide: IDE,
     private userToken?: string,
   ) {
@@ -116,6 +116,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.e2es = createE2esService(this.tx);
     this.users = createUsersService(this.tx);
     this.initialized = true;
+    this.initStarted = false;
   }
 
 
@@ -129,14 +130,15 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     return await this.configHandler.controlPlaneClient.userId;
   }
 
-  private async getAccessToken(): Promise<string> {
+  public async getAccessToken(): Promise<string> {
     let accessToken =
       await this.configHandler.controlPlaneClient.getAccessToken();
     if (!accessToken) {
       // If we don't have an access token, we need to refresh it
       if (!this.cachedAccessTokenRefresh) {
         this.cachedAccessTokenRefresh = true;
-        await this.configHandler.reloadConfig();
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        // await this.configHandler.reloadConfig();
         accessToken = await this.configHandler.controlPlaneClient.getAccessToken();
 
         setTimeout(() => {
@@ -158,8 +160,15 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
       await this.init();
     } else if (!this.initialized && this.initStarted) {
       console.log("Waiting for init to complete...");
-      await new Promise(resolve => setTimeout(resolve, 100));
-      await this.awaitInit();
+      // await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => {
+        const interval = setInterval(() => {
+          if (this.initialized) {
+            clearInterval(interval);
+            resolve(undefined);
+          }
+        }, 500);
+      });
     }
   }
 

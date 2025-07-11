@@ -72,6 +72,7 @@ import { localPathToUri } from "../util/pathToUri";
 import { DebuggAIServerClient } from "../debuggAIServer/stubs/client";
 import { ConfigHandler } from "./ConfigHandler";
 import {
+  defaultConfig,
   defaultContextProvidersJetBrains,
   defaultContextProvidersVsCode,
   defaultSlashCommandsJetBrains,
@@ -82,6 +83,29 @@ import { modifyAnyConfigWithSharedConfig } from "./sharedConfig";
 import { getModelByRole, isSupportedLanceDbCpuTargetForLinux } from "./util";
 import { validateConfig } from "./validation.js";
 
+
+async function getConfigFromServer(
+  configHandler: ConfigHandler,
+  ide: IDE,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
+) {
+  let config: SerializedDebuggAiConfig;
+  try {
+    const debuggAIServerClient = await debuggAIServerClientPromise;
+    if (await debuggAIServerClient.configHandler.controlPlaneClient.getAccessToken()) {
+      console.log("DebuggAIServerClient initialized");
+      await debuggAIServerClient.awaitInit();
+
+      config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
+      console.log("Loaded remote config", config);
+      return config;
+    }
+  } catch (e) {
+    console.error("Error loading remote config", e);
+    throw e;
+  }
+}
+
 export async function resolveSerializedConfig(
   filepath: string,
   ide: IDE,
@@ -91,7 +115,8 @@ export async function resolveSerializedConfig(
   writeLog: (log: string) => Promise<void>,
   workOsAccessToken: string | undefined,
   overrideConfigJson: SerializedDebuggAiConfig | undefined,
-  configHandler: ConfigHandler
+  configHandler: ConfigHandler,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
 ): Promise<SerializedDebuggAiConfig> {
   let config: SerializedDebuggAiConfig;
 
@@ -100,35 +125,22 @@ export async function resolveSerializedConfig(
     config = JSON.parse(content) as unknown as SerializedDebuggAiConfig;
 
     if (!config.vectorDatabaseOpts?.apiKey) {
-      try {
-        const debuggAIServerClient = new DebuggAIServerClient(
-          configHandler,
-          ide
-        );
-        await debuggAIServerClient.awaitInit();
-        console.log("DebuggAIServerClient initialized");
-        config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
-        console.log("Loaded remote config", config);
-      } catch (e) {
-        console.error("Error loading remote config", e);
-        throw e;
+      const remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise);
+      if (remoteConfig) {
+        // config = mergeJson(config, remoteConfig, "merge", configMergeKeys);
+        config = remoteConfig;
       }
     }
   } catch (e) {
     console.error("Error parsing config.json, attempting to load remote for file", filepath);
 
-    try {
-      const debuggAIServerClient = new DebuggAIServerClient(
-        configHandler,
-        ide
-      );
-      await debuggAIServerClient.awaitInit();
-      console.log("DebuggAIServerClient initialized");
-      config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
-      console.log("Loaded remote config", config);
-    } catch (e) {
-      console.error("Error loading remote config", e);
-      throw e;
+    const remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise);
+    if (remoteConfig) {
+      // config = mergeJson(config, remoteConfig, "merge", configMergeKeys);
+      config = remoteConfig;
+    } else {
+      // read default config
+      config = defaultConfig as unknown as SerializedDebuggAiConfig;
     }
 
     const configJson = JSON.stringify(config);
@@ -177,7 +189,8 @@ async function loadSerializedConfig(
   uniqueId: string,
   writeLog: (log: string) => Promise<void>,
   workOsAccessToken: string | undefined,
-  configHandler: ConfigHandler
+  configHandler: ConfigHandler,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
 ): Promise<ConfigResult<SerializedDebuggAiConfig>> {
   let config: SerializedDebuggAiConfig = overrideConfigJson!;
   if (!config) {
@@ -191,7 +204,8 @@ async function loadSerializedConfig(
         writeLog,
         workOsAccessToken,
         overrideConfigJson,
-        configHandler
+        configHandler,
+        debuggAIServerClientPromise,
       );
     } catch (e) {
       throw new Error(`Failed to parse config.json: ${e}`);
@@ -223,7 +237,8 @@ async function loadSerializedConfig(
         writeLog,
         workOsAccessToken,  
         undefined,
-        configHandler
+        configHandler,
+        debuggAIServerClientPromise,
       );
       config = mergeJson(config, remoteConfigJson, "merge", configMergeKeys);
     } catch (e) {
@@ -965,7 +980,8 @@ async function loadDebuggAiConfigFromJson(
   writeLog: (log: string) => Promise<void>,
   workOsAccessToken: string | undefined,
   overrideConfigJson: SerializedDebuggAiConfig | undefined,
-  configHandler: ConfigHandler
+  configHandler: ConfigHandler,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
 ): Promise<ConfigResult<DebuggAiConfig>> {
   // Serialized config
   let {
@@ -982,7 +998,8 @@ async function loadDebuggAiConfigFromJson(
     uniqueId,
     writeLog,
     workOsAccessToken,
-    configHandler
+    configHandler,
+    debuggAIServerClientPromise,
   );
 
   if (!serialized || configLoadInterrupted) {

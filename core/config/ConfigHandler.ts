@@ -16,6 +16,7 @@ import {
 import Ollama from "../llm/llms/Ollama.js";
 import { GlobalContext } from "../util/GlobalContext.js";
 
+import { DebuggAIServerClient } from "../debuggAIServer/stubs/client.js";
 import { getAllAssistantFiles } from "./loadLocalAssistants.js";
 import {
   LOCAL_ONBOARDING_CHAT_MODEL,
@@ -41,6 +42,7 @@ export class ConfigHandler {
   private profiles: ProfileLifecycleManager[] | null = null; // null until profiles are loaded
   private selectedProfileId: string | null = null;
   private localProfileManager: ProfileLifecycleManager;
+  private debuggAIServerClientPromise: Promise<DebuggAIServerClient>;
   controlPlaneClient: ControlPlaneClient;
 
   initializedPromise: Promise<void>;
@@ -50,6 +52,7 @@ export class ConfigHandler {
     private ideSettingsPromise: Promise<IdeSettings>,
     private readonly writeLog: (text: string) => Promise<void>,
     sessionInfoPromise: Promise<ControlPlaneSessionInfo | undefined>,
+    debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
     private readonly didSelectOrganization?: (orgId: string | null) => void,
   ) {
     this.ide = ide;
@@ -59,6 +62,7 @@ export class ConfigHandler {
       sessionInfoPromise,
       ideSettingsPromise,
     );
+    this.debuggAIServerClientPromise = debuggAIServerClientPromise;
 
     // Set local profile as default
     const localProfileLoader = new LocalProfileLoader(
@@ -67,6 +71,7 @@ export class ConfigHandler {
       this.controlPlaneClient,
       writeLog,
       this,
+      this.debuggAIServerClientPromise,
     );
     this.localProfileManager = new ProfileLifecycleManager(
       localProfileLoader,
@@ -97,6 +102,7 @@ export class ConfigHandler {
         this.controlPlaneClient,
         this.writeLog,
         this,
+        this.debuggAIServerClientPromise,
         assistant,
       );
     });
@@ -203,6 +209,7 @@ export class ConfigHandler {
             this.writeLog,
             this.reloadConfig.bind(this),
             this,
+            this.debuggAIServerClientPromise,
           );
 
           return new ProfileLifecycleManager(profileLoader, this.ide);
@@ -280,36 +287,7 @@ export class ConfigHandler {
     return false;
   }
 
-  private async reloadHubAssistants() {
-    console.log("reloadHubAssistants");
-    // const selectedOrgId = await this.getSelectedOrgId();
-    // const newFullSlugsList =
-    //   await this.controlPlaneClient.listAssistantFullSlugs(selectedOrgId);
-
-    // if (newFullSlugsList) {
-    //   const shouldReload = this.fullSlugsListsDiffer(
-    //     newFullSlugsList,
-    //     this.lastFullSlugsList,
-    //   );
-    //   if (shouldReload) {
-    //     await this.loadAssistantsForSelectedOrg();
-    //   }
-    //   this.lastFullSlugsList = newFullSlugsList;
-    // }
-  }
-
   private async fetchControlPlaneProfiles() {
-    // if (await useHub(this.ideSettingsPromise)) {
-    //   clearInterval(this.platformProfilesRefreshInterval);
-    //   await this.loadAssistantsForSelectedOrg();
-
-    //   // Every 5 seconds we ask the platform whether there are any assistant updates in the last 5 seconds
-    //   // If so, we do the full (more expensive) reload
-    //   this.platformProfilesRefreshInterval = setInterval(
-    //     this.reloadHubAssistants.bind(this),
-    //     PlatformProfileLoader.RELOAD_INTERVAL,
-    //   );
-    // } else {
     try {
       const workspaces = await this.controlPlaneClient.listWorkspaces();
       const profiles = await this.getAllLocalProfiles();
@@ -322,7 +300,8 @@ export class ConfigHandler {
           this.ideSettingsPromise,
           this.writeLog,
           this.reloadConfig.bind(this),
-          this
+          this,
+          this.debuggAIServerClientPromise,
         );
 
         profiles.push(new ProfileLifecycleManager(profileLoader, this.ide));

@@ -7,6 +7,7 @@ import { localPathToUri } from "../../util/pathToUri.js";
 import { getUriPathBasename } from "../../util/uri.js";
 import { ProfileDescription } from "../ProfileLifecycleManager.js";
 
+import { DebuggAIServerClient } from "../../debuggAIServer/stubs/client.js";
 import { ConfigHandler } from "../ConfigHandler.js";
 import doLoadConfig from "./doLoadConfig.js";
 import { IProfileLoader } from "./IProfileLoader.js";
@@ -20,6 +21,7 @@ export default class LocalProfileLoader implements IProfileLoader {
     private controlPlaneClient: ControlPlaneClient,
     private writeLog: (message: string) => Promise<void>,
     private readonly configHandler: ConfigHandler,
+    private debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
     private overrideAssistantFile?:
       | { path: string; content: string }
       | undefined,
@@ -67,6 +69,7 @@ export default class LocalProfileLoader implements IProfileLoader {
       this.description.id,
       this.overrideAssistantFile?.path,
       this.configHandler,
+      this.debuggAIServerClientPromise,
     );
 
     this.description.errors = result.errors;

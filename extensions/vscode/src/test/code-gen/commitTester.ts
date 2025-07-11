@@ -549,41 +549,46 @@ Focus on testing the user-facing functionality that was affected by these change
     branchInfo: {branch: string, commitHash: string};
     testFiles?: string[];
   }> {
+    const nullResult = {
+      workingChanges: {
+        changes: [],
+        branchInfo: {
+          branch: '',
+          commitHash: ''
+        }
+      },
+      branchInfo: {branch: '', commitHash: ''},
+      testFiles: []
+    };
     try {
       console.log('[CommitTester] Generating tests for current working changes');
-      
+
       // Get current git status to understand what changes exist
-      const workspaceDir = await this.getCurrentWorkspaceDir();
+      let workspaceDir = await this.getCurrentWorkspaceDir();
+
       if (!workspaceDir) {
-        return {
-          workingChanges: {
-            changes: [],
-            branchInfo: {
-              branch: '',
-              commitHash: ''
-            }
-          },
-          branchInfo: {branch: '', commitHash: ''},
-          testFiles: []
-        };
+        console.log('[CommitTester] No workspace directory found');
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            console.log('[CommitTester] No active text editor found');
+            return nullResult;
+        }
+        const repoName = await this.ide.getRepoName(editor.document.uri.fsPath);
+        if (!repoName) {
+            console.log('[CommitTester] No repo name found for file');
+            return nullResult;
+        }
+        workspaceDir = path.dirname(editor.document.uri.fsPath);
+
       }
+      console.log('[CommitTester] Workspace directory:', workspaceDir);
 
       // Get current branch and working changes
       const branchInfo = await this.getCurrentBranchInfo(workspaceDir);
       const workingChanges = await this.getWorkingChanges(workspaceDir, branchInfo);
-      
+      console.log('[CommitTester] Working changes:', workingChanges);
       if (!workingChanges.changes.length) {
-        return {
-          workingChanges: {
-            changes: [],
-            branchInfo: {
-              branch: '',
-              commitHash: ''
-            }
-          },
-          branchInfo: {branch: '', commitHash: ''},
-          testFiles: []
-        };
+        return nullResult;
       }
 
       // Structure the working changes properly
@@ -639,17 +644,36 @@ Focus on testing the user-facing functionality that was affected by these change
    * Get the current workspace directory
    */
   private async getCurrentWorkspaceDir(): Promise<string | null> {
-    const git = this.getGitApi();
-    if (!git) {
-      return null;
-    }
+    // const git = this.getGitApi();
+    // if (!git) {
+    //   return null;
+    // }
 
-    const api = await git;
-    if (!api || !api.repositories.length) {
-      return null;
-    }
+    // const api = await git;
+    // if (!api || !api.repositories.length) {
+    //   return null;
+    // }
 
-    return api.repositories[0].rootUri.fsPath;
+    // return api.repositories[0].rootUri.fsPath;
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        return null;
+    }
+    try {
+        const filePath = editor.document.uri.fsPath;
+        const repoPath = await this.ide.getGitRootPath(filePath);
+        if (!repoPath) {
+            console.log('[CommitTester] No repo path found for file');
+            return null;
+        }
+        return repoPath;
+
+    } catch (e) {
+        console.error("Error setting up E2E test runner:", e);
+        vscode.window.showWarningMessage("File not found or not associated with a repo.")
+        return null;
+    }
   }
 
   /**

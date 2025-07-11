@@ -60,22 +60,30 @@ export abstract class RemoteTestHandler extends TestHandler {
         // Configure ngrok
         await this.configureNgrok();
 
+        console.log("Ngrok configured for remote test handler");
         // Initialize the test handler
         await this.initialize();
 
+        console.log("Remote test handler initialized");
+
         // Create the test object
         await this.getTestObject();
+
+        console.log("Test object created");
         
         // Use the object to configure and start the tunnel
         await this.configureAndStartTunnel();
+
+        console.log("Tunnel configured and started");
 
         // Add tunnel cleanup callback for when we're done
         this.addCleanupCallback(() => {
             this.stopNgrokTunnel();
         });
 
+        console.log("Running test handler...");
         // Run the test using parent implementation
-        await this.run();
+        await super.run();
     }
 
     /**

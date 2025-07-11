@@ -108,11 +108,17 @@ export class Core {
       useOnboarding: false,
     });
 
+    let debuggAIServerClientResolve: (_: any) => void | undefined;
+    this.debuggAIServerClientPromise = new Promise(
+      (resolve) => (debuggAIServerClientResolve = resolve),
+    );
+
     this.configHandler = new ConfigHandler(
       this.ide,
       ideSettingsPromise,
       this.onWrite,
       sessionInfoPromise,
+      this.debuggAIServerClientPromise,
       (orgId: string | null) => {
         void messenger.request("didSelectOrganization", {
           orgId,
@@ -170,12 +176,6 @@ export class Core {
     // this.continueServerClientPromise = new Promise(
     //   (resolve) => (continueServerClientResolve = resolve),
     // );
-
-
-    let debuggAIServerClientResolve: (_: any) => void | undefined;
-    this.debuggAIServerClientPromise = new Promise(
-      (resolve) => (debuggAIServerClientResolve = resolve),
-    );
 
 
     void ideSettingsPromise.then((ideSettings) => {

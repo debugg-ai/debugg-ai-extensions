@@ -79,7 +79,8 @@ function decodeJwt(jwt: string): any | null {
         return null;
     }
 }
-function jwtLifetime(jwt: string, fallbackMs = 15 * 60 * 1000) {
+function jwtLifetime(jwt: string, fallbackMs = 24 * 60 * 60 * 1000) {
+    // We are using a 24 hour access tokens for oauth.
     const t = decodeJwt(jwt);
     return t && t.exp && t.iat ? (t.exp - t.iat) * 1000 : fallbackMs;
 }
@@ -91,6 +92,7 @@ interface DebuggAIAuthenticationSession extends AuthenticationSession {
     refreshToken: string;
     expiresInMs: number;
     loginNeeded: boolean;
+    expiresAt: number;
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -186,6 +188,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
             accessToken: access,
             refreshToken: refresh,
             expiresInMs: jwtLifetime(access),
+            expiresAt: Date.now() + jwtLifetime(access),
             loginNeeded: false,
             account: {
                 id: user.email,
@@ -284,7 +287,19 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
         }
     }
 
-    private async _refreshSession(refreshToken: string) {
+    private async _refreshSession(refreshToken: string, session?: DebuggAIAuthenticationSession) {
+        // Check if the current access token is expired
+        const expiresAt = session?.expiresAt;
+        if (expiresAt && expiresAt < Date.now()) {
+            console.log("Current access token is expired, refreshing session...");
+            return {
+                accessToken: session?.accessToken,
+                refreshToken: session?.refreshToken,
+                expiresInMs: expiresAt - Date.now(),
+                expiresAt: expiresAt,
+            }
+        }
+
         console.log("Attempting to refresh session... with refresh token:", refreshToken);
         console.log('args - ', {
             grant_type: "refresh_token",
@@ -314,6 +329,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
             accessToken: response.data?.access_token,
             refreshToken: response.data?.refresh_token,
             expiresInMs: jwtLifetime(response.data?.access_token),
+            expiresAt: Date.now() + jwtLifetime(response.data?.access_token),
         };
     }
 
