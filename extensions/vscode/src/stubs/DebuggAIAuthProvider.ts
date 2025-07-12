@@ -266,7 +266,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
         const final: DebuggAIAuthenticationSession[] = [];
         for (const s of sessions) {
             try {
-                const newS = await this._refreshSession(s.refreshToken);
+                const newS = await this._refreshSession(s.refreshToken, s);
                 final.push({ ...s, ...newS });
             } catch (e) {
                 console.log("Refresh failed, moving on", e);

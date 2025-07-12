@@ -21,7 +21,7 @@ export interface PlatformConfigMetadata {
 }
 
 export default class PlatformProfileLoader implements IProfileLoader {
-  static RELOAD_INTERVAL = 1000 * 5; // 5 seconds
+  static RELOAD_INTERVAL = 1000 * 60 * 60 * 4; // every 4 hours
 
   private constructor(
     private configResult: ConfigResult<AssistantUnrolled>,

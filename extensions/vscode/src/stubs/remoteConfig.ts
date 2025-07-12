@@ -103,7 +103,7 @@ export class RemoteConfigSync {
         }
         this.sync(this.userToken, this.remoteConfigServerUrl);
       },
-      this.remoteConfigSyncPeriod * 1000 * 60,
+      this.remoteConfigSyncPeriod * 1000 * 60 * 60 * 4,
     );
   }
 

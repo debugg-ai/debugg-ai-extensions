@@ -1526,6 +1526,11 @@ const getCommandsMap: (
 
           // Actually run the handler to process the request
           await aiE2eAgent.testHandler.run();
+
+          while (aiE2eAgent.testHandler.isTestRunning()) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+
           // TODO: handle the final state and results if needed
           const testState = aiE2eAgent.testHandler.getTestState();
           if (testState.testObject) {

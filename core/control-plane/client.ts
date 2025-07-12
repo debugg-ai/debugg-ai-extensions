@@ -15,6 +15,7 @@ import { getControlPlaneEnv } from "./env.js";
 
 export interface ControlPlaneSessionInfo {
   accessToken: string;
+  // refreshToken: string;
   account: {
     label: string;
     id: string;

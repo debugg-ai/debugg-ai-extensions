@@ -141,6 +141,8 @@ export class VsCodeExtension {
       );
       outputChannel.append(log);
     });
+    this.core.configHandler.debuggAIAuthProvider = this.debuggAIAuthProvider;
+    
     this.configHandler = this.core.configHandler;
     resolveConfigHandler?.(this.configHandler);
 

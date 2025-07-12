@@ -339,8 +339,13 @@ export const createE2esService = (tx: DebuggTransport): E2esService => ({
             const response = await tx.get<E2eTestCommitSuite>(serverUrl, { ...params });    
             console.log("Raw API response:", response);
             return response;
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error fetching E2E commit suite:", err);
+            console.error("Error details:", {
+                status: err.response?.status,
+                data: err.response?.data,
+                message: err.message
+            });
             return null;
         }
     },

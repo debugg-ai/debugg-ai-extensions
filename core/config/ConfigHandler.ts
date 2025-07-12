@@ -44,7 +44,7 @@ export class ConfigHandler {
   private localProfileManager: ProfileLifecycleManager;
   private debuggAIServerClientPromise: Promise<DebuggAIServerClient>;
   controlPlaneClient: ControlPlaneClient;
-
+  debuggAIAuthProvider: any = null;
   initializedPromise: Promise<void>;
 
   constructor(

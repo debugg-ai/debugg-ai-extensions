@@ -279,10 +279,13 @@ export class AiE2eAgent {
             action: []
         };
         console.log(`📡 Polled E2E commit suite status: ${updatedCommitSuite.tests.every(test => test.curRun?.status === "completed")}`);
+        
+        const status = updatedCommitSuite.runStatus;
+        const details = updatedCommitSuite.tests.map(test => test.description).join("\n");
         return {
             label: "E2E Test Commit Suite",
-            status: updatedCommitSuite.runStatus,
-            details: updatedCommitSuite.description,
+            status: status,
+            details: details,
             currentState: {
                 evaluationPreviousGoal: "",
                 memory: "",

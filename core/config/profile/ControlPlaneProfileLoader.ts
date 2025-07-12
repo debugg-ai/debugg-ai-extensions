@@ -17,7 +17,7 @@ import doLoadConfig from "./doLoadConfig.js";
 import { IProfileLoader } from "./IProfileLoader.js";
 
 export default class ControlPlaneProfileLoader implements IProfileLoader {
-  private static RELOAD_INTERVAL = 1000 * 60 * 60; // every 60 minutes
+  private static RELOAD_INTERVAL = 1000 * 60 * 60 * 4; // every 4 hours
 
   description: ProfileDescription;
 
