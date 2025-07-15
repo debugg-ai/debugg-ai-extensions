@@ -37,7 +37,7 @@ const debuggAiTestEnv = workspace
     .get<"none" | "local" | "production" | "staging">("debuggAiTestEnvironment", "production");
 
 const controlPlaneEnv = getControlPlaneEnvSync(
-    debuggAiTestEnv,
+    'production',
     enableControlServerBeta,
 );
 console.log("Control plane env:", controlPlaneEnv);
@@ -116,7 +116,8 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
     >();
 
     private static EXPIRATION_TIME_MS = 1000 * 60 * 15;
-
+    private _lastRefreshTime: number = 0;
+    
     constructor(
         private readonly context: ExtensionContext,
         private readonly _uriHandler: UriEventHandler
@@ -301,6 +302,16 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
         }
 
         console.log("Attempting to refresh session... with refresh token:", refreshToken);
+        
+        const curTime = Date.now();
+
+        if (curTime - this._lastRefreshTime < 5000) {
+            console.log('Waiting for 5 seconds before refreshing again...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+
+        this._lastRefreshTime = Date.now();
+
         console.log('args - ', {
             grant_type: "refresh_token",
             refresh_token: refreshToken,
@@ -318,6 +329,8 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
                 "Content-Type": "application/x-www-form-urlencoded",
             },
         });
+
+        this._lastRefreshTime = curTime;
         // const { access_token: access, refresh_token: refresh } = await fetchWithQueryParams<{ access_token: string, refresh_token: string }>(TOKEN_REFRESH_ENDPOINT, {
         //     grant_type: "refresh_token",
         //     refresh_token: refreshToken,

@@ -4,7 +4,7 @@ import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import { E2eRun, E2eTest, E2eTestCommitSuite, E2eTestSuite } from "core/debuggAIServer/types";
 import * as vscode from 'vscode';
 import E2eRemoteTestHandler from "./e2eRemoteTestHandler";
-import { E2eObjectCallbacks, RepositoryInfo, Status, Step, TestHandlerOptions, TestObject, TestState } from "./types";
+import { E2eObjectCallbacks, RepositoryInfo, Status, Step, TerminalTest, TestHandlerOptions, TestObject, TestState, handlePollUpdateFn } from "./types";
 
 
 export type TestObjectType = "e2e-test" | "test-suite" | "commit-suite";
@@ -24,14 +24,16 @@ export class AiE2eAgent {
     private agentOptions: AiE2eAgentOptions;
     private objectCallbacks: E2eObjectCallbacks;
     public testHandler: E2eRemoteTestHandler;
+    public testObjectType: TestObjectType;
 
     constructor(client: DebuggAIServerClient, options: AiE2eAgentOptions) {
         this.client = client;
+        this.testObjectType = options.testObjectType;
         this.agentOptions = options;
         this.objectCallbacks = {
-            createObject: this.getClientCreateFunction(options.testObjectType, options.testRunType),
-            pollObject: this.getClientPollFunction(options.testObjectType, options.testRunType),
-            parseStatusFromObject: this.parseStatusFromObject
+            createObject: this.getClientCreateFunction(this.testObjectType, options.testRunType),
+            pollObject: this.getClientPollFunction(this.testObjectType, options.testRunType),
+            parseStatusFromObject: this.parseStatusFromObject(this.testObjectType)
         };
         this.testHandler = this.setupTestHandler();
     }
@@ -44,9 +46,9 @@ export class AiE2eAgent {
      */
     private setupTestHandler(): E2eRemoteTestHandler {
         const handler = new E2eRemoteTestHandler(
-            this.client, 
-            {...this.agentOptions}, 
-            {localTunnelPort: this.agentOptions.localServerPort}, 
+            this.client,
+            { ...this.agentOptions },
+            { localTunnelPort: this.agentOptions.localServerPort },
             this.objectCallbacks,
             this.setupRepositoryInfo()
         );
@@ -115,6 +117,7 @@ export class AiE2eAgent {
                 case "commit-suite":
                     status = (result as unknown as E2eTestCommitSuite).runStatus;
             }
+            console.log(`📡 Polled E2E object status: ${status}`);
             return {
                 uuid: result.uuid,
                 description: result.description,
@@ -155,23 +158,35 @@ export class AiE2eAgent {
         return this.agentOptions.repositoryInfo;
     }
 
-    private parseStatusFromObject(prevState: TestState, updatedObj: TestObject): Step {
-        switch (this.agentOptions?.testObjectType) {
-            case "e2e-test":
-                return this.parseUpdateForE2eTest(prevState, updatedObj);
-            case "test-suite":
-                return this.parseUpdateForE2eTestSuite(prevState, updatedObj);
-            case "commit-suite":
-                return this.parseUpdateForE2eCommitSuite(prevState, updatedObj);
+    private parseStatusFromObject(testObjectType: TestObjectType): (prevState: TestState, updatedObj: TestObject) => TestState {
+        console.log(`📡 Parsing status from object: ${testObjectType}`);
+        const parseFunction = (prevState: TestState, updatedObj: TestObject) => {
+            switch (testObjectType) {
+                case "e2e-test":
+                    return this.parseUpdateForE2eTest(prevState, updatedObj);
+                case "test-suite":
+                    return this.parseUpdateForE2eTestSuite(prevState, updatedObj);
+                case "commit-suite":
+                    return this.parseUpdateForE2eCommitSuite(prevState, updatedObj);
+            }
         }
+        return parseFunction;
     }
 
-    private parseUpdateForE2eTest(prevState: TestState, updatedObj: TestObject): Step {
+    private parseUpdateForE2eTest(prevState: TestState, updatedObj: TestObject): TestState {
         const updatedRun = updatedObj.object as E2eRun;
         if (!updatedRun) return {
+            ...prevState,
+            testObject: updatedObj,
+            status: "pending"
+        };
+
+        console.log(`📡 Polled E2E run status: ${updatedRun.status}`);
+
+        // Create a new step from the current run data
+        let currentStep: Step = {
             label: "E2E Test",
             status: "pending",
-            details: "No test object",
             currentState: {
                 evaluationPreviousGoal: "",
                 memory: "",
@@ -179,8 +194,6 @@ export class AiE2eAgent {
             },
             action: []
         };
-
-        console.log(`📡 Polled E2E run status: ${updatedRun.status}`);
 
         // Update with the latest step status
         let prevStepMessage = "";
@@ -206,18 +219,15 @@ export class AiE2eAgent {
                 const stepMessage = actionFmt.currentState.memory;
                 const stepStatus = actionFmt.currentState.evaluationPreviousGoal ? actionFmt.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() : "pending";
                 if (stepStatus && prevStepMessage) {
-                    // formatter.updateStep(prevStepMessage, stepStatus as any);
-                    return {
+                    currentStep = {
                         label: prevStepMessage,
                         status: stepStatus as Status,
                         details: stepMessage,
                         currentState: actionFmt.currentState,
                         action: actionFmt.action
                     };
-                }
-                if (stepMessage) {
-                    // formatter.updateStep(stepMessage, 'pending');
-                    return {
+                } else if (stepMessage) {
+                    currentStep = {
                         label: stepMessage,
                         status: 'pending',
                         details: stepMessage,
@@ -227,71 +237,95 @@ export class AiE2eAgent {
                 }
             }
         }
+
+        // Update steps using the handlePollUpdate function
+        const updatedSteps = prevState.handlePollUpdate(prevState.steps, currentStep);
+
         return {
-            label: "E2E Test",
-            status: "pending",
-            currentState: {
-                evaluationPreviousGoal: "",
-                memory: "",
-                nextGoal: ""
-            },
-            action: []
+            ...prevState,
+            testObject: updatedObj,
+            status: updatedRun.status,
+            completed: updatedRun.status === 'completed',
+            steps: updatedSteps
         };
     }
 
-    private parseUpdateForE2eTestSuite(prevState: TestState, updatedObj: TestObject): Step {
+    private parseUpdateForE2eTestSuite(prevState: TestState, updatedObj: TestObject): TestState {
         const updatedSuite = updatedObj.object as E2eTestSuite;
         if (!updatedSuite) return {
-            label: "E2E Test Suite",
-            status: "pending",
-            currentState: {
-                evaluationPreviousGoal: "",
-                memory: "",
-                nextGoal: ""
-            },
-            action: []
+            ...prevState,
+            testObject: updatedObj,
+            status: "pending"
         };
 
         console.log(`📡 Polled E2E suite status: ${updatedSuite.completed}`);
-        return {
+        const status = updatedSuite.completed ? "completed" : "running";
+        
+        // Create a step for the suite status
+        const currentStep: Step = {
             label: "E2E Test Suite",
-            status: "pending",
+            status: status,
+            details: `Suite ${updatedSuite.completed ? "completed" : "running"}`,
             currentState: {
                 evaluationPreviousGoal: "",
                 memory: "",
                 nextGoal: ""
             },
             action: []
+        };
+
+        // Update steps using the handlePollUpdate function
+        const updatedSteps = prevState.handlePollUpdate(prevState.steps, currentStep);
+
+        return {
+            ...prevState,
+            testObject: updatedObj,
+            status: status,
+            completed: updatedSuite.completed || false,
+            steps: updatedSteps
         };
     }
 
-    private parseUpdateForE2eCommitSuite(prevState: TestState, updatedObj: TestObject): Step {
+    private parseUpdateForE2eCommitSuite(prevState: TestState, updatedObj: TestObject): TestState {
         const updatedCommitSuite = updatedObj.object as E2eTestCommitSuite;
+        console.log(`📡 Polled E2E commit suite: ${updatedCommitSuite}`);
         if (!updatedCommitSuite) return {
-            label: "E2E Test Commit Suite",
-            status: "pending",
-            details: "No commit suite object",
-            currentState: {
-                evaluationPreviousGoal: "",
-                memory: "",
-                nextGoal: ""
-            },
-            action: []
+            ...prevState,
         };
-        console.log(`📡 Polled E2E commit suite status: ${updatedCommitSuite.tests.every(test => test.curRun?.status === "completed")}`);
         
+        console.log(`📡 Polled E2E commit suite status: ${updatedCommitSuite.runStatus}`);
+
+        // Convert E2eTest objects to TerminalTest objects
+        const tests: TerminalTest[] = updatedCommitSuite.tests.map(test => ({
+            uuid: test.uuid,
+            description: test.description || test.name,
+            title: test.name,
+            status: test.curRun?.status || 'pending',
+            object: test,
+            steps: test.curRun?.conversations?.[0]?.messages?.map(message => ({
+                label: message.jsonContent?.currentState?.memory ?? "",
+                status: message.jsonContent?.currentState?.evaluationPreviousGoal ? message.jsonContent.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() : "pending",
+                details: message.jsonContent?.currentState?.memory,
+                currentState: message.jsonContent?.currentState,
+                action: message.jsonContent?.action
+            })) ?? [], // Initialize empty steps array for each test
+            handlePollUpdate: handlePollUpdateFn
+        }));
+
+        // Determine overall status based on commit suite status
         const status = updatedCommitSuite.runStatus;
-        const details = updatedCommitSuite.tests.map(test => test.description).join("\n");
+        const completed = status === 'completed';
+
+        // Create a new TestState object with updated information
         return {
-            label: "E2E Test Commit Suite",
+            testObject: updatedObj,
+            testResults: null, // No results yet for commit suites
+            stepNumber: prevState.stepNumber,
+            completed: completed,
             status: status,
-            details: details,
-            currentState: {
-                evaluationPreviousGoal: "",
-                memory: "",
-                nextGoal: ""
-            },
-            action: []
+            tests: tests,
+            steps: prevState.steps, // Keep existing steps
+            handlePollUpdate: prevState.handlePollUpdate
         };
     }
 }

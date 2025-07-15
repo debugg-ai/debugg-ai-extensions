@@ -37,7 +37,7 @@ import { getMetaKeyLabel } from "./util/util";
 import { VsCodeIde } from "./VsCodeIde";
 
 import { LOCAL_DEV_DATA_VERSION } from "core/data/log";
-import { E2eTestSuite, Issue } from 'core/debuggAIServer/types';
+import { E2eTestCommitSuite, E2eTestSuite, Issue } from 'core/debuggAIServer/types';
 import { E2eTestHandler } from "core/e2es/e2eTestHandler";
 import { NgrokTunnelClient } from "core/e2es/ngrok-service";
 import { isModelInstaller } from "core/llm";
@@ -1318,9 +1318,9 @@ const getCommandsMap: (
         console.log("Local port config - ", localPortConfig);
         const client = await debuggAIServerClientPromise;
         const e2eTestRunner = new E2eTestHandler(
-          client, 
-          ide, 
-          configHandler, 
+          client,
+          ide,
+          configHandler,
           new NgrokTunnelClient()
         );
         const testDescription = await getTestDescription();
@@ -1372,7 +1372,7 @@ const getCommandsMap: (
         const client = await debuggAIServerClientPromise;
 
         const editor = vscode.window.activeTextEditor;
-        if (!editor) {  
+        if (!editor) {
           vscode.window.showWarningMessage("No file open.");
           return;
         }
@@ -1422,7 +1422,7 @@ const getCommandsMap: (
         console.log("Local port config - ", localPortConfig);
         const e2eSuiteGenerator = new E2eSuiteGenerator(client);
         await e2eSuiteGenerator.runE2eSuiteGenerator(selectedSuite?.description ?? "", localPortConfig, selectedSuite);
-        
+
       },
       "debugg-ai.startTunnel": async (port: number, domain: string) => {
         captureCommandTelemetry("debugg-ai.startTunnel");
@@ -1434,7 +1434,7 @@ const getCommandsMap: (
           addr: port,
           hostname: domain,
           onLogEvent: (data: any) => {
-              console.log(`${port} | ${domain} | ngrok log: ${data}`);
+            console.log(`${port} | ${domain} | ngrok log: ${data}`);
           },
         });
 
@@ -1443,18 +1443,18 @@ const getCommandsMap: (
       // Commit Tester Commands
       "debugg-ai.startCommitTesting": async () => {
         captureCommandTelemetry("debugg-ai.startCommitTesting");
-        
+
         if (!commitTester) {
           const client = await debuggAIServerClientPromise;
           commitTester = new CommitTester(client, ide, configHandler, extensionContext);
         }
-        
+
         await commitTester.initialize();
       },
 
       "debugg-ai.stopCommitTesting": async () => {
         captureCommandTelemetry("debugg-ai.stopCommitTesting");
-        
+
         if (commitTester) {
           commitTester.stopMonitoring();
           vscode.window.showInformationMessage("Commit testing stopped");
@@ -1465,11 +1465,11 @@ const getCommandsMap: (
 
       "debugg-ai.getCommitTestingStatus": async () => {
         captureCommandTelemetry("debugg-ai.getCommitTestingStatus");
-        
+
         if (commitTester) {
           const isMonitoring = commitTester.isMonitoringCommits();
           const outputDir = commitTester.getTestOutputDirectory();
-          
+
           vscode.window.showInformationMessage(
             `Commit testing is ${isMonitoring ? 'active' : 'inactive'}. Test output directory: ${outputDir}`
           );
@@ -1480,12 +1480,12 @@ const getCommandsMap: (
 
       "debugg-ai.setCommitTestOutputDirectory": async () => {
         captureCommandTelemetry("debugg-ai.setCommitTestOutputDirectory");
-        
+
         const newDir = await vscode.window.showInputBox({
           prompt: 'Enter the test output directory path',
           value: commitTester?.getTestOutputDirectory() || 'tests/playwright'
         });
-        
+
         if (newDir && commitTester) {
           commitTester.setTestOutputDirectory(newDir);
           vscode.window.showInformationMessage(`Test output directory set to: ${newDir}`);
@@ -1497,54 +1497,90 @@ const getCommandsMap: (
         const client = await debuggAIServerClientPromise;
         const { config } = await configHandler.loadConfig();
         let localPortConfig = config?.debuggAiServerPort;
-        
+
         if (!commitTester) {
           commitTester = new CommitTester(client, ide, configHandler, extensionContext);
         }
-        
-        vscode.window.setStatusBarMessage("Generating tests for working changes...", 1500);
-        
-        try {
-          const changes = await commitTester.generateTestsForWorkingChanges();
 
+        vscode.window.setStatusBarMessage("Generating tests for working changes...", 1500);
+
+        const changes = await commitTester.generateTestsForWorkingChanges();
+
+        const aiE2eAgent = new AiE2eAgent(client, {
+          testParams: {
+            description: "Generate tests for working changes",
+            changes: changes
+          },
+          title: "Generate tests for working changes",
+          testObjectType: "commit-suite",
+          testRunType: "generate",
+          remote: true,
+          localServerPort: localPortConfig ?? 3000,
+        } as unknown as AiE2eAgentOptions);
+
+        try {
           if (changes.workingChanges.changes.length === 0) {
             vscode.window.showWarningMessage("No changes to generate tests for");
             return;
           }
-
-          const aiE2eAgent = new AiE2eAgent(client, {
-            testParams: {
-              description: "Generate tests for working changes",
-              changes: changes
-            },
-            title: "Generate tests for working changes",
-            testObjectType: "commit-suite",
-            testRunType: "generate",
-            remote: true,
-            localServerPort: localPortConfig ?? 3000,
-          } as unknown as AiE2eAgentOptions);
-
           // Actually run the handler to process the request
           await aiE2eAgent.testHandler.run();
 
           while (aiE2eAgent.testHandler.isTestRunning()) {
             await new Promise(resolve => setTimeout(resolve, 2000));
           }
+        } catch (error) {
+          console.error('[Commands.generateTestsForWorkingChanges] Error running tests:', error);
+          vscode.window.showErrorMessage(
+            `Error running tests: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
 
+        if (aiE2eAgent.testHandler.isTestRunning()) {
+          vscode.window.showInformationMessage("Tests are still running. Please wait for them to complete.");
+          return;
+        }
+
+        try {
           // TODO: handle the final state and results if needed
           const testState = aiE2eAgent.testHandler.getTestState();
-          if (testState.testObject) {
-            const testObject = testState.testObject;
-            if (testObject.status === "completed") {
+          const testObjectS = await aiE2eAgent.testHandler.getTestObject();
+          if (testObjectS) {
+            let testObject = testObjectS as unknown as E2eTestCommitSuite;
+            console.log("Test object - ", testObject);
+            const tests = testObject.tests;
+            console.log("Tests - ", tests);
+
+            const workspaceDirs = await ide.getWorkspaceDirs();
+            console.log("Workspace dirs - ", workspaceDirs);
+
+            if (tests && tests.length > 0) {
+              for (const test of tests) {
+                // We need to save the test script files locally
+                const testScriptUrl = test.testScript;
+                console.log("Test script url - ", testScriptUrl);
+
+                try {
+                  const testScriptContent = await fetch(testScriptUrl).then(res => res.text());
+                  await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: test.testScript, content: testScriptContent });
+                } catch (error) {
+                  console.error('[Commands.generateTestsForWorkingChanges] Error downloading test script:', error);
+                  vscode.window.showErrorMessage(
+                    `Error downloading test script: ${error instanceof Error ? error.message : String(error)}`
+                  );
+                }
+              }
+            }
+            if (testObject.runStatus === "completed") {
               vscode.window.showInformationMessage("Tests generated successfully");
             } else {
               vscode.window.showErrorMessage("Tests generation failed");
             }
           }
         } catch (error) {
-          console.error('[CommitTester] Error in generateTestsForWorkingChanges command:', error);
+          console.error('[Commands.generateTestsForWorkingChanges] Error downloading test scripts:', error);
           vscode.window.showErrorMessage(
-            `Error generating tests: ${error instanceof Error ? error.message : String(error)}`
+            `Error handling tests: ${error instanceof Error ? error.message : String(error)}`
           );
         }
       }

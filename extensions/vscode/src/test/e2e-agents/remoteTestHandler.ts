@@ -31,15 +31,14 @@ export abstract class RemoteTestHandler extends TestHandler {
     /**
      * Stop ngrok tunnel.
      */
-    protected async stopNgrokTunnel(): Promise<void> {
-        if (this.currentTunnel) {
+    protected async stopNgrokTunnel(currentTunnel: string): Promise<void> {
+        if (currentTunnel) {
             try {
-                await stop(this.currentTunnel);
-                console.log(`Stopped tunnel: ${this.currentTunnel}`);
+                await stop(currentTunnel);
+                console.log(`Stopped tunnel: ${currentTunnel}`);
             } catch (error) {
                 console.error(`Error stopping tunnel: ${error}`);
             }
-            this.currentTunnel = undefined;
         }
     }
 
@@ -90,7 +89,7 @@ export abstract class RemoteTestHandler extends TestHandler {
 
         // Add tunnel cleanup callback for when we're done
         this.addCleanupCallback(() => {
-            this.stopNgrokTunnel();
+            this.stopNgrokTunnel(this.currentTunnel ?? "");
         });
 
         console.log("Running test handler...");

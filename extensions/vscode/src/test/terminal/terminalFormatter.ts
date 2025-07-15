@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import * as vscode from "vscode";
-import { handlePollUpdateFn, Status, Step, TerminalFormatterOptions, TestState } from "../e2e-agents/types";
+import { handlePollUpdateFn, Status, Step, TerminalFormatterOptions, TerminalTest, TestState } from "../e2e-agents/types";
 
 /**
  * Stateless TerminalFormatter for displaying progress and status in VS Code terminals
@@ -64,12 +64,22 @@ export class TerminalFormatter {
         this.clearOutput();
         
         const header = this.formatHeader(state);
-        const stepsOutput = this.formatSteps(state.steps);
-        const progressBar = this.generateProgressBar(state.steps);
+        console.log(`📡 Header: ${header}`);
+
+        console.log(`📡 Tests: ${state.tests}`);
+
+        if (state.tests.length > 0) {
+            const testsOutput = this.formatTests(state.tests);
+            const progressBar = this.generateProgressBarForTests(state.tests);
+            const output = `${header}\r\n${testsOutput}${progressBar}`;
+            this.appendOutput(output);
+        } else {
+            const stepsOutput = this.formatSteps(state.steps);
+            const progressBar = this.generateProgressBar(state.steps);
+            const output = `${header}\r\n${stepsOutput}${progressBar}`;
+            this.appendOutput(output);
+        }
         
-        const output = `${header}\r\n${stepsOutput}${progressBar}`;
-        
-        this.appendOutput(output);
     }
 
     /**
@@ -161,6 +171,13 @@ export class TerminalFormatter {
         return statusText;
     }
 
+    private formatTests(tests: TerminalTest[]): string {
+        return tests.map((test, i) => this.formatTest(test, i)).join("\r\n");
+    }
+
+    private formatTest(test: TerminalTest, index: number): string {
+        return `${chalk.bold(`Test ${index + 1}:`)} ${test.title}\r\n${test.description}\r\n${this.formatSteps(test.steps)}`;
+    }
     /**
      * Format all steps
      */
@@ -178,10 +195,10 @@ export class TerminalFormatter {
     private formatStep(step: Step, index: number): string {
         const icon = this.getStatusIcon(step.status);
         const stepNumber = this.options.showStepNumbers ? `${chalk.dim(`Step ${index + 1}:`)} ` : '';
-        const label = step.label.padEnd(this.options.stepLabelWidth);
+        const label = step.label?.padEnd(this.options.stepLabelWidth) ?? '';
         const details = step.details ? ` ${chalk.dim(`(${step.details})`)}` : '';
         
-        return `${stepNumber}${label} ${icon}${details}`;
+        return `    ${stepNumber}${label} ${icon}${details}`;
     }
 
     /**
@@ -203,6 +220,22 @@ export class TerminalFormatter {
             default:
                 return chalk.gray("•");
         }
+    }
+
+    private generateProgressBarForTests(tests: TerminalTest[]): string {
+
+        const completed = tests.filter(test => test.status === 'success' || test.status === 'completed').length;
+        const total = tests.length;
+        const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        const barWidth = 20;
+        const filledWidth = Math.round((percentage / 100) * barWidth);
+        const emptyWidth = barWidth - filledWidth;
+        
+        const filled = '█'.repeat(filledWidth);
+        const empty = '░'.repeat(emptyWidth);
+        
+        return `\n${chalk.cyan('Progress:')} [${chalk.green(filled)}${chalk.gray(empty)}] ${percentage}% (${completed}/${total})`;
     }
 
     /**
@@ -269,6 +302,7 @@ export class TerminalFormatter {
             completed,
             status,
             steps,
+            tests: [],
             handlePollUpdate: handlePollUpdateFn
         };
     }

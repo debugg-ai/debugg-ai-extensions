@@ -1,4 +1,6 @@
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
+import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { RemoteTestHandler } from './remoteTestHandler';
 import { E2eObjectCallbacks, RemoteTestHandlerOptions, RepositoryInfo, Status, TestHandlerOptions, TestObject, TestState } from './types';
@@ -12,6 +14,7 @@ export class E2esTestHandler extends RemoteTestHandler {
     public e2eObjectCallbacks: E2eObjectCallbacks;
     public repositoryInfoPromise: Promise<RepositoryInfo | null>;
     public repositoryInfo: RepositoryInfo | null;
+    public testOutputDir: string = 'tests/playwright';
 
     constructor(
         client: DebuggAIServerClient,
@@ -90,21 +93,31 @@ export class E2esTestHandler extends RemoteTestHandler {
         if (!polledUpdate) {
             return this.testState;
         }
+        console.log(`📡 Polled E2E test object successfully`);
         this.setTestObject(polledUpdate);
+        console.log(`📡 Updated test object successfully`);
 
+        console.log(`📡 Polled udpate: ${polledUpdate}`);
         // Calculate / derive the new state...
         // we need: status, current step, parsed text update
-        const step = this.e2eObjectCallbacks.parseStatusFromObject(this.testState, polledUpdate);
 
-        if (!step) {
+        console.log(`📡 Parsing status from object: ${this.testState}`);
+        const testState = this.e2eObjectCallbacks.parseStatusFromObject(this.testState, polledUpdate);
+
+        if (!testState) {
+            console.log(`📡 No new step found. Returning current state.`);
             return this.testState;
         }
+        console.log(`📡 New state created from poll. Updating state.`);
+
+        this.testState = testState;
         // Update the state for listeners
-        this.testState.steps = this.testState.handlePollUpdate(this.testState.steps, step);
-        this.testState.stepNumber = this.testState.steps.length;
-        this.testState.status = step.status;
+        // this.testState.steps = this.testState.handlePollUpdate(this.testState.steps, step);
+        // this.testState.stepNumber = this.testState.steps.length;
+        // this.testState.status = step.status;
 
         if (this.testState.status === "completed" || this.testState.status === "failed") {
+            console.log(`📡 E2E test completed. Handling completion.`);
             this.handleCompletion(this.testState);
         }
         return this.testState;
@@ -134,10 +147,52 @@ export class E2esTestHandler extends RemoteTestHandler {
         await super.handleCompletion(updatedState);
 
         // E2E-specific completion logic
-        if (this.testState.status === "success") {
+        if (this.testState.status === "success" || this.testState.status === "completed") {
             vscode.window.showInformationMessage(`E2E test suite completed successfully!`);
         } else {
             vscode.window.showWarningMessage(`E2E test suite completed with issues.`);
+        }
+    }
+
+    /**
+     * Ensure the test output directory exists
+     */
+    private async ensureTestOutputDir(workspaceDirs: string[]): Promise<void> {
+        try {
+            // const workspaceDirs = await this.ide.getWorkspaceDirs();
+            if (workspaceDirs.length > 0) {
+                const workspaceDir = workspaceDirs[0] ? workspaceDirs[0].replace("file://", "") : "";
+                const fullPath = path.join(workspaceDir, this.testOutputDir);
+                await fs.promises.mkdir(fullPath, { recursive: true });
+            }
+        } catch (error) {
+            console.error('[CommitTester] Error creating test output directory:', error);
+        }
+    }
+
+
+    /**
+     * Save a test file to the test output directory
+     */
+    public async saveTestFile(workspaceDirs: string[], testFile: { name: string, content: string }): Promise<string | null> {
+        try {
+            await this.ensureTestOutputDir(workspaceDirs);
+
+            const filePath = path.join(this.testOutputDir, testFile.name);
+
+            // Ensure the file has a proper extension
+            if (!path.extname(testFile.name)) {
+                testFile.name += '.js'; // Default to JavaScript
+            }
+
+            await fs.promises.writeFile(filePath, testFile.content, 'utf8');
+
+            console.log(`[CommitTester] Saved test file: ${testFile.name}`);
+            return filePath;
+
+        } catch (error) {
+            console.error('[CommitTester] Error saving test file:', error);
+            return null;
         }
     }
 

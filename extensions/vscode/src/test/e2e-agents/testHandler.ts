@@ -24,7 +24,7 @@ export abstract class TestHandler {
 
     constructor(client: DebuggAIServerClient, options: TestHandlerOptions) {
         this.client = client;
-        this.timeoutMinutes = options.timeoutMinutes || 15;
+        this.timeoutMinutes = options.timeoutMinutes || 30;
         this.pollingInterval = options.pollingInterval || 2500;
         this.options = options;
 
@@ -36,6 +36,7 @@ export abstract class TestHandler {
             completed: false,
             status: "pending",
             steps: [],
+            tests: [],
             handlePollUpdate: handlePollUpdateFn
         };
     }
@@ -55,7 +56,7 @@ export abstract class TestHandler {
      * Get the test object by accessing the subclass's createTestObject method, unless
      * already created.
      */
-    protected async getTestObject(): Promise<TestObject> {
+    public async getTestObject(): Promise<TestObject> {
         if (!this.testState.testObject) {
             this.testState.testObject = await this.createTestObject();
         }

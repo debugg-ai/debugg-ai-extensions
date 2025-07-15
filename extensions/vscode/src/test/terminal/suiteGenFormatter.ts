@@ -33,6 +33,7 @@ export class SuiteGenFormatter {
             completed: suite.completed || false,
             status: suite.completed ? 'success' : 'running',
             steps: [],
+            tests: [],
             handlePollUpdate: handlePollUpdateFn
         };
     }

@@ -133,11 +133,6 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically monitor git commits and generate E2E tests when new commits are detected."
-        },
-        "debugg-ai.debuggAiTestEnvironment": {
-          "type": "string",
-          "default": "local",
-          "description": ""
         }
       }
     },

@@ -50,7 +50,7 @@ const PRODUCTION_HUB_ENV: ControlPlaneEnv = {
   OUATH_URL: "https://auth.debugg.ai",
   OAUTH_CLIENT_ID: CLIENT_ID_PROD,
   OAUTH_CLIENT_SECRET: CLIENT_SECRET_PROD,
-  APP_URL: "https://hub.debugg.ai",
+  APP_URL: "https://app.debugg.ai",
 };
 
 const STAGING_ENV: ControlPlaneEnv = {
@@ -92,7 +92,7 @@ export async function getControlPlaneEnv(
 ): Promise<ControlPlaneEnv> {
   const ideSettings = await ideSettingsPromise;
   return getControlPlaneEnvSync(
-    ideSettings.debuggAiTestEnvironment,
+    'production',  // ideSettings.debuggAiTestEnvironment,
     ideSettings.enableControlServerBeta,
   );
 }
@@ -130,7 +130,7 @@ export function getControlPlaneEnvSync(
       : env === "test"
         ? TEST_ENV
         : env === "hub"
-          ? PRODUCTION_HUB_ENV
+          ? PRODUCTION_ENV
           : PRODUCTION_ENV;
 }
 

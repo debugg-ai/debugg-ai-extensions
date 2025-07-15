@@ -96,6 +96,16 @@ export const handlePollUpdateFn = (steps: Step[], newStep: Step) => {
     }
 }
 
+export interface TerminalTest {
+    uuid: string;
+    description: string;
+    title?: string;
+    status: Status;
+    object: any;
+    steps: Step[];
+    handlePollUpdate: typeof handlePollUpdateFn;
+}
+
 /* 
     TestState is the current state of the test.
 */
@@ -105,6 +115,7 @@ export interface TestState {
     stepNumber: number;
     completed: boolean; // true = done, false = running
     status: Status;  // Overall status, not just the current step.
+    tests: TerminalTest[];  // Tests that are being run.
     steps: Step[];
     handlePollUpdate: typeof handlePollUpdateFn;
 }
@@ -124,7 +135,7 @@ export interface E2eTestHandlerOptions extends RemoteTestHandlerOptions {
 export interface E2eObjectCallbacks {
     createObject: (description?: string, params?: Record<string, any>) => Promise<TestObject>;
     pollObject: (uuid: string, params?: Record<string, any>) => Promise<TestObject>;
-    parseStatusFromObject: (prevState: TestState, updatedObj: TestObject) => Step;
+    parseStatusFromObject: (prevState: TestState, updatedObj: TestObject) => TestState;
 }
 
 export interface RepositoryInfo {
