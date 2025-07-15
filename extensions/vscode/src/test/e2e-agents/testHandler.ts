@@ -154,13 +154,13 @@ export abstract class TestHandler {
      * Clean up the test run.
      */
     protected async handleCompletion(state: TestState): Promise<void> {
-        this.isRunning = false;
         this.formatter?.printSummary(state);
         this.vsCodeTestRun?.end();
         this.vsCodeTestRun = null;
         this.vsCodeTestItem = null;
         this.formatter = null;
         await this.cleanup();
+        this.isRunning = false;
     }
 
     /**

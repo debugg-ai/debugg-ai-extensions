@@ -45,7 +45,7 @@ export class TerminalFormatter {
         options: TerminalFormatterOptions = {}
     ) {
         this.outputChannel = outputChannel;
-        
+
         // Set default options
         this.options = {
             title: options.title || "Progress",
@@ -62,7 +62,7 @@ export class TerminalFormatter {
      */
     printState(state: TestState): void {
         this.clearOutput();
-        
+
         const header = this.formatHeader(state);
         console.log(`📡 Header: ${header}`);
 
@@ -79,30 +79,50 @@ export class TerminalFormatter {
             const output = `${header}\r\n${stepsOutput}${progressBar}`;
             this.appendOutput(output);
         }
-        
+
     }
 
     /**
      * Print a summary of the test state
      */
     printSummary(state: TestState, title?: string, details?: string): void {
-        const summaryTitle = title || `${this.options.title} Summary`;
-        const completed = state.steps.filter(s => s.status === 'success').length;
-        const failed = state.steps.filter(s => s.status === 'error' || s.status === 'failed').length;
-        const skipped = state.steps.filter(s => s.status === 'skipped').length;
-        const total = state.steps.length;
-        
+        if (state.tests && state.tests.length > 0) {
+            const testsSummary = this.createTestsSummary(state);
+            console.log("Tests summary - ", testsSummary);
+            this.appendOutput("\r\n" + testsSummary);
+
+        } else {
+            const summaryTitle = title || `${this.options.title} Summary`;
+            const completed = state.steps.filter(s => s.status === 'success').length;
+            const failed = state.steps.filter(s => s.status === 'error' || s.status === 'failed').length;
+            const skipped = state.steps.filter(s => s.status === 'skipped').length;
+            const total = state.steps.length;
+
+            const summary = [
+                chalk.bold(`📊 ${summaryTitle}`),
+                chalk.dim(`Total Steps: ${total}`),
+                chalk.green(`✅ Completed: ${completed}`),
+                chalk.red(`❌ Failed: ${failed}`),
+                chalk.gray(`⏭️ Skipped: ${skipped}`),
+                chalk.dim(`⏱️ Overall Status: ${this.getStatusIcon(state.status)} ${state.status}`),
+                details ? `\n${details}` : ''
+            ].join("\r\n");
+            this.appendOutput("\r\n" + summary);
+        }
+    }
+
+    createTestsSummary(state: TestState): string {
+        console.log("Create test summary State - ", state);
         const summary = [
-            chalk.bold(`📊 ${summaryTitle}`),
-            chalk.dim(`Total Steps: ${total}`),
-            chalk.green(`✅ Completed: ${completed}`),
-            chalk.red(`❌ Failed: ${failed}`),
-            chalk.gray(`⏭️ Skipped: ${skipped}`),
+            chalk.bold(`📋 ${state.tests.length} Test Results`),
+            chalk.green(`✅ Completed: ${state.tests.filter(test => test.status === 'success' || test.status === 'completed').length}`),
+            chalk.red(`❌ Failed: ${state.tests.filter(test => test.status === 'error' || test.status === 'failed').length}`),
+            chalk.gray(`⏭️ Skipped: ${state.tests.filter(test => test.status === 'skipped').length}`),
             chalk.dim(`⏱️ Overall Status: ${this.getStatusIcon(state.status)} ${state.status}`),
-            details ? `\n${details}` : ''
+            state.tests.map((test, i) => this.formatTest(test, i)).join("\r\n")
         ].join("\r\n");
-        
-        this.appendOutput("\r\n" + summary);
+
+        return summary;
     }
 
     /**
@@ -118,7 +138,7 @@ export class TerminalFormatter {
             chalk.dim(`UUID: ${state.testResults.uuid}`),
             state.testResults.formattedResults
         ].join("\r\n");
-        
+
         this.appendOutput("\r\n" + results);
     }
 
@@ -132,14 +152,14 @@ export class TerminalFormatter {
             warning: '⚠️',
             error: '❌'
         };
-        
+
         const colors = {
             info: chalk.blue,
             success: chalk.green,
             warning: chalk.yellow,
             error: chalk.red
         };
-        
+
         const formattedMessage = `${icons[type]} ${colors[type](message)}`;
         this.appendOutput("\r\n" + formattedMessage);
     }
@@ -148,10 +168,10 @@ export class TerminalFormatter {
      * Print a section divider
      */
     printDivider(title?: string): void {
-        const divider = title 
+        const divider = title
             ? `\n${chalk.gray('─'.repeat(20))} ${chalk.bold(title)} ${chalk.gray('─'.repeat(20))}\n`
             : `\n${chalk.gray('─'.repeat(50))}\n`;
-        
+
         this.appendOutput(divider);
     }
 
@@ -162,12 +182,12 @@ export class TerminalFormatter {
         const title = state.testObject?.title || state.testObject?.description || this.options.title;
         const status = this.getStatusIcon(state.status);
         const statusText = chalk.bold(`${status} ${title}`);
-        
+
         if (state.testObject?.uuid) {
             const uuid = chalk.dim(`(${state.testObject.uuid.slice(0, 8)})`);
             return `${statusText} ${uuid}`;
         }
-        
+
         return statusText;
     }
 
@@ -185,7 +205,7 @@ export class TerminalFormatter {
         if (steps.length === 0) {
             return chalk.dim("No steps available");
         }
-        
+
         return steps.map((step, i) => this.formatStep(step, i)).join("\r\n");
     }
 
@@ -197,7 +217,7 @@ export class TerminalFormatter {
         const stepNumber = this.options.showStepNumbers ? `${chalk.dim(`Step ${index + 1}:`)} ` : '';
         const label = step.label?.padEnd(this.options.stepLabelWidth) ?? '';
         const details = step.details ? ` ${chalk.dim(`(${step.details})`)}` : '';
-        
+
         return `    ${stepNumber}${label} ${icon}${details}`;
     }
 
@@ -227,14 +247,14 @@ export class TerminalFormatter {
         const completed = tests.filter(test => test.status === 'success' || test.status === 'completed').length;
         const total = tests.length;
         const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-        
+
         const barWidth = 20;
         const filledWidth = Math.round((percentage / 100) * barWidth);
         const emptyWidth = barWidth - filledWidth;
-        
+
         const filled = '█'.repeat(filledWidth);
         const empty = '░'.repeat(emptyWidth);
-        
+
         return `\n${chalk.cyan('Progress:')} [${chalk.green(filled)}${chalk.gray(empty)}] ${percentage}% (${completed}/${total})`;
     }
 
@@ -249,14 +269,14 @@ export class TerminalFormatter {
         const completed = steps.filter(s => s.status === 'success').length;
         const total = steps.length;
         const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-        
+
         const barWidth = 20;
         const filledWidth = Math.round((percentage / 100) * barWidth);
         const emptyWidth = barWidth - filledWidth;
-        
+
         const filled = '█'.repeat(filledWidth);
         const empty = '░'.repeat(emptyWidth);
-        
+
         return `\n${chalk.cyan('Progress:')} [${chalk.green(filled)}${chalk.gray(empty)}] ${percentage}% (${completed}/${total})`;
     }
 
@@ -284,8 +304,8 @@ export class TerminalFormatter {
      * Create a simple test state for basic progress tracking
      */
     static createSimpleState(
-        title: string, 
-        steps: Step[], 
+        title: string,
+        steps: Step[],
         status: Status = 'running',
         completed: boolean = false
     ): TestState {
@@ -313,11 +333,11 @@ export class TerminalFormatter {
     static updateStep(state: TestState, label: string, status: Status, details?: string, currentState?: any, action?: any): TestState {
         const updatedSteps = [...state.steps];
         const existingIndex = updatedSteps.findIndex(s => s.label === label);
-        
+
         if (existingIndex !== -1) {
-            updatedSteps[existingIndex] = { 
-                ...updatedSteps[existingIndex], 
-                status, 
+            updatedSteps[existingIndex] = {
+                ...updatedSteps[existingIndex],
+                status,
                 details,
                 currentState,
                 action
@@ -325,7 +345,7 @@ export class TerminalFormatter {
         } else {
             updatedSteps.push({ label, status, details, currentState, action });
         }
-        
+
         return {
             ...state,
             steps: updatedSteps,
@@ -361,7 +381,7 @@ export class TerminalFormatter {
      * Check if all steps are completed
      */
     static isCompleted(state: TestState): boolean {
-        return state.steps.length > 0 && state.steps.every(s => 
+        return state.steps.length > 0 && state.steps.every(s =>
             s.status === 'success' || s.status === 'skipped'
         );
     }

@@ -514,7 +514,8 @@ Focus on testing the user-facing functionality that was affected by these change
     try {
       const workspaceDirs = await this.ide.getWorkspaceDirs();
       if (workspaceDirs.length > 0) {
-        const fullPath = path.join(workspaceDirs[0], this.testOutputDir);
+        const wrkDir = workspaceDirs[0] ? workspaceDirs[0].replace('file://', '') : '';
+        const fullPath = path.join(wrkDir, this.testOutputDir);
         await fs.promises.mkdir(fullPath, { recursive: true });
       }
     } catch (error) {

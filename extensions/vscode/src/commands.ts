@@ -1536,17 +1536,12 @@ const getCommandsMap: (
           );
         }
 
-        if (aiE2eAgent.testHandler.isTestRunning()) {
-          vscode.window.showInformationMessage("Tests are still running. Please wait for them to complete.");
-          return;
-        }
-
         try {
           // TODO: handle the final state and results if needed
           const testState = aiE2eAgent.testHandler.getTestState();
           const testObjectS = await aiE2eAgent.testHandler.getTestObject();
           if (testObjectS) {
-            let testObject = testObjectS as unknown as E2eTestCommitSuite;
+            let testObject = testObjectS.object as unknown as E2eTestCommitSuite;
             console.log("Test object - ", testObject);
             const tests = testObject.tests;
             console.log("Tests - ", tests);
@@ -1562,7 +1557,8 @@ const getCommandsMap: (
 
                 try {
                   const testScriptContent = await fetch(testScriptUrl).then(res => res.text());
-                  await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: test.testScript, content: testScriptContent });
+                  const testScriptName = test.testScript.split('/').pop() ?? `${testObject.uuid}`;
+                  await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: testScriptName, content: testScriptContent });
                 } catch (error) {
                   console.error('[Commands.generateTestsForWorkingChanges] Error downloading test script:', error);
                   vscode.window.showErrorMessage(

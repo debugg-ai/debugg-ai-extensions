@@ -176,9 +176,14 @@ export class E2esTestHandler extends RemoteTestHandler {
      */
     public async saveTestFile(workspaceDirs: string[], testFile: { name: string, content: string }): Promise<string | null> {
         try {
-            await this.ensureTestOutputDir(workspaceDirs);
+            console.log("Saving test file - ", testFile.name);
+            console.log("Workspace dirs - ", workspaceDirs);
+            const wrkDir = workspaceDirs[0] ? workspaceDirs[0].replace("file://", "") : "";
+            console.log("UpdatedWorkspace dir - ", wrkDir);
 
-            const filePath = path.join(this.testOutputDir, testFile.name);
+            await this.ensureTestOutputDir([wrkDir]);
+            await this.ensureTestOutputDir([path.join(wrkDir, this.testOutputDir)]);
+            const filePath = path.join(wrkDir, this.testOutputDir, testFile.name);
 
             // Ensure the file has a proper extension
             if (!path.extname(testFile.name)) {
