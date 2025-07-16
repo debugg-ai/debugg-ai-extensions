@@ -122,6 +122,7 @@ export abstract class TestHandler {
 
             const currentState = await this.pollForUpdates();
             if (currentState?.completed) {
+                await this.handleProgress(currentState);
                 await this.handleCompletion(currentState);
                 clearInterval(interval);
             } else {

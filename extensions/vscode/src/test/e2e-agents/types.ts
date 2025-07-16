@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 export type Status = 'completed' | 'pending' | 'success' | 'error' | 'failed' | 'skipped' | 'running';
+export type Outcome = 'pending' | 'skipped' | 'unknown' | 'pass' | 'fail';
 
 
 export interface FailureDetail {
@@ -101,6 +102,7 @@ export interface TerminalTest {
     description: string;
     title?: string;
     status: Status;
+    outcome: Outcome;
     object: any;
     steps: Step[];
     handlePollUpdate: typeof handlePollUpdateFn;

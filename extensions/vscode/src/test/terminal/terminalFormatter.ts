@@ -86,6 +86,11 @@ export class TerminalFormatter {
      * Print a summary of the test state
      */
     printSummary(state: TestState, title?: string, details?: string): void {
+        this.clearOutput();
+
+        this.printState(state);
+        this.printDivider("Test Summary");
+
         if (state.tests && state.tests.length > 0) {
             const testsSummary = this.createTestsSummary(state);
             console.log("Tests summary - ", testsSummary);
@@ -93,15 +98,15 @@ export class TerminalFormatter {
 
         } else {
             const summaryTitle = title || `${this.options.title} Summary`;
-            const completed = state.steps.filter(s => s.status === 'success').length;
-            const failed = state.steps.filter(s => s.status === 'error' || s.status === 'failed').length;
-            const skipped = state.steps.filter(s => s.status === 'skipped').length;
+            const passed = state.tests.filter(t => t.outcome === 'pass').length;
+            const failed = state.tests.filter(t => t.outcome === 'fail' || t.outcome === 'pending').length;
+            const skipped = state.tests.filter(t => t.outcome === 'skipped').length;
             const total = state.steps.length;
 
             const summary = [
                 chalk.bold(`📊 ${summaryTitle}`),
                 chalk.dim(`Total Steps: ${total}`),
-                chalk.green(`✅ Completed: ${completed}`),
+                chalk.green(`✅ Passed: ${passed}`),
                 chalk.red(`❌ Failed: ${failed}`),
                 chalk.gray(`⏭️ Skipped: ${skipped}`),
                 chalk.dim(`⏱️ Overall Status: ${this.getStatusIcon(state.status)} ${state.status}`),
@@ -115,11 +120,10 @@ export class TerminalFormatter {
         console.log("Create test summary State - ", state);
         const summary = [
             chalk.bold(`📋 ${state.tests.length} Test Results`),
-            chalk.green(`✅ Completed: ${state.tests.filter(test => test.status === 'success' || test.status === 'completed').length}`),
-            chalk.red(`❌ Failed: ${state.tests.filter(test => test.status === 'error' || test.status === 'failed').length}`),
-            chalk.gray(`⏭️ Skipped: ${state.tests.filter(test => test.status === 'skipped').length}`),
-            chalk.dim(`⏱️ Overall Status: ${this.getStatusIcon(state.status)} ${state.status}`),
-            state.tests.map((test, i) => this.formatTest(test, i)).join("\r\n")
+            chalk.green(`✅ Passed: ${state.tests.filter(test => test.outcome === 'pass').length}`),
+            chalk.red(`❌ Failed: ${state.tests.filter(test => test.outcome === 'fail' || test.outcome === 'pending').length}`),
+            chalk.gray(`⏭️ Skipped: ${state.tests.filter(test => test.outcome === 'skipped').length}`),
+            chalk.dim(`⏱️ Overall Status: ${this.getStatusIcon(state.status)} ${state.status}`)
         ].join("\r\n");
 
         return summary;
@@ -244,7 +248,7 @@ export class TerminalFormatter {
 
     private generateProgressBarForTests(tests: TerminalTest[]): string {
 
-        const completed = tests.filter(test => test.status === 'success' || test.status === 'completed').length;
+        const completed = tests.filter(test => test.status === 'success' || test.status === 'completed' || test.status === 'failed' || test.status === 'error').length;
         const total = tests.length;
         const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
@@ -255,7 +259,7 @@ export class TerminalFormatter {
         const filled = '█'.repeat(filledWidth);
         const empty = '░'.repeat(emptyWidth);
 
-        return `\n${chalk.cyan('Progress:')} [${chalk.green(filled)}${chalk.gray(empty)}] ${percentage}% (${completed}/${total})`;
+        return `\r\n${chalk.cyan('Progress:')} [${chalk.green(filled)}${chalk.gray(empty)}] ${percentage}% (${completed}/${total})`;
     }
 
     /**

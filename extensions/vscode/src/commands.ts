@@ -1561,9 +1561,9 @@ const getCommandsMap: (
                   await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: testScriptName, content: testScriptContent });
                 } catch (error) {
                   console.error('[Commands.generateTestsForWorkingChanges] Error downloading test script:', error);
-                  vscode.window.showErrorMessage(
-                    `Error downloading test script: ${error instanceof Error ? error.message : String(error)}`
-                  );
+                  // vscode.window.showErrorMessage(
+                  //   `Error downloading test script: ${error instanceof Error ? error.message : String(error)}`
+                  // );
                 }
               }
             }

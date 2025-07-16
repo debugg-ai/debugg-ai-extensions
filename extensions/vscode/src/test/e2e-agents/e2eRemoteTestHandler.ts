@@ -181,9 +181,13 @@ export class E2esTestHandler extends RemoteTestHandler {
             const wrkDir = workspaceDirs[0] ? workspaceDirs[0].replace("file://", "") : "";
             console.log("UpdatedWorkspace dir - ", wrkDir);
 
-            await this.ensureTestOutputDir([wrkDir]);
-            await this.ensureTestOutputDir([path.join(wrkDir, this.testOutputDir)]);
-            const filePath = path.join(wrkDir, this.testOutputDir, testFile.name);
+            // Decode the workspace directory
+            const decodedWrkDir = decodeURIComponent(wrkDir);
+            console.log("Decoded string url - ", decodedWrkDir);
+
+            await this.ensureTestOutputDir([decodedWrkDir]);
+            await this.ensureTestOutputDir([path.join(decodedWrkDir, this.testOutputDir)]);
+            const filePath = path.join(decodedWrkDir, this.testOutputDir, testFile.name);
 
             // Ensure the file has a proper extension
             if (!path.extname(testFile.name)) {
@@ -192,7 +196,7 @@ export class E2esTestHandler extends RemoteTestHandler {
 
             await fs.promises.writeFile(filePath, testFile.content, 'utf8');
 
-            console.log(`[CommitTester] Saved test file: ${testFile.name}`);
+            console.log(`[CommitTester] Saved test file: ${testFile.name} to ${filePath}`);
             return filePath;
 
         } catch (error) {

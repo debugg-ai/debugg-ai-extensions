@@ -301,6 +301,7 @@ export class AiE2eAgent {
             description: test.description || test.name,
             title: test.name,
             status: test.curRun?.status || 'pending',
+            outcome: test.curRun?.outcome || 'pending',
             object: test,
             steps: test.curRun?.conversations?.[0]?.messages?.map(message => ({
                 label: message.jsonContent?.currentState?.memory ?? "",
