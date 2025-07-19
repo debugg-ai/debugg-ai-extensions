@@ -133,8 +133,13 @@ export async function resolveSerializedConfig(
     }
   } catch (e) {
     console.error("Error parsing config.json, attempting to load remote for file", filepath);
-
-    const remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise);
+    let remoteConfig: SerializedDebuggAiConfig | undefined;
+    try {
+      remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise);
+    } catch (e) {
+      console.error("Error loading remote config", e);
+    }
+    
     if (remoteConfig) {
       // config = mergeJson(config, remoteConfig, "merge", configMergeKeys);
       config = remoteConfig;

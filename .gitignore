@@ -175,3 +175,4 @@ extensions/.continue-debug/
 /.debugg-ai
 extensions/.debugg-ai-debug/**/*
 extensions/.continue-debug/**/*
+manual-testing-sandbox/.local
