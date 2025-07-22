@@ -11,9 +11,9 @@ import { AxiosTransport } from "../utils/axiosTransport.js";
 
 import { AxiosRequestConfig } from "axios";
 import type {
-    ArtifactType,
-    EmbeddingsCacheResponse,
-    IDebuggAIServerClient,
+  ArtifactType,
+  EmbeddingsCacheResponse,
+  IDebuggAIServerClient,
 } from "../interface.js";
 
 /**
@@ -390,7 +390,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   /**
    * Wait for the auth provider to be available.
    */
-  private async waitForAuthProvider(): Promise<void> {
+  public async waitForAuthProvider(): Promise<void> {
     let attempts = 0;
     const maxAttempts = 20; // More attempts for initialization
     while (!this.configHandler.debuggAIAuthProvider && attempts < maxAttempts) {

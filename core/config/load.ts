@@ -83,6 +83,8 @@ import { modifyAnyConfigWithSharedConfig } from "./sharedConfig";
 import { getModelByRole, isSupportedLanceDbCpuTargetForLinux } from "./util";
 import { validateConfig } from "./validation.js";
 
+let debuggAIServerClient: DebuggAIServerClient | null = null;
+
 
 async function getConfigFromServer(
   configHandler: ConfigHandler,
@@ -91,15 +93,18 @@ async function getConfigFromServer(
 ) {
   let config: SerializedDebuggAiConfig;
   try {
-    const debuggAIServerClient = await debuggAIServerClientPromise;
-    if (await debuggAIServerClient.configHandler.controlPlaneClient.getAccessToken()) {
-      console.log("DebuggAIServerClient initialized");
-      await debuggAIServerClient.awaitInit();
-
-      config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
-      console.log("Loaded remote config", config);
-      return config;
+    if (!debuggAIServerClient) {
+      debuggAIServerClient = await debuggAIServerClientPromise;
     }
+    await debuggAIServerClient.waitForAuthProvider();
+    
+    console.log("DebuggAIServerClient initialized");
+    await debuggAIServerClient.awaitInit();
+
+    config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
+    console.log("Loaded remote config", config);
+    return config;
+    
   } catch (e) {
     console.error("Error loading remote config", e);
     throw e;
