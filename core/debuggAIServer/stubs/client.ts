@@ -11,9 +11,9 @@ import { AxiosTransport } from "../utils/axiosTransport.js";
 
 import { AxiosRequestConfig } from "axios";
 import type {
-  ArtifactType,
-  EmbeddingsCacheResponse,
-  IDebuggAIServerClient,
+    ArtifactType,
+    EmbeddingsCacheResponse,
+    IDebuggAIServerClient,
 } from "../interface.js";
 
 /**
@@ -163,6 +163,57 @@ export class DebuggTransport extends AxiosTransport {
   }
 }
 
+// Utility: Exponential backoff wrapper for API calls
+async function withExponentialBackoff<T>(
+  fn: () => Promise<T>,
+  options?: {
+    maxRetries?: number;
+    initialDelayMs?: number;
+    maxDelayMs?: number;
+    shouldRetry?: (err: any) => boolean;
+  }
+): Promise<T> {
+  const maxRetries = options?.maxRetries ?? 6;
+  const initialDelayMs = options?.initialDelayMs ?? 500;
+  const maxDelayMs = options?.maxDelayMs ?? 10000;
+  const shouldRetry =
+    options?.shouldRetry ||
+    ((err) => {
+      if (!err) return false;
+      // Retry on network errors, 5xx, and 429
+      if (err.response) {
+        const status = err.response.status;
+        return status >= 500 || status === 429;
+      }
+      // Retry on fetch/axios network errors
+      return true;
+    });
+
+  let attempt = 0;
+  let delay = initialDelayMs;
+  while (true) {
+    try {
+      return await fn();
+    } catch (err) {
+      attempt++;
+      if (attempt > maxRetries || !shouldRetry(err)) {
+        throw err;
+      }
+      // Exponential backoff with jitter
+      const jitter = Math.random() * 0.3 + 0.85; // 0.85-1.15x
+      const wait = Math.min(delay * jitter, maxDelayMs);
+      console.warn(
+        `API call failed (attempt ${attempt}/${maxRetries}), retrying in ${Math.round(
+          wait
+        )}ms...`,
+        (err as any)?.message || err
+      );
+      await new Promise((resolve) => setTimeout(resolve, wait));
+      delay = Math.min(delay * 2, maxDelayMs);
+    }
+  }
+}
+
 export class DebuggAIServerClient implements IDebuggAIServerClient {
   private cachedAccessTokenRefresh: boolean = false;
   private tokenRefreshInProgress: boolean = false;
@@ -179,6 +230,12 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   coverage: CoverageService | undefined;
   e2es: E2esService | undefined;
   users: UsersService | undefined;
+
+  private inFlightGetAccessToken: Promise<string> | null = null;
+  private inFlightGetConfig: Promise<{ configJson: string }> | null = null;
+  private inFlightRefreshSessions: Promise<void> | null = null;
+  private consecutive401s: number = 0;
+  private static readonly MAX_401_ATTEMPTS = 3;
 
   constructor(
     public readonly configHandler: ConfigHandler,
@@ -282,57 +339,52 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   }
 
   public async getAccessToken(): Promise<string> {
-    let accessToken: string | undefined;
-    
-    // Wait for auth provider to be available
-    let attempts = 0;
-    const maxAttempts = 10;
-    while (!this.configHandler.debuggAIAuthProvider && attempts < maxAttempts) {
-      console.log(`Waiting for auth provider to be available... (attempt ${attempts + 1}/${maxAttempts})`);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      attempts++;
-    }
-    
-    if (this.configHandler.debuggAIAuthProvider) {
-      const sessions = await this.configHandler.debuggAIAuthProvider.getSessions();
-      if (sessions.length > 0) {
-        accessToken = sessions[0].accessToken;
-        console.log(`getAccessToken called, got token: ${accessToken?.substring(0, 10)}...`);
+    if (this.inFlightGetAccessToken) return this.inFlightGetAccessToken;
+    this.inFlightGetAccessToken = withExponentialBackoff(async () => {
+      let accessToken: string | undefined;
+      // Wait for auth provider to be available
+      let attempts = 0;
+      const maxAttempts = 10;
+      while (!this.configHandler.debuggAIAuthProvider && attempts < maxAttempts) {
+        console.log(`Waiting for auth provider to be available... (attempt ${attempts + 1}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
       }
-    } else {
-      console.error(`getAccessToken called with no auth provider after ${maxAttempts} attempts`);
-    }
-    if (!accessToken) {
-      console.log("No access token found, attempting refresh...");
-      // If we don't have an access token, we need to refresh it
-      if (!this.cachedAccessTokenRefresh) {
-        this.cachedAccessTokenRefresh = true;
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        // await this.configHandler.reloadConfig();
-        accessToken = await this.configHandler.controlPlaneClient.getAccessToken();
-        console.log(`After refresh attempt, got token: ${accessToken?.substring(0, 10)}...`);
-
-        setTimeout(() => {
-          this.cachedAccessTokenRefresh = false;
-        }, 30_000);
+      if (this.configHandler.debuggAIAuthProvider) {
+        const sessions = await this.configHandler.debuggAIAuthProvider.getSessions();
+        if (sessions.length > 0) {
+          accessToken = sessions[0].accessToken;
+          console.log(`getAccessToken called, got token: ${accessToken?.substring(0, 10)}...`);
+        }
+      } else {
+        console.error(`getAccessToken called with no auth provider after ${maxAttempts} attempts`);
       }
-      // Check again if we have an access token, if not, throw an error
       if (!accessToken) {
-        // Don't loop ourselves forever if we don't have an access token
-        console.error("No access token found");
-        throw new Error("No access token found");
+        console.log("No access token found, attempting refresh...");
+        if (!this.cachedAccessTokenRefresh) {
+          this.cachedAccessTokenRefresh = true;
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          accessToken = await this.configHandler.controlPlaneClient.getAccessToken();
+          console.log(`After refresh attempt, got token: ${accessToken?.substring(0, 10)}...`);
+          setTimeout(() => {
+            this.cachedAccessTokenRefresh = false;
+          }, 30_000);
+        }
+        if (!accessToken) {
+          console.error("No access token found");
+          throw new Error("No access token found");
+        }
       }
-    }
-
-    // Update the transport token if it's different from the current one
-    if (accessToken && this.tx && accessToken !== this.accessToken) {
-      console.log(`Token refreshed, updating transport from ${this.accessToken?.substring(0, 10)}... to ${accessToken.substring(0, 10)}...`);
-      this.accessToken = accessToken;
-      this.userToken = accessToken;
-      this.tx.updateToken(accessToken);
-    }
-
-    return accessToken;
+      if (accessToken && this.tx && accessToken !== this.accessToken) {
+        console.log(`Token refreshed, updating transport from ${this.accessToken?.substring(0, 10)}... to ${accessToken.substring(0, 10)}...`);
+        this.accessToken = accessToken;
+        this.userToken = accessToken;
+        this.tx.updateToken(accessToken);
+      }
+      return accessToken;
+    }, { maxRetries: 6, initialDelayMs: 500, maxDelayMs: 10000 })
+      .finally(() => { this.inFlightGetAccessToken = null; });
+    return this.inFlightGetAccessToken;
   }
 
   /**
@@ -514,17 +566,38 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   }
 
   get connected(): boolean {
-    return this.url !== undefined && this.userToken !== undefined;
+    return this.url !== undefined && this.userToken !== undefined && this.initialized;
   }
 
   public async getConfig(): Promise<{ configJson: string }> {
-    // TODO: Implement this on the backend
-    const userToken = await this.userToken;
-    const response = await this.users?.getUserConfig();
-    if (!response) {
-      throw new Error("No user config found");
-    }
-    return { configJson: JSON.stringify(response) };
+    if (this.inFlightGetConfig) return this.inFlightGetConfig;
+    this.inFlightGetConfig = withExponentialBackoff(async () => {
+      const userToken = await this.userToken;
+      try {
+        const response = await this.users?.getUserConfig();
+        this.consecutive401s = 0; // Reset on success
+        if (!response) {
+          throw new Error("No user config found");
+        }
+        return { configJson: JSON.stringify(response) };
+      } catch (err: any) {
+        // Check for 401 Unauthorized
+        const status = err?.response?.status || err?.status;
+        if (status === 401) {
+          this.consecutive401s++;
+          if (this.consecutive401s >= DebuggAIServerClient.MAX_401_ATTEMPTS) {
+            this.consecutive401s = 0;
+            if (this.configHandler.debuggAIAuthProvider && this.configHandler.debuggAIAuthProvider.clearSessions) {
+              await this.configHandler.debuggAIAuthProvider.clearSessions();
+            }
+            throw new Error("Authentication failed 3 times in a row. Please log in again.");
+          }
+        }
+        throw err;
+      }
+    }, { maxRetries: 6, initialDelayMs: 500, maxDelayMs: 10000 })
+      .finally(() => { this.inFlightGetConfig = null; });
+    return this.inFlightGetConfig;
   }
 
   public async getFromIndexCache<T extends ArtifactType>(
@@ -532,43 +605,39 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     artifactId: T,
     repoName: string | undefined,
   ): Promise<EmbeddingsCacheResponse<T>> {
-    if (repoName === undefined) {
-      console.warn(
-        "No repo name provided to getFromIndexCache, this may cause no results to be returned.",
-      );
-    }
-
-    // If no keys are provided, return an empty object
-    if (keys.length === 0) {
-      return {
-        files: {},
-      };
-    }
-    console.log("Getting from index cache for keys:", keys, "and artifactId:", artifactId, "and repoName:", repoName);
-    const url = new URL("indexing/cache", this.url);
-
-    const userToken = this.userToken;
-    if (!userToken) {
-      throw new Error("No user token provided");
-    }
-    try {
-      const data = await this.indexes?.getIndexes({
-        accessToken: userToken,
-        projectKey: repoName ?? "NONE",
-        keys,
-        artifactId,
-        repo: repoName ?? "NONE",
-      });
-
-      return data?.[0] ?? {
-        files: {},
-      };
-    } catch (e) {
-      console.warn("Failed to retrieve from remote cache", e);
-      return {
-        files: {},
-      };
-    }
+    return withExponentialBackoff(async () => {
+      if (repoName === undefined) {
+        console.warn(
+          "No repo name provided to getFromIndexCache, this may cause no results to be returned.",
+        );
+      }
+      if (keys.length === 0) {
+        return {
+          files: {},
+        };
+      }
+      console.log("Getting from index cache for keys:", keys, "and artifactId:", artifactId, "and repoName:", repoName);
+      const url = new URL("indexing/cache", this.url);
+      const userToken = this.userToken;
+      if (!userToken) {
+        throw new Error("No user token provided");
+      }
+      try {
+        const data = await this.indexes?.getIndexes({
+          accessToken: userToken,
+          projectKey: repoName ?? "NONE",
+          keys,
+          artifactId,
+          repo: repoName ?? "NONE",
+        });
+        return data?.[0] ?? {
+          files: {},
+        };
+      } catch (e) {
+        console.warn("Failed to retrieve from remote cache", e);
+        throw e;
+      }
+    }, { maxRetries: 6, initialDelayMs: 500, maxDelayMs: 10000 });
   }
 
   public async sendFeedback(feedback: string, data: string): Promise<void> {
@@ -588,6 +657,17 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
         data,
       }),
     });
+  }
+
+  // Helper for external callers to debounce refreshSessions
+  public async refreshSessionsDebounced(): Promise<void> {
+    if (this.inFlightRefreshSessions) return this.inFlightRefreshSessions.then(() => {});
+    if (this.configHandler.debuggAIAuthProvider && this.configHandler.debuggAIAuthProvider.refreshSessions) {
+      this.inFlightRefreshSessions = this.configHandler.debuggAIAuthProvider.refreshSessions()
+        .finally(() => { this.inFlightRefreshSessions = null; });
+      return this.inFlightRefreshSessions!.then(() => {});
+    }
+    return Promise.resolve();
   }
 
 }

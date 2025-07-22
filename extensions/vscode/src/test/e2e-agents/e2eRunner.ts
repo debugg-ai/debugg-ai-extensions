@@ -235,7 +235,7 @@ export class E2eTestRunner {
                 // }
                 // run.end();
                 if (updatedRun.runGif) {
-                    fetchAndOpenGif(this.ide, this.repoPath ?? "", updatedRun.runGif, updatedRun.test?.name ?? "", updatedRun.uuid);
+                    fetchAndOpenGif(this.ide, updatedRun.runGif, updatedRun.test?.name ?? "", updatedRun.uuid);
                 }
                 stopped = true;
             } 

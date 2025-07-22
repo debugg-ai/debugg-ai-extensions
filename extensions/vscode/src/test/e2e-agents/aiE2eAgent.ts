@@ -2,6 +2,7 @@
 
 import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import { E2eRun, E2eTest, E2eTestCommitSuite, E2eTestSuite } from "core/debuggAIServer/types";
+import { IDE } from "core/index";
 import * as vscode from 'vscode';
 import E2eRemoteTestHandler from "./e2eRemoteTestHandler";
 import { E2eObjectCallbacks, RepositoryInfo, Status, Step, TerminalTest, TestHandlerOptions, TestObject, TestState, handlePollUpdateFn } from "./types";
@@ -25,9 +26,11 @@ export class AiE2eAgent {
     private objectCallbacks: E2eObjectCallbacks;
     public testHandler: E2eRemoteTestHandler;
     public testObjectType: TestObjectType;
+    public ide: IDE;
 
-    constructor(client: DebuggAIServerClient, options: AiE2eAgentOptions) {
+    constructor(client: DebuggAIServerClient, ide: IDE, options: AiE2eAgentOptions) {
         this.client = client;
+        this.ide = ide;
         this.testObjectType = options.testObjectType;
         this.agentOptions = options;
         this.objectCallbacks = {
@@ -47,6 +50,7 @@ export class AiE2eAgent {
     private setupTestHandler(): E2eRemoteTestHandler {
         const handler = new E2eRemoteTestHandler(
             this.client,
+            this.ide,
             { ...this.agentOptions },
             { localTunnelPort: this.agentOptions.localServerPort },
             this.objectCallbacks,

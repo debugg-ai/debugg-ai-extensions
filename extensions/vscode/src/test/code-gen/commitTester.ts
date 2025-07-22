@@ -700,6 +700,7 @@ Focus on testing the user-facing functionality that was affected by these change
    * Get working changes (modified, added, deleted files)
     */
     private async getWorkingChanges(workspaceUri: string, workspaceDir: string, branchInfo: {branch: string, commitHash: string}): Promise<WorkingChanges> {
+    const ignoredFolders = ['node_modules', 'dist', 'build', this.testOutputDir, 'out'];
     const [statusOutput] = await this.ide.subprocess(`git status --porcelain`, workspaceDir);
     const changes: WorkingChange[] = [];
     console.log('[CommitTester.getWorkingChanges] Status output:', statusOutput);
@@ -710,7 +711,9 @@ Focus on testing the user-facing functionality that was affected by these change
 
       console.log('[CommitTester.getWorkingChanges] Status:', status);
       console.log('[CommitTester.getWorkingChanges] File:', file);
-
+      if (ignoredFolders.some(folder => file.startsWith(folder))) {
+        continue;
+      }
       if (status === 'M' || status === 'A' || status === 'D') {
         let diff = '';
         if (status === 'M' || status === 'A') {

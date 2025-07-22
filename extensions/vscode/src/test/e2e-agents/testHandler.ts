@@ -1,5 +1,7 @@
 // src/E2eTestRunner.ts
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
+import { fetchAndOpenGif } from 'core/e2es/recordingHandler';
+import { IDE } from 'core/index';
 import * as vscode from 'vscode';
 import { TerminalFormatter } from '../terminal/terminalFormatter';
 import { handlePollUpdateFn, TestHandlerOptions, TestObject, TestState } from './types';
@@ -21,8 +23,10 @@ export abstract class TestHandler {
     protected pollingInterval: number;
     public testState: TestState;
     protected options: TestHandlerOptions;
+    protected ide: IDE;
 
-    constructor(client: DebuggAIServerClient, options: TestHandlerOptions) {
+    constructor(client: DebuggAIServerClient, ide: IDE, options: TestHandlerOptions) {
+        this.ide = ide;
         this.client = client;
         this.timeoutMinutes = options.timeoutMinutes || 30;
         this.pollingInterval = options.pollingInterval || 2500;
@@ -157,6 +161,19 @@ export abstract class TestHandler {
     protected async handleCompletion(state: TestState): Promise<void> {
         this.formatter?.printSummary(state);
         this.vsCodeTestRun?.end();
+
+
+        if (state.tests && state.tests.length > 0) {
+            for (const test of state.tests) {
+                console.log("Processing GIF for test: ", test);
+                if (test.object?.curRun?.runGif) {
+                    fetchAndOpenGif(this.ide, test.object?.curRun?.runGif, test.object?.curRun?.test?.name ?? "", test.object?.curRun?.uuid);
+                }
+            }
+        } else {
+            console.log("No tests found in state");
+        }
+
         this.vsCodeTestRun = null;
         this.vsCodeTestItem = null;
         this.formatter = null;

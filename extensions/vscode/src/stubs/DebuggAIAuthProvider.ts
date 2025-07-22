@@ -184,12 +184,13 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
             access
         );
 
+        const expiresAt = Date.now() + jwtLifetime(access);
         const session: DebuggAIAuthenticationSession = {
             id: uuidv4(),
             accessToken: access,
             refreshToken: refresh,
-            expiresInMs: jwtLifetime(access),
-            expiresAt: Date.now() + jwtLifetime(access),
+            expiresAt,
+            expiresInMs: expiresAt - Date.now(),
             loginNeeded: false,
             account: {
                 id: user.email,
@@ -227,6 +228,11 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
         } catch (e) {
             console.error("Error refreshing sessions:", e);
         }
+    }
+
+    public async clearSessions() {
+        await this._storeSessions([]);
+        this._sessionChangeEmitter.fire({ added: [], removed: [], changed: [] });
     }
 
     /* ideRedirectUri / redirectUri ------------------------------------------*/
@@ -271,13 +277,13 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
                 final.push({ ...s, ...newS });
             } catch (e) {
                 console.log("Refresh failed, moving on", e);
-                if (controlPlaneEnv.AUTH_TYPE === 'debugg-ai-test') {
-                    final.push(s);
-                } else {
-                    final.push(s);
-                    // this._sessionChangeEmitter.fire({ added: [], removed: [s], changed: [] });
-                }
-                // console.debug("Refresh failed, dropping session:", e);
+                // if (controlPlaneEnv.AUTH_TYPE === 'debugg-ai-test') {
+                //     final.push(s);
+                // } else {
+                //     final.push(s);
+                // }
+                this._sessionChangeEmitter.fire({ added: [], removed: [s], changed: [] });
+                console.debug("Refresh failed, dropping session:", e);
             }
         }
         await this._storeSessions(final);
@@ -292,58 +298,51 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
         // Check if the current access token is expired
         const expiresAt = session?.expiresAt;
         if (expiresAt && expiresAt < Date.now()) {
+            // Actually expired, try to refresh
             console.log("Current access token is expired, refreshing session...");
+            const curTime = Date.now();
+            if (curTime - this._lastRefreshTime < 5000) {
+                console.log('Waiting for 5 seconds before refreshing again...');
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+            this._lastRefreshTime = Date.now();
+            console.log('args - ', {
+                grant_type: "refresh_token",
+                refresh_token: refreshToken,
+                client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
+                client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
+                server: controlPlaneEnv.CONTROL_PLANE_URL
+            });
+            const response = await axios.post(TOKEN_REFRESH_ENDPOINT, {
+                grant_type: "refresh_token",
+                refresh_token: refreshToken,
+                client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
+                client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
+            }, {
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+            });
+            this._lastRefreshTime = curTime;
+            const newExpiresAt = Date.now() + jwtLifetime(response.data?.access_token);
+            return {
+                accessToken: response.data?.access_token,
+                refreshToken: response.data?.refresh_token,
+                expiresInMs: newExpiresAt - Date.now(),
+                expiresAt: newExpiresAt,
+            };
+        } else if (expiresAt) {
+            // Not expired, just return the current session with updated expiresInMs
             return {
                 accessToken: session?.accessToken,
                 refreshToken: session?.refreshToken,
                 expiresInMs: expiresAt - Date.now(),
                 expiresAt: expiresAt,
-            }
+            };
+        } else {
+            // No expiresAt, fallback to current session
+            return session!;
         }
-
-        console.log("Attempting to refresh session... with refresh token:", refreshToken);
-        
-        const curTime = Date.now();
-
-        if (curTime - this._lastRefreshTime < 5000) {
-            console.log('Waiting for 5 seconds before refreshing again...');
-            await new Promise(resolve => setTimeout(resolve, 5000));
-        }
-
-        this._lastRefreshTime = Date.now();
-
-        console.log('args - ', {
-            grant_type: "refresh_token",
-            refresh_token: refreshToken,
-            client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
-            client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
-            server: controlPlaneEnv.CONTROL_PLANE_URL
-        });
-        const response = await axios.post(TOKEN_REFRESH_ENDPOINT, {
-            grant_type: "refresh_token",
-            refresh_token: refreshToken,
-            client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
-            client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
-        }, {
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-        });
-
-        this._lastRefreshTime = curTime;
-        // const { access_token: access, refresh_token: refresh } = await fetchWithQueryParams<{ access_token: string, refresh_token: string }>(TOKEN_REFRESH_ENDPOINT, {
-        //     grant_type: "refresh_token",
-        //     refresh_token: refreshToken,
-        //     client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
-        //     client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
-        // });
-        console.log("Refreshed session... with access token:", response.data?.access_token);
-        return {
-            accessToken: response.data?.access_token,
-            refreshToken: response.data?.refresh_token,
-            expiresInMs: jwtLifetime(response.data?.access_token),
-            expiresAt: Date.now() + jwtLifetime(response.data?.access_token),
-        };
     }
 
     private _formatProfileLabel(first: string | undefined, last: string | undefined) {

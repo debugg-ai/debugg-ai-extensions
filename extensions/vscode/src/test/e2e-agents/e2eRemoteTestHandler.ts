@@ -1,4 +1,5 @@
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
+import { IDE } from 'core/index';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -18,12 +19,13 @@ export class E2esTestHandler extends RemoteTestHandler {
 
     constructor(
         client: DebuggAIServerClient,
+        ide: IDE,
         options: TestHandlerOptions,
         remoteOptions: RemoteTestHandlerOptions = {},
         e2eObjectCallbacks: E2eObjectCallbacks,
         repositoryInfoPromise: Promise<RepositoryInfo | null> = Promise.resolve(null)
     ) {
-        super(client, options, remoteOptions);
+        super(client, ide, options, remoteOptions);
         this.e2eObjectCallbacks = e2eObjectCallbacks;
         this.repositoryInfoPromise = repositoryInfoPromise;
         this.repositoryInfo = null;
@@ -42,10 +44,10 @@ export class E2esTestHandler extends RemoteTestHandler {
      */
     protected getParams(): Record<string, any> {
         return {
+            branchName: this.repositoryInfo?.branchName ?? "",
             ...this.options.testParams,
             filePath: this.repositoryInfo?.filePath ?? "",
             repoName: this.repositoryInfo?.repoName ?? "",
-            branchName: this.repositoryInfo?.branchName ?? "",
             repoPath: this.repositoryInfo?.repoPath ?? ""
         };
     }

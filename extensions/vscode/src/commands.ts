@@ -1502,14 +1502,16 @@ const getCommandsMap: (
           commitTester = new CommitTester(client, ide, configHandler, extensionContext);
         }
 
-        vscode.window.setStatusBarMessage("Generating tests for working changes...", 1500);
+        vscode.window.setStatusBarMessage("Generating tests for working changes...", 4000);
 
         const changes = await commitTester.generateTestsForWorkingChanges();
 
-        const aiE2eAgent = new AiE2eAgent(client, {
+        const aiE2eAgent = new AiE2eAgent(client, ide, {
           testParams: {
             description: "Generate tests for working changes",
-            changes: changes
+            changes: changes,
+            commitHash: changes.branchInfo?.commitHash,
+            branchName: changes.branchInfo?.branch,
           },
           title: "Generate tests for working changes",
           testObjectType: "commit-suite",

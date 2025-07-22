@@ -6,7 +6,9 @@ import { URL } from "url";
 import { IDE } from "../index.js";
 
 
-export async function fetchAndOpenGif(ide: IDE, projectRoot: string, recordingUrl: string, testName: string, testId: string): Promise<void> {
+export async function fetchAndOpenGif(ide: IDE, recordingUrl: string, testName: string, testId: string): Promise<void> {
+    let projectRoot = (await ide.getWorkspaceDirs())[0];
+    projectRoot = projectRoot.replace("file://", "");
     let cacheDir = path.join(projectRoot, ".debugg-ai");
 
     if (cacheDir.includes("file:")) {

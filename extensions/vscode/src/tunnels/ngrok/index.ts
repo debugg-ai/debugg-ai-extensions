@@ -178,7 +178,8 @@ export const stop = async (tunnel?: string) => {
       if (tunnel === 'All') {
         await closeAllTunnels();
       } else if (typeof tunnel !== 'undefined') {
-        await closeTunnel(tunnel, api);
+        let tunnelUrl = tunnel.includes("http") ? tunnel : `https://${tunnel}`;
+        await closeTunnel(tunnelUrl, api);
       }
     } else {
       window.showInformationMessage('There are no active ngrok tunnels.');

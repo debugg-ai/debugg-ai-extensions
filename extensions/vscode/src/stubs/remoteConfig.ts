@@ -98,7 +98,7 @@ export class RemoteConfigSync {
     }
     this.syncInterval = setInterval(
       () => {
-        if (!this.debuggAIServerClient?.awaitInit() || !this.debuggAIServerClient?.configHandler.controlPlaneClient.getAccessToken() || !this.remoteConfigServerUrl) {
+        if (!this.debuggAIServerClient?.connected || !this.remoteConfigServerUrl) {
           return;
         }
         this.sync(this.userToken, this.remoteConfigServerUrl);

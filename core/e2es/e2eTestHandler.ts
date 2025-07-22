@@ -237,7 +237,6 @@ export class E2eTestHandler {
                 if (updatedRun?.runGif) {
                     fetchAndOpenGif(
                         this.ide, 
-                        await this.getRepoPath(), 
                         updatedRun.runGif, 
                         updatedRun.test?.name ?? "", 
                         updatedRun.uuid);

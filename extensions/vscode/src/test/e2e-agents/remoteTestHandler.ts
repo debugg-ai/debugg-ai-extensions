@@ -1,5 +1,6 @@
 // src/E2eTestRunner.ts
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
+import { IDE } from 'core/index';
 import { downloadBinary, startNgrokTunnel, stop } from '../../tunnels/ngrok';
 import { TestHandler } from './testHandler';
 import { RemoteTestHandlerOptions, TestHandlerOptions } from './types';
@@ -13,8 +14,8 @@ export abstract class RemoteTestHandler extends TestHandler {
     public currentTunnel?: string;
     public remoteOptions: RemoteTestHandlerOptions;
 
-    constructor(client: DebuggAIServerClient, options: TestHandlerOptions, remoteOptions: RemoteTestHandlerOptions = {}) {
-        super(client, options);
+    constructor(client: DebuggAIServerClient, ide: IDE, options: TestHandlerOptions, remoteOptions: RemoteTestHandlerOptions = {}) {
+        super(client, ide, options);
         this.remoteOptions = remoteOptions;
     }
 
