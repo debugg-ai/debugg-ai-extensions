@@ -14,6 +14,7 @@ export async function fetchAndOpenGif(ide: IDE, recordingUrl: string, testName: 
     if (cacheDir.includes("file:")) {
         cacheDir = cacheDir.replace("file:", "");
     }
+    cacheDir = decodeURIComponent(cacheDir);
     await fs.promises.mkdir(cacheDir, { recursive: true });
     // Create a subdirectory for the gif
     let gifDir = path.join(cacheDir, "e2e-runs");
