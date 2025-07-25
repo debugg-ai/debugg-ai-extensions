@@ -4,37 +4,37 @@ import os from "os";
 import path from "path";
 
 import {
-  ConfigResult,
-  ConfigValidationError,
-  ModelRole,
+    ConfigResult,
+    ConfigValidationError,
+    ModelRole,
 } from "@continuedev/config-yaml";
 import { fetchwithRequestOptions } from "@continuedev/fetch";
 import * as tar from "tar";
 
 import {
-  BrowserSerializedDebuggAiConfig,
-  Config,
-  ContextProviderWithParams,
-  ContinueRcJson,
-  CustomContextProvider,
-  CustomLLM,
-  DebuggAiConfig,
-  EmbeddingsProviderDescription,
-  IContextProvider,
-  IDE,
-  IdeInfo,
-  IdeSettings,
-  IdeType,
-  ILLM,
-  LLMOptions,
-  ModelDescription,
-  RerankerDescription,
-  SerializedDebuggAiConfig,
-  SlashCommand,
+    BrowserSerializedDebuggAiConfig,
+    Config,
+    ContextProviderWithParams,
+    ContinueRcJson,
+    CustomContextProvider,
+    CustomLLM,
+    DebuggAiConfig,
+    EmbeddingsProviderDescription,
+    IContextProvider,
+    IDE,
+    IdeInfo,
+    IdeSettings,
+    IdeType,
+    ILLM,
+    LLMOptions,
+    ModelDescription,
+    RerankerDescription,
+    SerializedDebuggAiConfig,
+    SlashCommand,
 } from "..";
 import {
-  slashCommandFromDescription,
-  slashFromCustomCommand,
+    slashCommandFromDescription,
+    slashFromCustomCommand,
 } from "../commands/index";
 import { AllRerankers } from "../context/allRerankers";
 import { MCPManagerSingleton } from "../context/mcp";
@@ -45,6 +45,7 @@ import FileContextProvider from "../context/providers/FileContextProvider";
 import { contextProviderClassFromName } from "../context/providers/index";
 import PromptFilesContextProvider from "../context/providers/PromptFilesContextProvider";
 import { useHub } from "../control-plane/env";
+import { DebuggAIServerClient } from "../debuggAIServer/stubs/client";
 import { allEmbeddingsProviders } from "../indexing/allEmbeddingsProviders";
 import { BaseLLM } from "../llm";
 import { llmFromDescription } from "../llm/llms";
@@ -59,24 +60,23 @@ import { copyOf } from "../util";
 import { GlobalContext } from "../util/GlobalContext";
 import mergeJson from "../util/merge";
 import {
-  DEFAULT_CONFIG_TS_CONTENTS,
-  getConfigJsonPath,
-  getConfigJsonPathForRemote,
-  getConfigJsPath,
-  getConfigTsPath,
-  getContinueDotEnv,
-  getEsbuildBinaryPath
+    DEFAULT_CONFIG_TS_CONTENTS,
+    getConfigJsonPath,
+    getConfigJsonPathForRemote,
+    getConfigJsPath,
+    getConfigTsPath,
+    getContinueDotEnv,
+    getEsbuildBinaryPath
 } from "../util/paths";
 import { localPathToUri } from "../util/pathToUri";
 
-import { DebuggAIServerClient } from "../debuggAIServer/stubs/client";
 import { ConfigHandler } from "./ConfigHandler";
 import {
-  defaultConfig,
-  defaultContextProvidersJetBrains,
-  defaultContextProvidersVsCode,
-  defaultSlashCommandsJetBrains,
-  defaultSlashCommandsVscode,
+    defaultConfig,
+    defaultContextProvidersJetBrains,
+    defaultContextProvidersVsCode,
+    defaultSlashCommandsJetBrains,
+    defaultSlashCommandsVscode,
 } from "./default";
 import { getSystemPromptDotFile } from "./getSystemPromptDotFile";
 import { modifyAnyConfigWithSharedConfig } from "./sharedConfig";
@@ -1106,9 +1106,9 @@ async function loadDebuggAiConfigFromJson(
 }
 
 export {
-  finalToBrowserConfig,
-  intermediateToFinalConfig,
-  loadDebuggAiConfigFromJson,
-  type BrowserSerializedDebuggAiConfig
+    finalToBrowserConfig,
+    intermediateToFinalConfig,
+    loadDebuggAiConfigFromJson,
+    type BrowserSerializedDebuggAiConfig
 };
 

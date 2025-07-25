@@ -1,7 +1,8 @@
 import boxen from "boxen";
 import chalk from "chalk";
-import type { E2eRun } from "core/debuggAIServer/types";
 import * as vscode from "vscode";
+
+import type { E2eRun } from "core/debuggAIServer/types";
 
 
 type StepStatus = 'pending' | 'success' | 'error' | 'failed' | 'skipped';
@@ -24,13 +25,13 @@ export class RunResultFormatter {
     }
 
     private formatFailures(result: E2eRun): string {
-        if (this.passed(result) || !result.outcome) return "";
+        if (this.passed(result) || !result.outcome) {return "";}
 
         return chalk.red.bold("\r\n❌ Failures:") + "\r\n" + chalk.red(`> ${result.outcome}`);
     }
 
     private formatStepsAsMarkdown(): string {
-        if (this.steps.length === 0) return "";
+        if (this.steps.length === 0) {return "";}
 
         return (
             "\n\n" +
@@ -38,7 +39,7 @@ export class RunResultFormatter {
                 .map((s, idx) => {
                     const num = chalk.dim(`Step ${idx + 1}:`);
                     const label = chalk.white(s.label.padEnd(30));
-                    const icon = chalk.green("✅ Success")
+                    const icon = chalk.green("✅ Success");
                         // s.status === "pending"
                         //     ? chalk.yellow("⏳ Pending")
                         //     : s.status === "success"

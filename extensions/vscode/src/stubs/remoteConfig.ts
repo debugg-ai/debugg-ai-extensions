@@ -3,10 +3,10 @@ import * as fs from "fs";
 import { EXTENSION_NAME } from "core/control-plane/env";
 import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import { getConfigJsonPathForRemote } from "core/util/paths";
-import * as vscode from "vscode";
-
 import { getDebuggAIGlobalPath } from "core/util/paths";
 import { canParseUrl } from "core/util/url";
+import * as vscode from "vscode";
+
 import { CONTINUE_WORKSPACE_KEY } from "../util/workspaceConfig";
 
 export class RemoteConfigSync {

@@ -4,6 +4,7 @@ import { E2eTest } from 'core/debuggAIServer/types';
 import { fetchAndOpenGif } from 'core/e2es/recordingHandler';
 import { IDE } from 'core/index.js';
 import * as vscode from 'vscode';
+
 import { downloadBinary, start, stop } from '../../tunnels/ngrok';
 import { RunResultFormatter } from '../terminal/resultsFormatter';
 
@@ -105,7 +106,7 @@ export class E2eTestRunner {
         this.fileContents = fileContents;
         } catch (e) {
             console.error("Error setting up E2E test runner:", e);
-            vscode.window.setStatusBarMessage("File not found or not associated with a repo.", 3000)
+            vscode.window.setStatusBarMessage("File not found or not associated with a repo.", 3000);
             return;
         }
 
@@ -140,11 +141,11 @@ export class E2eTestRunner {
         );
         console.log(`E2E test created - ${e2eTest}`);
         if (!e2eTest) {
-            vscode.window.setStatusBarMessage("Failed to create E2E test.", 3000)
+            vscode.window.setStatusBarMessage("Failed to create E2E test.", 3000);
             return;
         }
         if (!e2eTest.curRun) {
-            vscode.window.setStatusBarMessage("Failed to create E2E test run.", 3000)
+            vscode.window.setStatusBarMessage("Failed to create E2E test run.", 3000);
             return;
         }
         const authToken = e2eTest.tunnelKey ?? "";
@@ -157,14 +158,14 @@ export class E2eTestRunner {
         const e2eRun = e2eTest.curRun;
         const port = localPort ?? 3000;
         if (!e2eRun) {
-            vscode.window.setStatusBarMessage("Failed to retrieve current E2E test run.", 3000)
+            vscode.window.setStatusBarMessage("Failed to retrieve current E2E test run.", 3000);
             return;
         }
         // Start ngrok tunnel
         await startNgrokTunnel(authToken, port, `${e2eRun.key}.ngrok.debugg.ai`);
         console.log(`🌐 Tunnel started at: ${e2eRun.key}.ngrok.debugg.ai`);
 
-        vscode.window.setStatusBarMessage(`E2E test running...`, 1000)
+        vscode.window.setStatusBarMessage(`E2E test running...`, 1000);
 
         // Setup VS Code test run
         const ctrl = this.getController();
@@ -186,7 +187,7 @@ export class E2eTestRunner {
         // Poll every second for completion
         const interval = setInterval(async () => {
             const updatedRun = await this.client.e2es?.getE2eRun(e2eRun.uuid);
-            if (!updatedRun) return;
+            if (!updatedRun) {return;}
 
             console.log(`📡 Polled E2E run status: ${updatedRun.status}`);
 
@@ -243,7 +244,7 @@ export class E2eTestRunner {
 
         // Timeout safeguard
         const timeout = setTimeout(async () => {
-            if (stopped) return;
+            if (stopped) {return;}
             clearInterval(interval);
             await stop(`https://${e2eRun.key}.ngrok.debugg.ai`);
             run.appendOutput(`⏰ E2E test timed out after 15 minutes\n`);

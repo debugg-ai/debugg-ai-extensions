@@ -1,8 +1,10 @@
-import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
-import { IDE } from 'core/index';
 import * as fs from 'fs';
 import * as path from 'path';
+
+import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
+import { IDE } from 'core/index';
 import * as vscode from 'vscode';
+
 import { RemoteTestHandler } from './remoteTestHandler';
 import { E2eObjectCallbacks, RemoteTestHandlerOptions, RepositoryInfo, Status, TestHandlerOptions, TestObject, TestState } from './types';
 
@@ -69,7 +71,7 @@ export class E2esTestHandler extends RemoteTestHandler {
                 description: 'No object created',
                 object: null,
                 status: "failed"
-            }
+            };
         }
 
         // we need to pull out the tunnel information from the test object

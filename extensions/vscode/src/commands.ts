@@ -12,8 +12,14 @@ import { ConfigHandler } from "core/config/ConfigHandler";
 // import { ContinueServerClient } from "core/continueServer/stubs/client";
 import { EXTENSION_NAME } from "core/control-plane/env";
 import { Core } from "core/core";
+import { LOCAL_DEV_DATA_VERSION } from "core/data/log";
 import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
+import { E2eTestCommitSuite, E2eTestSuite, Issue } from 'core/debuggAIServer/types';
+import { E2eTestHandler } from "core/e2es/e2eTestHandler";
+import { NgrokTunnelClient } from "core/e2es/ngrok-service";
 import { walkDirAsync } from "core/indexing/walkDir";
+import { isModelInstaller } from "core/llm";
+import { startLocalOllama } from "core/util/ollamaHelper";
 import { getDevDataFilePath } from "core/util/paths";
 import { Telemetry } from "core/util/posthog";
 import readLastLines from "read-last-lines";
@@ -28,31 +34,24 @@ import {
   setupStatusBar,
   StatusBarStatus,
 } from "./autocomplete/statusBar";
-
-import { VerticalDiffManager } from "./diff/vertical/manager";
-import EditDecorationManager from "./quickEdit/EditDecorationManager";
-import { QuickEdit, QuickEditShowParams } from "./quickEdit/QuickEditQuickPick";
-import { Battery } from "./util/battery";
-import { getMetaKeyLabel } from "./util/util";
-import { VsCodeIde } from "./VsCodeIde";
-
-import { LOCAL_DEV_DATA_VERSION } from "core/data/log";
-import { E2eTestCommitSuite, E2eTestSuite, Issue } from 'core/debuggAIServer/types';
-import { E2eTestHandler } from "core/e2es/e2eTestHandler";
-import { NgrokTunnelClient } from "core/e2es/ngrok-service";
-import { isModelInstaller } from "core/llm";
-import { startLocalOllama } from "core/util/ollamaHelper";
 import { SuggestionCodeLensProvider } from "./debug/codeLens/suggestionsLensProvider";
 import { pullErrorsAndHighlight } from "./debug/pullErrors";
 import { showSnippetWebview } from "./debug/webviews/snippetWebview";
 import { DebuggGuiWebviewViewProvider } from "./DebuggGUIWebviewViewProvider";
+import { VerticalDiffManager } from "./diff/vertical/manager";
 import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
+import EditDecorationManager from "./quickEdit/EditDecorationManager";
+import { QuickEdit, QuickEditShowParams } from "./quickEdit/QuickEditQuickPick";
 import { CommitTester } from "./test/code-gen/commitTester";
 import { AiE2eAgent, AiE2eAgentOptions } from "./test/e2e-agents/aiE2eAgent";
 import E2eTestRunner from "./test/e2e-agents/e2eRunner";
 import E2eSuiteGenerator from "./test/e2e-agents/e2eSuiteGen";
 import { start } from "./tunnels/ngrok";
 import { post } from "./util/axiosNaming";
+import { Battery } from "./util/battery";
+import { getMetaKeyLabel } from "./util/util";
+import { VsCodeIde } from "./VsCodeIde";
+
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
 
 // Global commit tester instance
@@ -1403,7 +1402,7 @@ const getCommandsMap: (
             placeHolder: "Select an E2E test suite to view details or run",
           }
         );
-        if (!selected) return;
+        if (!selected) {return;}
         const selectedSuite = testSuites.find((suite: E2eTestSuite) => suite.uuid === selected.uuid);
 
         const { config } = await configHandler.loadConfig();
@@ -1582,7 +1581,7 @@ const getCommandsMap: (
           );
         }
       }
-    }
+    };
   };
 
 const registerCopyBufferSpy = (

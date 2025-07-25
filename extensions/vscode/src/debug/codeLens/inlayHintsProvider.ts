@@ -2,7 +2,9 @@
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
 import { Issue, IssueSuggestion, LogOverview } from 'core/debuggAIServer/types';
 import * as vscode from 'vscode';
+
 import { clearDecorations, highlightInlayLine } from '../highlightLine';
+
 import { getFixMarkdown, getIssueMarkdown, getMarkdownStructure } from './structure';
 
 

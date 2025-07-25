@@ -7,9 +7,9 @@ import * as URI from "uri-js";
 import * as vscode from "vscode";
 
 import EditDecorationManager from "../../quickEdit/EditDecorationManager";
+import { handleLLMError } from "../../util/errorHandling";
 import { VsCodeWebviewProtocol } from "../../webviewProtocol";
 
-import { handleLLMError } from "../../util/errorHandling";
 import { VerticalDiffHandler, VerticalDiffHandlerOptions } from "./handler";
 
 export interface VerticalDiffCodeLens {

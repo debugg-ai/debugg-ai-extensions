@@ -1,4 +1,6 @@
+import * as fs from 'fs';
 import { fileURLToPath } from "node:url";
+import * as path from 'path';
 
 import { ConfigHandler } from 'core/config/ConfigHandler';
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
@@ -6,8 +8,6 @@ import { CommitInfo, E2eTest, WorkingChange, WorkingChanges } from 'core/debuggA
 import { E2eTestHandler } from 'core/e2es/e2eTestHandler';
 import { NgrokTunnelClient } from 'core/e2es/ngrok-service';
 import { IDE } from 'core/index.js';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as vscode from 'vscode';
 
 export interface TestGenerationResult {
@@ -678,7 +678,7 @@ Focus on testing the user-facing functionality that was affected by these change
 
     } catch (e) {
         console.error("Error setting up E2E test runner:", e);
-        vscode.window.showWarningMessage("File not found or not associated with a repo.")
+        vscode.window.showWarningMessage("File not found or not associated with a repo.");
         return null;
     }
   }

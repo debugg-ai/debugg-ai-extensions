@@ -1,9 +1,10 @@
 // DebuggAIAuthProvider.ts  ───────────────────────────────────────
 import crypto from "crypto";
-import fetch from "node-fetch";
 
+import axios from "axios";
 import { ControlPlaneSessionInfo } from "core/control-plane/client";
 import { EXTENSION_NAME, getControlPlaneEnvSync } from "core/control-plane/env";
+import fetch from "node-fetch";
 import { v4 as uuidv4 } from "uuid";
 import {
     authentication,
@@ -20,7 +21,6 @@ import {
     workspace
 } from "vscode";
 
-import axios from "axios";
 import { PromiseAdapter, promiseFromEvent } from "./promiseUtils";
 import { SecretStorage } from "./SecretStorage";
 import { UriEventHandler } from "./uriHandler"; // same helper you used for WorkOS
@@ -145,7 +145,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
         const raw = await this.secretStorage.get(SESSIONS_SECRET_KEY);
         console.log("Raw sessions:", raw);
         console.log("Raw sessions count:", raw?.length);
-        if (!raw) return [];
+        if (!raw) {return [];}
         try {
             return JSON.parse(raw);
         } catch {
@@ -418,7 +418,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
             // if (!access_token) return reject(new Error("No access_token"));
             // if (!code) return reject(new Error("No code"));
             if (!state || !this._pendingStates.includes(state))
-                return reject(new Error("Invalid state"));
+                {return reject(new Error("Invalid state"));}
             resolve(uri.query);
         };
 
@@ -433,14 +433,14 @@ export async function getControlPlaneSessionInfo(
     useOnboarding: boolean,
 ): Promise<ControlPlaneSessionInfo | undefined> {
     try {
-        if (useOnboarding) DebuggAIAuthProvider.useOnboardingUri = true;
+        if (useOnboarding) {DebuggAIAuthProvider.useOnboardingUri = true;}
 
         const session = await authentication.getSession(
             controlPlaneEnv.AUTH_TYPE,
             [],
             silent ? { silent: true } : { createIfNone: true },
         );
-        if (!session) return undefined;
+        if (!session) {return undefined;}
         return {
             accessToken: session.accessToken,
             account: { id: session.account.id, label: session.account.label },
@@ -466,7 +466,7 @@ async function fetchJson<T>(
         },
         body: body ? JSON.stringify(body) : undefined,
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) {throw new Error(await r.text());}
     return r.json() as Promise<T>;
 }
 
@@ -487,7 +487,7 @@ async function fetchOauthJson<T>(
         },
         body: body ? JSON.stringify(body) : undefined,
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) {throw new Error(await r.text());}
     return r.json() as Promise<T>;
 }
 
@@ -512,6 +512,6 @@ async function fetchWithQueryParams<T>(
         headers: headers,
         body: body,
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) {throw new Error(await r.text());}
     return r.json() as Promise<T>;
 }

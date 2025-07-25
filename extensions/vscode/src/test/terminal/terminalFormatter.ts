@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import * as vscode from "vscode";
+
 import { handlePollUpdateFn, Status, Step, TerminalFormatterOptions, TerminalTest, TestState } from "../e2e-agents/types";
 
 /**

@@ -1,33 +1,33 @@
 import { ConfigResult, FullSlug } from "@continuedev/config-yaml";
 
 import {
-  ControlPlaneClient,
-  ControlPlaneSessionInfo,
+    ControlPlaneClient,
+    ControlPlaneSessionInfo,
 } from "../control-plane/client.js";
 import { getControlPlaneEnv } from "../control-plane/env.js";
+import { DebuggAIServerClient } from "../debuggAIServer/stubs/client.js";
 import {
-  BrowserSerializedDebuggAiConfig,
-  DebuggAiConfig,
-  IContextProvider,
-  IDE,
-  IdeSettings,
-  ILLM,
+    BrowserSerializedDebuggAiConfig,
+    DebuggAiConfig,
+    IContextProvider,
+    IDE,
+    IdeSettings,
+    ILLM,
 } from "../index.js";
 import Ollama from "../llm/llms/Ollama.js";
 import { GlobalContext } from "../util/GlobalContext.js";
 
-import { DebuggAIServerClient } from "../debuggAIServer/stubs/client.js";
 import { getAllAssistantFiles } from "./loadLocalAssistants.js";
 import {
-  LOCAL_ONBOARDING_CHAT_MODEL,
-  LOCAL_ONBOARDING_PROVIDER_TITLE,
+    LOCAL_ONBOARDING_CHAT_MODEL,
+    LOCAL_ONBOARDING_PROVIDER_TITLE,
 } from "./onboarding.js";
 import ControlPlaneProfileLoader from "./profile/ControlPlaneProfileLoader.js";
 import LocalProfileLoader from "./profile/LocalProfileLoader.js";
 import PlatformProfileLoader from "./profile/PlatformProfileLoader.js";
 import {
-  ProfileDescription,
-  ProfileLifecycleManager,
+    ProfileDescription,
+    ProfileLifecycleManager,
 } from "./ProfileLifecycleManager.js";
 
 export type { ProfileDescription };

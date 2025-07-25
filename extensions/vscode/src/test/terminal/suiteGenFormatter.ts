@@ -1,8 +1,11 @@
 import chalk from "chalk";
-import type { E2eTestSuite } from "core/debuggAIServer/types";
 import * as vscode from "vscode";
+
 import { handlePollUpdateFn, Status, TestState } from "../e2e-agents/types";
+
 import { TerminalFormatter } from "./terminalFormatter";
+
+import type { E2eTestSuite } from "core/debuggAIServer/types";
 
 export class SuiteGenFormatter {
     private formatter: TerminalFormatter;

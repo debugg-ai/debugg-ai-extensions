@@ -2,6 +2,7 @@ import { IDE, IdeInfo, IdeSettings } from "..";
 import { deduplicateArray } from "../util";
 import { GlobalContext } from "../util/GlobalContext";
 import { editConfigJson } from "../util/paths";
+
 import { ConfigHandler } from "./ConfigHandler";
 
 import { DebuggAIServerClient } from "../debuggAIServer/stubs/client.js";

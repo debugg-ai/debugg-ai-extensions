@@ -95,7 +95,7 @@ export const handlePollUpdateFn = (steps: Step[], newStep: Step) => {
         // If the last step is not the same as the new step, add the new step
         return [...steps, newStep];
     }
-}
+};
 
 export interface TerminalTest {
     uuid: string;

@@ -10,8 +10,8 @@ import {
     redDecorationType,
 } from "./decorations";
 
-import type { ApplyState, DiffLine } from "core";
 import type { VerticalDiffCodeLens } from "./manager";
+import type { ApplyState, DiffLine } from "core";
 
 export interface VerticalDiffHandlerOptions {
   input?: string;

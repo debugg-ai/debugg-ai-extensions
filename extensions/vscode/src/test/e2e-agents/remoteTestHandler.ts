@@ -1,7 +1,9 @@
 // src/E2eTestRunner.ts
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
 import { IDE } from 'core/index';
+
 import { downloadBinary, startNgrokTunnel, stop } from '../../tunnels/ngrok';
+
 import { TestHandler } from './testHandler';
 import { RemoteTestHandlerOptions, TestHandlerOptions } from './types';
 

@@ -4,6 +4,7 @@ import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import { E2eRun, E2eTest, E2eTestCommitSuite, E2eTestSuite } from "core/debuggAIServer/types";
 import { IDE } from "core/index";
 import * as vscode from 'vscode';
+
 import E2eRemoteTestHandler from "./e2eRemoteTestHandler";
 import { E2eObjectCallbacks, RepositoryInfo, Status, Step, TerminalTest, TestHandlerOptions, TestObject, TestState, handlePollUpdateFn } from "./types";
 
@@ -90,7 +91,7 @@ export class AiE2eAgent {
                 status: result.runStatus,
                 object: result
             };
-        }
+        };
     }
 
     private getClientPollFunction(testObjectType: TestObjectType, testRunType: TestRunType): (uuid: string, params?: Record<string, any>) => Promise<TestObject> {
@@ -128,7 +129,7 @@ export class AiE2eAgent {
                 status: status as Status,
                 object: result
             };
-        }
+        };
     }
 
     /**
@@ -173,17 +174,17 @@ export class AiE2eAgent {
                 case "commit-suite":
                     return this.parseUpdateForE2eCommitSuite(prevState, updatedObj);
             }
-        }
+        };
         return parseFunction;
     }
 
     private parseUpdateForE2eTest(prevState: TestState, updatedObj: TestObject): TestState {
         const updatedRun = updatedObj.object as E2eRun;
-        if (!updatedRun) return {
+        if (!updatedRun) {return {
             ...prevState,
             testObject: updatedObj,
             status: "pending"
-        };
+        };}
 
         console.log(`📡 Polled E2E run status: ${updatedRun.status}`);
 
@@ -256,11 +257,11 @@ export class AiE2eAgent {
 
     private parseUpdateForE2eTestSuite(prevState: TestState, updatedObj: TestObject): TestState {
         const updatedSuite = updatedObj.object as E2eTestSuite;
-        if (!updatedSuite) return {
+        if (!updatedSuite) {return {
             ...prevState,
             testObject: updatedObj,
             status: "pending"
-        };
+        };}
 
         console.log(`📡 Polled E2E suite status: ${updatedSuite.completed}`);
         const status = updatedSuite.completed ? "completed" : "running";
@@ -293,9 +294,9 @@ export class AiE2eAgent {
     private parseUpdateForE2eCommitSuite(prevState: TestState, updatedObj: TestObject): TestState {
         const updatedCommitSuite = updatedObj.object as E2eTestCommitSuite;
         console.log(`📡 Polled E2E commit suite: ${updatedCommitSuite}`);
-        if (!updatedCommitSuite) return {
+        if (!updatedCommitSuite) {return {
             ...prevState,
-        };
+        };}
         
         console.log(`📡 Polled E2E commit suite status: ${updatedCommitSuite.runStatus}`);
 

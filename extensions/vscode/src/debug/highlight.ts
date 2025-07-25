@@ -1,5 +1,6 @@
 // highlight.ts
 import * as vscode from 'vscode';
+
 import { buildHoverMarkdown } from './hoverBuilder';
 
 /**

@@ -68,7 +68,7 @@ export class DebuggGuiWebviewViewProvider
         return configHandler.reloadConfig();
       }).bind(this),
     );
-    console.log('constructor')
+    console.log('constructor');
   }
 
   getSidebarContent(
@@ -86,7 +86,7 @@ export class DebuggGuiWebviewViewProvider
       .toString();
     console.log("vscMediaUrl", vscMediaUrl);
 
-    console.log('attempting to load index.js')
+    console.log('attempting to load index.js');
     const inDevelopmentMode =
       context?.extensionMode === vscode.ExtensionMode.Development;
     // const inDevelopmentMode = true;
@@ -117,7 +117,7 @@ export class DebuggGuiWebviewViewProvider
       ],
     };
 
-    console.log('nonce')
+    console.log('nonce');
     const nonce = getNonce();
 
     const currentTheme = getTheme();
@@ -136,7 +136,7 @@ export class DebuggGuiWebviewViewProvider
       }
     });
 
-    console.log('webviewProtocol.webview... config handler')
+    console.log('webviewProtocol.webview... config handler');
     this.webviewProtocol.webview = panel.webview;
 
     return `<!DOCTYPE html>

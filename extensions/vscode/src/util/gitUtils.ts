@@ -24,4 +24,4 @@ export const gitProcessTool = async () => {
     // const relativePath = params.filePath.replace(gitProcess + '/', '');
     // console.log('Relative path: ', relativePath);
     return gitProcess;
-}
+};

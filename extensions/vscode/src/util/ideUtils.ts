@@ -1,7 +1,9 @@
 import { EXTENSION_NAME } from "core/control-plane/env";
+import { findUriInDirs } from "core/util/uri";
 import _ from "lodash";
-import * as vscode from "vscode";
 import * as URI from "uri-js";
+import * as vscode from "vscode";
+
 import { threadStopped } from "../debug/debug";
 import { VsCodeExtension } from "../extension/VsCodeExtension";
 import { GitExtension, Repository } from "../otherExtensions/git";
@@ -15,7 +17,6 @@ import {
 import { getUniqueId, openEditorAndRevealRange } from "./vscode";
 
 import type { Range, RangeInFile, Thread } from "core";
-import { findUriInDirs } from "core/util/uri";
 
 const util = require("node:util");
 const asyncExec = util.promisify(require("node:child_process").exec);

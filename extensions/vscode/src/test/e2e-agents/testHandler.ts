@@ -3,7 +3,9 @@ import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
 import { fetchAndOpenGif } from 'core/e2es/recordingHandler';
 import { IDE } from 'core/index';
 import * as vscode from 'vscode';
+
 import { TerminalFormatter } from '../terminal/terminalFormatter';
+
 import { handlePollUpdateFn, TestHandlerOptions, TestObject, TestState } from './types';
 
 
