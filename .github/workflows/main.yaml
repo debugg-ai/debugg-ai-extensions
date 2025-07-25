@@ -19,6 +19,8 @@ on:
 jobs:
   auto_version_and_publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       new_version: ${{ steps.version.outputs.new_version }}
     steps:
@@ -27,6 +29,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
 
       - name: Set up Git
         run: |
