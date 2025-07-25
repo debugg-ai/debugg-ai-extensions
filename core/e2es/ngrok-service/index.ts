@@ -7,13 +7,13 @@ const { readFile } = promises;
 
 import { mkdirp } from 'mkdirp';
 import {
-  authtoken,
-  connect,
-  disconnect,
-  getApi,
-  kill,
-  Ngrok,
-  NgrokClient
+    authtoken,
+    connect,
+    disconnect,
+    getApi,
+    kill,
+    Ngrok,
+    NgrokClient
 } from 'ngrok';
 import download from 'ngrok/download';
 import { parse } from 'yaml';
@@ -168,7 +168,7 @@ export async function downloadBinary() {
       await mkdirp(basePath);
       try {
         await new Promise<void>((resolve, reject) =>
-          download((error) => (error ? reject(error) : resolve()))
+          download((error?: Error) => (error ? reject(error) : resolve()))
         );
       } catch (error) {
         console.error(
