@@ -249,6 +249,7 @@ export interface E2eRun {
     runOnHost?: number | null;
     targetUrl?: string | null;
     runGif?: string | null;  // Url to the gif file containing the run
+    runScript?: string | null;  // Url to the script file (js, py, ts, etc) with playwright code
     runJson?: string | null;  // Url to the json file containing the run data
     metrics?: E2eRunMetrics | null;
 }
