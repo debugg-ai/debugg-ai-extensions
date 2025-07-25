@@ -104,7 +104,6 @@ export interface LogOverview {
     messagePreview?: string | null;       // e.g. "AttributeError: 'NoneType' object..."
 }
 
-
 // TODO: Remove this
 export interface FileResult {
     uuid: string;

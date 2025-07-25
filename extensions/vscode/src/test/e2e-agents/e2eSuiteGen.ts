@@ -2,6 +2,7 @@
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
 import { E2eTestSuite } from 'core/debuggAIServer/types';
 import * as vscode from 'vscode';
+
 import { downloadBinary, start, stop } from '../../tunnels/ngrok';
 import { SuiteGenFormatter } from '../terminal/suiteGenFormatter';
 
@@ -86,7 +87,7 @@ export class E2eSuiteGenerator {
 
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.setStatusBarMessage("No file open.", 3000)
+            vscode.window.setStatusBarMessage("No file open.", 3000);
             return;
         }
         try {
@@ -96,7 +97,7 @@ export class E2eSuiteGenerator {
             const { repoName, repoPath, branchName } = await this.client.getRepoInfo(editor.document.uri.fsPath);
             if (!repoName || !repoPath || !branchName) {
                 console.log("No repo name, path, or branch name found for file");
-                vscode.window.setStatusBarMessage("File not found or not associated with a repo. Please open a file in a repo.", 2000)
+                vscode.window.setStatusBarMessage("File not found or not associated with a repo. Please open a file in a repo.", 2000);
                 return;
             }
             const curFileUri = vscode.Uri.file(filePath);
@@ -105,7 +106,7 @@ export class E2eSuiteGenerator {
             this.branchName = branchName;
         } catch (e) {
             console.error("Error setting up E2E test runner:", e);
-            vscode.window.showWarningMessage("File not found or not associated with a repo.")
+            vscode.window.showWarningMessage("File not found or not associated with a repo.");
             return;
         }
 
@@ -143,7 +144,7 @@ export class E2eSuiteGenerator {
         );
         console.log(`E2E test suite created - ${e2eTestSuite}`);
         if (!e2eTestSuite) {
-            vscode.window.setStatusBarMessage("Failed to create E2E test suite.", 3000)
+            vscode.window.setStatusBarMessage("Failed to create E2E test suite.", 3000);
             return null;
         }
         vscode.window.setStatusBarMessage(`E2E test suite created - ${e2eTestSuite.uuid}`, 1500);
@@ -207,7 +208,7 @@ export class E2eSuiteGenerator {
         // Create the test suite
         const e2eTestSuite = testSuite ? testSuite : await this.createTestSuite(description, localPort);
         if (!e2eTestSuite) {
-            vscode.window.setStatusBarMessage("Failed to create E2E test suite.", 3000)
+            vscode.window.setStatusBarMessage("Failed to create E2E test suite.", 3000);
             return;
         }
         // First setup the tunnel as needed

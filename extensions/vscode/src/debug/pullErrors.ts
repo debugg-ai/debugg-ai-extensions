@@ -1,7 +1,9 @@
 // pullErrors.ts
 import * as vscode from 'vscode';
+
 import { get } from '../util/axiosNaming';
 import { gitProcessTool } from '../util/gitUtils';
+
 import { highlightErrors } from './highlight';
 
 interface LogOverview {

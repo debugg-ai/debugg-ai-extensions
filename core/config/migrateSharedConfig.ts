@@ -2,8 +2,10 @@ import { IDE, IdeInfo, IdeSettings } from "..";
 import { deduplicateArray } from "../util";
 import { GlobalContext } from "../util/GlobalContext";
 import { editConfigJson } from "../util/paths";
+
 import { ConfigHandler } from "./ConfigHandler";
 
+import { DebuggAIServerClient } from "../debuggAIServer/stubs/client.js";
 import { resolveSerializedConfig } from "./load";
 import { SharedConfigSchema } from "./sharedConfig";
 
@@ -19,7 +21,8 @@ export async function migrateJsonSharedConfig(
   uniqueId: string,
   writeLog: (log: string) => Promise<void>,
   workOsAccessToken: string | undefined,
-  configHandler: ConfigHandler
+  configHandler: ConfigHandler,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
 ): Promise<void> {
   const globalContext = new GlobalContext();
   const currentSharedConfig = globalContext.getSharedConfig(); // for merging security concerns
@@ -34,7 +37,8 @@ export async function migrateJsonSharedConfig(
       writeLog,
       workOsAccessToken,
       undefined,
-      configHandler
+      configHandler,
+      debuggAIServerClientPromise,
     );
     const shareConfigUpdates: SharedConfigSchema = {};
 

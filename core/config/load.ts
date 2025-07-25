@@ -4,37 +4,37 @@ import os from "os";
 import path from "path";
 
 import {
-  ConfigResult,
-  ConfigValidationError,
-  ModelRole,
+    ConfigResult,
+    ConfigValidationError,
+    ModelRole,
 } from "@continuedev/config-yaml";
 import { fetchwithRequestOptions } from "@continuedev/fetch";
 import * as tar from "tar";
 
 import {
-  BrowserSerializedDebuggAiConfig,
-  Config,
-  ContextProviderWithParams,
-  ContinueRcJson,
-  CustomContextProvider,
-  CustomLLM,
-  DebuggAiConfig,
-  EmbeddingsProviderDescription,
-  IContextProvider,
-  IDE,
-  IdeInfo,
-  IdeSettings,
-  IdeType,
-  ILLM,
-  LLMOptions,
-  ModelDescription,
-  RerankerDescription,
-  SerializedDebuggAiConfig,
-  SlashCommand,
+    BrowserSerializedDebuggAiConfig,
+    Config,
+    ContextProviderWithParams,
+    ContinueRcJson,
+    CustomContextProvider,
+    CustomLLM,
+    DebuggAiConfig,
+    EmbeddingsProviderDescription,
+    IContextProvider,
+    IDE,
+    IdeInfo,
+    IdeSettings,
+    IdeType,
+    ILLM,
+    LLMOptions,
+    ModelDescription,
+    RerankerDescription,
+    SerializedDebuggAiConfig,
+    SlashCommand,
 } from "..";
 import {
-  slashCommandFromDescription,
-  slashFromCustomCommand,
+    slashCommandFromDescription,
+    slashFromCustomCommand,
 } from "../commands/index";
 import { AllRerankers } from "../context/allRerankers";
 import { MCPManagerSingleton } from "../context/mcp";
@@ -45,6 +45,7 @@ import FileContextProvider from "../context/providers/FileContextProvider";
 import { contextProviderClassFromName } from "../context/providers/index";
 import PromptFilesContextProvider from "../context/providers/PromptFilesContextProvider";
 import { useHub } from "../control-plane/env";
+import { DebuggAIServerClient } from "../debuggAIServer/stubs/client";
 import { allEmbeddingsProviders } from "../indexing/allEmbeddingsProviders";
 import { BaseLLM } from "../llm";
 import { llmFromDescription } from "../llm/llms";
@@ -59,28 +60,56 @@ import { copyOf } from "../util";
 import { GlobalContext } from "../util/GlobalContext";
 import mergeJson from "../util/merge";
 import {
-  DEFAULT_CONFIG_TS_CONTENTS,
-  getConfigJsonPath,
-  getConfigJsonPathForRemote,
-  getConfigJsPath,
-  getConfigTsPath,
-  getContinueDotEnv,
-  getEsbuildBinaryPath
+    DEFAULT_CONFIG_TS_CONTENTS,
+    getConfigJsonPath,
+    getConfigJsonPathForRemote,
+    getConfigJsPath,
+    getConfigTsPath,
+    getContinueDotEnv,
+    getEsbuildBinaryPath
 } from "../util/paths";
 import { localPathToUri } from "../util/pathToUri";
 
-import { DebuggAIServerClient } from "../debuggAIServer/stubs/client";
 import { ConfigHandler } from "./ConfigHandler";
 import {
-  defaultContextProvidersJetBrains,
-  defaultContextProvidersVsCode,
-  defaultSlashCommandsJetBrains,
-  defaultSlashCommandsVscode,
+    defaultConfig,
+    defaultContextProvidersJetBrains,
+    defaultContextProvidersVsCode,
+    defaultSlashCommandsJetBrains,
+    defaultSlashCommandsVscode,
 } from "./default";
 import { getSystemPromptDotFile } from "./getSystemPromptDotFile";
 import { modifyAnyConfigWithSharedConfig } from "./sharedConfig";
 import { getModelByRole, isSupportedLanceDbCpuTargetForLinux } from "./util";
 import { validateConfig } from "./validation.js";
+
+let debuggAIServerClient: DebuggAIServerClient | null = null;
+
+
+async function getConfigFromServer(
+  configHandler: ConfigHandler,
+  ide: IDE,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
+) {
+  let config: SerializedDebuggAiConfig;
+  try {
+    if (!debuggAIServerClient) {
+      debuggAIServerClient = await debuggAIServerClientPromise;
+    }
+    await debuggAIServerClient.waitForAuthProvider();
+    
+    console.log("DebuggAIServerClient initialized");
+    await debuggAIServerClient.awaitInit();
+
+    config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
+    console.log("Loaded remote config", config);
+    return config;
+    
+  } catch (e) {
+    console.error("Error loading remote config", e);
+    throw e;
+  }
+}
 
 export async function resolveSerializedConfig(
   filepath: string,
@@ -91,28 +120,37 @@ export async function resolveSerializedConfig(
   writeLog: (log: string) => Promise<void>,
   workOsAccessToken: string | undefined,
   overrideConfigJson: SerializedDebuggAiConfig | undefined,
-  configHandler: ConfigHandler
+  configHandler: ConfigHandler,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
 ): Promise<SerializedDebuggAiConfig> {
   let config: SerializedDebuggAiConfig;
 
   try {
     const content = fs.readFileSync(filepath, "utf8");
     config = JSON.parse(content) as unknown as SerializedDebuggAiConfig;
+
+    if (!config.vectorDatabaseOpts?.apiKey) {
+      const remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise);
+      if (remoteConfig) {
+        // config = mergeJson(config, remoteConfig, "merge", configMergeKeys);
+        config = remoteConfig;
+      }
+    }
   } catch (e) {
     console.error("Error parsing config.json, attempting to load remote for file", filepath);
-
+    let remoteConfig: SerializedDebuggAiConfig | undefined;
     try {
-      const debuggAIServerClient = new DebuggAIServerClient(
-        configHandler,
-        ide
-      );
-      await debuggAIServerClient.awaitInit();
-      console.log("DebuggAIServerClient initialized");
-      config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
-      console.log("Loaded remote config", config);
+      remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise);
     } catch (e) {
       console.error("Error loading remote config", e);
-      throw e;
+    }
+    
+    if (remoteConfig) {
+      // config = mergeJson(config, remoteConfig, "merge", configMergeKeys);
+      config = remoteConfig;
+    } else {
+      // read default config
+      config = defaultConfig as unknown as SerializedDebuggAiConfig;
     }
 
     const configJson = JSON.stringify(config);
@@ -161,7 +199,8 @@ async function loadSerializedConfig(
   uniqueId: string,
   writeLog: (log: string) => Promise<void>,
   workOsAccessToken: string | undefined,
-  configHandler: ConfigHandler
+  configHandler: ConfigHandler,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
 ): Promise<ConfigResult<SerializedDebuggAiConfig>> {
   let config: SerializedDebuggAiConfig = overrideConfigJson!;
   if (!config) {
@@ -175,7 +214,8 @@ async function loadSerializedConfig(
         writeLog,
         workOsAccessToken,
         overrideConfigJson,
-        configHandler
+        configHandler,
+        debuggAIServerClientPromise,
       );
     } catch (e) {
       throw new Error(`Failed to parse config.json: ${e}`);
@@ -207,7 +247,8 @@ async function loadSerializedConfig(
         writeLog,
         workOsAccessToken,  
         undefined,
-        configHandler
+        configHandler,
+        debuggAIServerClientPromise,
       );
       config = mergeJson(config, remoteConfigJson, "merge", configMergeKeys);
     } catch (e) {
@@ -949,7 +990,8 @@ async function loadDebuggAiConfigFromJson(
   writeLog: (log: string) => Promise<void>,
   workOsAccessToken: string | undefined,
   overrideConfigJson: SerializedDebuggAiConfig | undefined,
-  configHandler: ConfigHandler
+  configHandler: ConfigHandler,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
 ): Promise<ConfigResult<DebuggAiConfig>> {
   // Serialized config
   let {
@@ -966,7 +1008,8 @@ async function loadDebuggAiConfigFromJson(
     uniqueId,
     writeLog,
     workOsAccessToken,
-    configHandler
+    configHandler,
+    debuggAIServerClientPromise,
   );
 
   if (!serialized || configLoadInterrupted) {
@@ -1063,9 +1106,9 @@ async function loadDebuggAiConfigFromJson(
 }
 
 export {
-  finalToBrowserConfig,
-  intermediateToFinalConfig,
-  loadDebuggAiConfigFromJson,
-  type BrowserSerializedDebuggAiConfig
+    finalToBrowserConfig,
+    intermediateToFinalConfig,
+    loadDebuggAiConfigFromJson,
+    type BrowserSerializedDebuggAiConfig
 };
 

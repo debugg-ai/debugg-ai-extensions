@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+
 import { gitProcessTool } from '../../util/gitUtils';
 
 export class ErrorFileDecorationProvider implements vscode.FileDecorationProvider {

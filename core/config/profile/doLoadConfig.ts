@@ -28,6 +28,7 @@ import { migrateJsonSharedConfig } from "../migrateSharedConfig";
 import { rectifySelectedModelsFromGlobalContext } from "../selectedModels";
 import { loadDebuggAiConfigFromYaml } from "../yaml/loadYaml";
 
+import { DebuggAIServerClient } from "../../debuggAIServer/stubs/client";
 import { ConfigHandler } from "../ConfigHandler";
 import { PlatformConfigMetadata } from "./PlatformProfileLoader";
 
@@ -41,7 +42,8 @@ export default async function doLoadConfig(
   platformConfigMetadata: PlatformConfigMetadata | undefined,
   profileId: string,
   overrideConfigYamlByPath: string | undefined,
-  configHandler: ConfigHandler
+  configHandler: ConfigHandler,
+  debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
 ): Promise<ConfigResult<DebuggAiConfig>> {
   const workspaceConfigs = await getWorkspaceConfigs(ide);
   const ideInfo = await ide.getIdeInfo();
@@ -61,7 +63,8 @@ export default async function doLoadConfig(
       uniqueId,
       writeLog,
       workOsAccessToken,
-      configHandler
+      configHandler,
+      debuggAIServerClientPromise,
     );
   }
 
@@ -100,7 +103,8 @@ export default async function doLoadConfig(
       writeLog,
       workOsAccessToken,
       overrideConfigJson,
-      configHandler
+      configHandler,
+      debuggAIServerClientPromise,
     );
     newConfig = result.config;
     errors = result.errors;

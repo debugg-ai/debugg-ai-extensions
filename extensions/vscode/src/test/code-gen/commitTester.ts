@@ -1,21 +1,14 @@
+import * as fs from 'fs';
+import { fileURLToPath } from "node:url";
+import * as path from 'path';
+
 import { ConfigHandler } from 'core/config/ConfigHandler';
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
-import { E2eTest } from 'core/debuggAIServer/types';
+import { CommitInfo, E2eTest, WorkingChange, WorkingChanges } from 'core/debuggAIServer/types';
 import { E2eTestHandler } from 'core/e2es/e2eTestHandler';
 import { NgrokTunnelClient } from 'core/e2es/ngrok-service';
 import { IDE } from 'core/index.js';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as vscode from 'vscode';
-
-export interface CommitInfo {
-  hash: string;
-  message: string;
-  author: string;
-  date: string;
-  files: string[];
-  diff: string;
-}
 
 export interface TestGenerationResult {
   success: boolean;
@@ -158,6 +151,7 @@ export class CommitTester {
     const gitExtension = vscode.extensions.getExtension<GitExtension>('vscode.git');
 
     if (!gitExtension) {
+      console.log('[CommitTester] Git extension not found');
       return undefined;
     }
 
@@ -520,7 +514,8 @@ Focus on testing the user-facing functionality that was affected by these change
     try {
       const workspaceDirs = await this.ide.getWorkspaceDirs();
       if (workspaceDirs.length > 0) {
-        const fullPath = path.join(workspaceDirs[0], this.testOutputDir);
+        const wrkDir = workspaceDirs[0] ? workspaceDirs[0].replace('file://', '') : '';
+        const fullPath = path.join(wrkDir, this.testOutputDir);
         await fs.promises.mkdir(fullPath, { recursive: true });
       }
     } catch (error) {
@@ -552,63 +547,102 @@ Focus on testing the user-facing functionality that was affected by these change
   /**
    * Generate tests for current working changes (uncommitted changes)
    */
-  async generateTestsForWorkingChanges(): Promise<TestGenerationResult> {
+  async generateTestsForWorkingChanges(): Promise<{
+    workingChanges: WorkingChanges;
+    branchInfo: {branch: string, commitHash: string};
+    testFiles?: string[];
+  }> {
+    const nullResult = {
+      workingChanges: {
+        changes: [],
+        branchInfo: {
+          branch: '',
+          commitHash: ''
+        }
+      },
+      branchInfo: {branch: '', commitHash: ''},
+      testFiles: []
+    };
     try {
       console.log('[CommitTester] Generating tests for current working changes');
-      
+
       // Get current git status to understand what changes exist
-      const workspaceDir = await this.getCurrentWorkspaceDir();
+      let workspaceDir = await this.getCurrentWorkspaceDir();
+
       if (!workspaceDir) {
-        return {
-          success: false,
-          testFiles: [],
-          error: 'No git repository found'
-        };
+        console.log('[CommitTester] No workspace directory found');
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            console.log('[CommitTester] No active text editor found');
+            return nullResult;
+        }
+        const repoName = await this.ide.getRepoName(editor.document.uri.fsPath);
+        if (!repoName) {
+            console.log('[CommitTester] No repo name found for file');
+            return nullResult;
+        }
+        workspaceDir = path.dirname(editor.document.uri.fsPath);
+
       }
+      console.log('[CommitTester] Workspace directory:', workspaceDir);
+
+      const workspaceDirPath = fileURLToPath(workspaceDir);
+      console.log('[CommitTester] Workspace directory path:', workspaceDirPath);
 
       // Get current branch and working changes
-      const branchInfo = await this.getCurrentBranchInfo(workspaceDir);
-      const workingChanges = await this.getWorkingChanges(workspaceDir);
-      
-      if (!workingChanges.length) {
-        return {
-          success: false,
-          testFiles: [],
-          error: 'No working changes found'
-        };
+      const branchInfo = await this.getCurrentBranchInfo(workspaceDirPath);
+      console.log('[CommitTester] Branch info:', branchInfo);
+      const workingChanges = await this.getWorkingChanges(workspaceDir, workspaceDirPath, branchInfo);
+      console.log('[CommitTester] Working changes:', workingChanges);
+      if (!workingChanges.changes.length) {
+        return nullResult;
       }
+
+      // Structure the working changes properly
+      // Send them to the server at /e2es/consolidate-changes/
+      //    - repository information
+      //    - branch information
+      //    - working changes
+      //    - commit hash
+      //    - commit message
+      //    - author
+      //    - date
+      //    - changed files
+      // The server will respond with a list of test descriptions
+
+      // We should not re-create how we run tests. Respond with descriptions
+      //   and just let our existing test run commands handle it.
+      // Send the new descriptions to the server at /e2es/generate-tests/ to create them
+      // Wait for the tests to complete
+      // Save the test files
+      // Return the test files
+
 
       // Create a description of the working changes
-      const changeDescription = this.createWorkingChangesDescription(workingChanges, branchInfo);
+      // const changeDescription = this.createWorkingChangesDescription(workingChanges, branchInfo);
       
-      // Generate tests using the E2E test handler
-      const { config } = await this.configHandler.loadConfig();
-      const localPort = config?.debuggAiServerPort || 3000;
-      
-      const e2eTest = await this.e2eTestHandler.runE2eTest(changeDescription, localPort);
-      
-      if (!e2eTest) {
-        return {
-          success: false,
-          testFiles: [],
-          error: 'Failed to generate E2E test'
-        };
-      }
 
       // Wait for test completion and save files
-      const testFiles = await this.waitForTestCompletionAndSaveFiles(e2eTest);
+      // const testFiles = await this.waitForTestCompletionAndSaveFiles(e2eTest);
       
       return {
-        success: true,
-        testFiles,
+        workingChanges: workingChanges,
+        branchInfo: branchInfo,
+        testFiles: []
       };
       
     } catch (error) {
       console.error('[CommitTester] Error generating tests for working changes:', error);
       return {
-        success: false,
-        testFiles: [],
-        error: error instanceof Error ? error.message : String(error)
+        workingChanges: {
+          changes: [],
+          branchInfo: {
+            branch: '',
+            commitHash: ''
+          }
+        },
+        branchInfo: {branch: '', commitHash: ''},
+        testFiles: []
       };
     }
   }
@@ -617,17 +651,36 @@ Focus on testing the user-facing functionality that was affected by these change
    * Get the current workspace directory
    */
   private async getCurrentWorkspaceDir(): Promise<string | null> {
-    const git = this.getGitApi();
-    if (!git) {
-      return null;
-    }
+    // const git = this.getGitApi();
+    // if (!git) {
+    //   return null;
+    // }
 
-    const api = await git;
-    if (!api || !api.repositories.length) {
-      return null;
-    }
+    // const api = await git;
+    // if (!api || !api.repositories.length) {
+    //   return null;
+    // }
 
-    return api.repositories[0].rootUri.fsPath;
+    // return api.repositories[0].rootUri.fsPath;
+
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        return null;
+    }
+    try {
+        const filePath = editor.document.uri.fsPath;
+        const repoPath = await this.ide.getGitRootPath(filePath);
+        if (!repoPath) {
+            console.log('[CommitTester] No repo path found for file');
+            return null;
+        }
+        return repoPath;
+
+    } catch (e) {
+        console.error("Error setting up E2E test runner:", e);
+        vscode.window.showWarningMessage("File not found or not associated with a repo.");
+        return null;
+    }
   }
 
   /**
@@ -645,15 +698,22 @@ Focus on testing the user-facing functionality that was affected by these change
 
   /**
    * Get working changes (modified, added, deleted files)
-   */
-  private async getWorkingChanges(workspaceDir: string): Promise<Array<{status: string, file: string, diff?: string}>> {
+    */
+    private async getWorkingChanges(workspaceUri: string, workspaceDir: string, branchInfo: {branch: string, commitHash: string}): Promise<WorkingChanges> {
+    const ignoredFolders = ['node_modules', 'dist', 'build', this.testOutputDir, 'out'];
     const [statusOutput] = await this.ide.subprocess(`git status --porcelain`, workspaceDir);
-    const changes: Array<{status: string, file: string, diff?: string}> = [];
-    
+    const changes: WorkingChange[] = [];
+    console.log('[CommitTester.getWorkingChanges] Status output:', statusOutput);
+
     for (const line of statusOutput.split('\n').filter((l: string) => l.trim())) {
       const status = line.substring(0, 2).trim();
       const file = line.substring(3);
-      
+
+      console.log('[CommitTester.getWorkingChanges] Status:', status);
+      console.log('[CommitTester.getWorkingChanges] File:', file);
+      if (ignoredFolders.some(folder => file.startsWith(folder))) {
+        continue;
+      }
       if (status === 'M' || status === 'A' || status === 'D') {
         let diff = '';
         if (status === 'M' || status === 'A') {
@@ -673,10 +733,29 @@ Focus on testing the user-facing functionality that was affected by these change
         }
         
         changes.push({ status, file, diff });
+      } else if (status === '??') {
+        // Completely new files have 'diffs' which are just the file contents
+        console.log('[CommitTester.getWorkingChanges] New file:', file);
+        try {
+          const fileUri = path.join(workspaceUri, file);
+          console.log('[CommitTester.getWorkingChanges] File URI:', fileUri);
+          const fileContents = await this.ide.readFile(fileUri.toString());
+          console.log('[CommitTester.getWorkingChanges] Successfully read file contents');
+          changes.push({ status, file, diff: fileContents });
+        } catch (error) {
+          // Ignore diff errors
+          console.error('[CommitTester.getWorkingChanges] Error reading file contents:', error);
+        }
       }
     }
     
-    return changes;
+    return {
+      changes,
+      branchInfo: {
+        branch: branchInfo.branch,
+        commitHash: branchInfo.commitHash
+      }
+    };
   }
 
   /**

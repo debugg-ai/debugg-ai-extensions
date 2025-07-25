@@ -21,7 +21,10 @@ import {
   StatusBarStatus,
 } from "../autocomplete/statusBar";
 import { registerAllCommands } from "../commands";
+import { OptionsInlayHintsProvider } from "../debug/codeLens/inlayHintsProvider";
+import { DebuggGuiWebviewViewProvider } from "../DebuggGUIWebviewViewProvider";
 import { VerticalDiffManager } from "../diff/vertical/manager";
+import { ErrorFileDecorationProvider } from "../errorTracking/fileDecorations/ErrorFileDecoration";
 import { registerAllCodeLensProviders } from "../lang-server/codeLens";
 import { registerAllPromptFilesCompletionProviders } from "../lang-server/promptFileCompletions";
 import EditDecorationManager from "../quickEdit/EditDecorationManager";
@@ -39,10 +42,8 @@ import { VsCodeIde } from "../VsCodeIde";
 import { VsCodeMessenger } from "./VsCodeMessenger";
 
 // Extended classes
-import { ErrorFileDecorationProvider } from "../errorTracking/fileDecorations/ErrorFileDecoration";
 
-import { OptionsInlayHintsProvider } from "../debug/codeLens/inlayHintsProvider";
-import { DebuggGuiWebviewViewProvider } from "../DebuggGUIWebviewViewProvider";
+
 import type { VsCodeWebviewProtocol } from "../webviewProtocol";
 
 
@@ -100,7 +101,7 @@ export class VsCodeExtension {
       this.extensionContext,
     );
 
-    console.log('pushing sidebar')
+    console.log('pushing sidebar');
     // Sidebar
     context.subscriptions.push(
       vscode.window.registerWebviewViewProvider(
@@ -141,6 +142,8 @@ export class VsCodeExtension {
       );
       outputChannel.append(log);
     });
+    this.core.configHandler.debuggAIAuthProvider = this.debuggAIAuthProvider;
+    
     this.configHandler = this.core.configHandler;
     resolveConfigHandler?.(this.configHandler);
 

@@ -6,21 +6,29 @@ import { URL } from "url";
 import { IDE } from "../index.js";
 
 
-export async function fetchAndOpenGif(ide: IDE, projectRoot: string, recordingUrl: string, testName: string, testId: string): Promise<void> {
-    let cacheDir = path.join(projectRoot, ".debugg-ai", "e2e-runs");
+export async function fetchAndOpenGif(ide: IDE, recordingUrl: string, testName: string, testId: string): Promise<void> {
+    let projectRoot = (await ide.getWorkspaceDirs())[0];
+    projectRoot = projectRoot.replace("file://", "");
+    let cacheDir = path.join(projectRoot, ".debugg-ai");
+
+    if (cacheDir.includes("file:")) {
+        cacheDir = cacheDir.replace("file:", "");
+    }
+    cacheDir = decodeURIComponent(cacheDir);
+    await fs.promises.mkdir(cacheDir, { recursive: true });
+    // Create a subdirectory for the gif
+    let gifDir = path.join(cacheDir, "e2e-runs");
+    await fs.promises.mkdir(gifDir, { recursive: true });
+
     console.log('....downloading gif....')
     console.log('cacheDir', cacheDir);
+    console.log('gifDir', gifDir);
     console.log('testId', testId);
     console.log('recordingUrl', recordingUrl);
     let localUrl = recordingUrl.replace('localhost', 'localhost:8002');
     console.log('localUrl', localUrl);
 
-    if (cacheDir.includes("file:")) {
-        cacheDir = cacheDir.replace("file:", "");
-    }
-    await fs.promises.mkdir(cacheDir, { recursive: true });
-
-    const filePath = path.join(cacheDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}.gif`);
+    const filePath = path.join(gifDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}.gif`);
     const fileUrl = new URL(localUrl);
 
     const file = fs.createWriteStream(filePath);

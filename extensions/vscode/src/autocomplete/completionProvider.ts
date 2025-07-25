@@ -9,6 +9,7 @@ import * as URI from "uri-js";
 import { v4 as uuidv4 } from "uuid";
 import * as vscode from "vscode";
 
+import { handleLLMError } from "../util/errorHandling";
 import { showFreeTrialLoginMessage } from "../util/messages";
 import { VsCodeWebviewProtocol } from "../webviewProtocol";
 
@@ -23,7 +24,6 @@ import {
 } from "./statusBar";
 
 import type { IDE } from "core";
-import { handleLLMError } from "../util/errorHandling";
 
 interface VsCodeCompletionInput {
   document: vscode.TextDocument;

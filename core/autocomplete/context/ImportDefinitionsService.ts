@@ -1,9 +1,9 @@
 import { IDE, RangeInFileWithContents } from "../..";
 import { PrecalculatedLruCache } from "../../util/LruCache";
 import {
-  getFullLanguageName,
-  getParserForFile,
-  getQueryForFile,
+    getFullLanguageName,
+    getParserForFile,
+    getQueryForFile,
 } from "../../util/treeSitter";
 
 interface FileInfo {
@@ -21,7 +21,7 @@ export class ImportDefinitionsService {
 
   constructor(private readonly ide: IDE) {
     ide.onDidChangeActiveTextEditor((filepath) => {
-      this.cache.initKey(filepath);
+      void this.cache.initKey(filepath);
     });
   }
 

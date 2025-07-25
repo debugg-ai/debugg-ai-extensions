@@ -116,10 +116,29 @@ const getTunnelToStart: (
     quickPick.show();
   });
 
+export const checkTunnelIsRunning = async (options?: Ngrok.Options) => {
+  const api = getApi();
+  if (!api) {
+    return false;
+  }
+  const tunnels = await getActiveTunnels(api);
+
+  for (const tunnel of tunnels) {
+    if (tunnel.public_url === options?.hostname) {
+      return true;
+    }
+  }
+  return tunnels.length > 0;
+};
+
 export const start = async (options?: Ngrok.Options) => {
   const config = await getConfig();
   const tunnel = options || (await getTunnelToStart(config));
   if (typeof tunnel !== 'undefined') {
+    const isRunning = await checkTunnelIsRunning(tunnel);
+    if (isRunning) {
+      return;
+    }
     const configPath = getConfigPath();
     if (existsSync(configPath)) {
       tunnel.configPath = configPath;
@@ -128,22 +147,6 @@ export const start = async (options?: Ngrok.Options) => {
       tunnel.binPath = binPath;
       try {
         const url = await connect(tunnel);
-        // showStatusBarItem();
-        // const action = await window.showInformationMessage(
-        //   `ngrok is forwarding ${url}.`,
-        //   'Copy to clipboard',
-        //   'Open in browser',
-        //   'Show QR code'
-        // );
-        // switch (action) {
-        //   case 'Copy to clipboard':
-        //     await env.clipboard.writeText(url);
-        //     window.showInformationMessage(`Copied "${url}" to your clipboard.`);
-        //     break;
-        //   case 'Open in browser':
-        //     env.openExternal(Uri.parse(url));
-        //     break;
-        // }
       } catch (error) {
         window.showErrorMessage(`There was an error starting your tunnel.`);
         console.error(error);
@@ -175,7 +178,8 @@ export const stop = async (tunnel?: string) => {
       if (tunnel === 'All') {
         await closeAllTunnels();
       } else if (typeof tunnel !== 'undefined') {
-        await closeTunnel(tunnel, api);
+        let tunnelUrl = tunnel.includes("http") ? tunnel : `https://${tunnel}`;
+        await closeTunnel(tunnelUrl, api);
       }
     } else {
       window.showInformationMessage('There are no active ngrok tunnels.');
@@ -262,6 +266,23 @@ export const setAuthToken = async (token: string) => {
     );
   }
 };
+
+export async function startNgrokTunnel(authToken: string, localPort: number, domain: string) {
+  try {
+      await start({
+          addr: localPort,
+          hostname: domain,
+          authtoken: authToken,
+          onLogEvent: (data: any) => {
+              console.log(`${localPort} | ${domain} | ngrok log: ${data}`);
+          },
+      });
+      console.log(`Tunnel started at: ${domain}`);
+      return domain;
+  } catch (err) {
+      console.error('Error starting ngrok tunnel:', err);
+  }
+}
 
 export const downloadBinary = () => {
   const binaryLocations = [

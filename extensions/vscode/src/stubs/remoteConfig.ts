@@ -3,10 +3,10 @@ import * as fs from "fs";
 import { EXTENSION_NAME } from "core/control-plane/env";
 import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import { getConfigJsonPathForRemote } from "core/util/paths";
-import * as vscode from "vscode";
-
 import { getDebuggAIGlobalPath } from "core/util/paths";
 import { canParseUrl } from "core/util/url";
+import * as vscode from "vscode";
+
 import { CONTINUE_WORKSPACE_KEY } from "../util/workspaceConfig";
 
 export class RemoteConfigSync {
@@ -98,16 +98,16 @@ export class RemoteConfigSync {
     }
     this.syncInterval = setInterval(
       () => {
-        if (!this.userToken || !this.remoteConfigServerUrl) {
+        if (!this.debuggAIServerClient?.connected || !this.remoteConfigServerUrl) {
           return;
         }
         this.sync(this.userToken, this.remoteConfigServerUrl);
       },
-      this.remoteConfigSyncPeriod * 1000 * 60,
+      this.remoteConfigSyncPeriod * 1000 * 60 * 60 * 4,
     );
   }
 
-  async sync(userToken: string, remoteConfigServerUrl: string) {
+  async sync(userToken: string | null, remoteConfigServerUrl: string) {
     try {
       const config = await this.debuggAIServerClient.users?.getUserConfig();
       if (!config) {

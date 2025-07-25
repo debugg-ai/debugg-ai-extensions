@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { IDE } from "core";
 import { ConfigHandler } from "core/config/ConfigHandler";
+import { DataLogger } from "core/data/log";
 import { Telemetry } from "core/util/posthog";
 import * as vscode from "vscode";
 
@@ -8,7 +9,6 @@ import { VerticalDiffManager } from "../diff/vertical/manager";
 import { FileSearch } from "../util/FileSearch";
 import { VsCodeWebviewProtocol } from "../webviewProtocol";
 
-import { DataLogger } from "core/data/log";
 import { getContextProviderQuickPickVal } from "./ContextProvidersQuickPick";
 import { appendToHistory, getHistoryQuickPickVal } from "./HistoryQuickPick";
 import { getModelQuickPickVal } from "./ModelSelectionQuickPick";

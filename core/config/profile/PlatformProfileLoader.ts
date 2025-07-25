@@ -5,6 +5,7 @@ import { getControlPlaneEnv } from "../../control-plane/env.js";
 import { DebuggAiConfig, IDE, IdeSettings } from "../../index.js";
 import { ProfileDescription } from "../ProfileLifecycleManager.js";
 
+import { DebuggAIServerClient } from "../../debuggAIServer/stubs/client.js";
 import { ConfigHandler } from "../ConfigHandler.js";
 import doLoadConfig from "./doLoadConfig.js";
 import { IProfileLoader } from "./IProfileLoader.js";
@@ -20,7 +21,7 @@ export interface PlatformConfigMetadata {
 }
 
 export default class PlatformProfileLoader implements IProfileLoader {
-  static RELOAD_INTERVAL = 1000 * 5; // 5 seconds
+  static RELOAD_INTERVAL = 1000 * 60 * 60 * 4; // every 4 hours
 
   private constructor(
     private configResult: ConfigResult<AssistantUnrolled>,
@@ -35,6 +36,7 @@ export default class PlatformProfileLoader implements IProfileLoader {
     private readonly onReload: () => void,
     readonly description: ProfileDescription,
     private readonly configHandler: ConfigHandler,
+    private debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
   ) {}
 
   static async create(
@@ -49,6 +51,7 @@ export default class PlatformProfileLoader implements IProfileLoader {
     writeLog: (message: string) => Promise<void>,
     onReload: () => void,
     configHandler: ConfigHandler,
+    debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
   ): Promise<PlatformProfileLoader> {
     const controlPlaneEnv = await getControlPlaneEnv(ideSettingsPromise);
 
@@ -79,6 +82,7 @@ export default class PlatformProfileLoader implements IProfileLoader {
       onReload,
       description,
       configHandler,
+      debuggAIServerClientPromise,
     );
   }
 
@@ -104,7 +108,8 @@ export default class PlatformProfileLoader implements IProfileLoader {
       },
       this.description.id,
       undefined,
-      this.configHandler
+      this.configHandler,
+      this.debuggAIServerClientPromise,
     );
 
     return {

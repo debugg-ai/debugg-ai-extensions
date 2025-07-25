@@ -12,8 +12,14 @@ import { ConfigHandler } from "core/config/ConfigHandler";
 // import { ContinueServerClient } from "core/continueServer/stubs/client";
 import { EXTENSION_NAME } from "core/control-plane/env";
 import { Core } from "core/core";
+import { LOCAL_DEV_DATA_VERSION } from "core/data/log";
 import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
+import { E2eTestCommitSuite, E2eTestSuite, Issue } from 'core/debuggAIServer/types';
+import { E2eTestHandler } from "core/e2es/e2eTestHandler";
+import { NgrokTunnelClient } from "core/e2es/ngrok-service";
 import { walkDirAsync } from "core/indexing/walkDir";
+import { isModelInstaller } from "core/llm";
+import { startLocalOllama } from "core/util/ollamaHelper";
 import { getDevDataFilePath } from "core/util/paths";
 import { Telemetry } from "core/util/posthog";
 import readLastLines from "read-last-lines";
@@ -28,30 +34,24 @@ import {
   setupStatusBar,
   StatusBarStatus,
 } from "./autocomplete/statusBar";
-
-import { VerticalDiffManager } from "./diff/vertical/manager";
-import EditDecorationManager from "./quickEdit/EditDecorationManager";
-import { QuickEdit, QuickEditShowParams } from "./quickEdit/QuickEditQuickPick";
-import { Battery } from "./util/battery";
-import { getMetaKeyLabel } from "./util/util";
-import { VsCodeIde } from "./VsCodeIde";
-
-import { LOCAL_DEV_DATA_VERSION } from "core/data/log";
-import { E2eTestSuite, Issue } from 'core/debuggAIServer/types';
-import { E2eTestHandler } from "core/e2es/e2eTestHandler";
-import { NgrokTunnelClient } from "core/e2es/ngrok-service";
-import { isModelInstaller } from "core/llm";
-import { startLocalOllama } from "core/util/ollamaHelper";
 import { SuggestionCodeLensProvider } from "./debug/codeLens/suggestionsLensProvider";
 import { pullErrorsAndHighlight } from "./debug/pullErrors";
 import { showSnippetWebview } from "./debug/webviews/snippetWebview";
 import { DebuggGuiWebviewViewProvider } from "./DebuggGUIWebviewViewProvider";
+import { VerticalDiffManager } from "./diff/vertical/manager";
 import { ErrorFileDecorationProvider } from "./errorTracking/fileDecorations/ErrorFileDecoration";
+import EditDecorationManager from "./quickEdit/EditDecorationManager";
+import { QuickEdit, QuickEditShowParams } from "./quickEdit/QuickEditQuickPick";
 import { CommitTester } from "./test/code-gen/commitTester";
+import { AiE2eAgent, AiE2eAgentOptions } from "./test/e2e-agents/aiE2eAgent";
 import E2eTestRunner from "./test/e2e-agents/e2eRunner";
 import E2eSuiteGenerator from "./test/e2e-agents/e2eSuiteGen";
 import { start } from "./tunnels/ngrok";
 import { post } from "./util/axiosNaming";
+import { Battery } from "./util/battery";
+import { getMetaKeyLabel } from "./util/util";
+import { VsCodeIde } from "./VsCodeIde";
+
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
 
 // Global commit tester instance
@@ -1317,9 +1317,9 @@ const getCommandsMap: (
         console.log("Local port config - ", localPortConfig);
         const client = await debuggAIServerClientPromise;
         const e2eTestRunner = new E2eTestHandler(
-          client, 
-          ide, 
-          configHandler, 
+          client,
+          ide,
+          configHandler,
           new NgrokTunnelClient()
         );
         const testDescription = await getTestDescription();
@@ -1371,7 +1371,7 @@ const getCommandsMap: (
         const client = await debuggAIServerClientPromise;
 
         const editor = vscode.window.activeTextEditor;
-        if (!editor) {  
+        if (!editor) {
           vscode.window.showWarningMessage("No file open.");
           return;
         }
@@ -1402,7 +1402,7 @@ const getCommandsMap: (
             placeHolder: "Select an E2E test suite to view details or run",
           }
         );
-        if (!selected) return;
+        if (!selected) {return;}
         const selectedSuite = testSuites.find((suite: E2eTestSuite) => suite.uuid === selected.uuid);
 
         const { config } = await configHandler.loadConfig();
@@ -1421,7 +1421,7 @@ const getCommandsMap: (
         console.log("Local port config - ", localPortConfig);
         const e2eSuiteGenerator = new E2eSuiteGenerator(client);
         await e2eSuiteGenerator.runE2eSuiteGenerator(selectedSuite?.description ?? "", localPortConfig, selectedSuite);
-        
+
       },
       "debugg-ai.startTunnel": async (port: number, domain: string) => {
         captureCommandTelemetry("debugg-ai.startTunnel");
@@ -1433,7 +1433,7 @@ const getCommandsMap: (
           addr: port,
           hostname: domain,
           onLogEvent: (data: any) => {
-              console.log(`${port} | ${domain} | ngrok log: ${data}`);
+            console.log(`${port} | ${domain} | ngrok log: ${data}`);
           },
         });
 
@@ -1442,18 +1442,18 @@ const getCommandsMap: (
       // Commit Tester Commands
       "debugg-ai.startCommitTesting": async () => {
         captureCommandTelemetry("debugg-ai.startCommitTesting");
-        
+
         if (!commitTester) {
           const client = await debuggAIServerClientPromise;
           commitTester = new CommitTester(client, ide, configHandler, extensionContext);
         }
-        
+
         await commitTester.initialize();
       },
 
       "debugg-ai.stopCommitTesting": async () => {
         captureCommandTelemetry("debugg-ai.stopCommitTesting");
-        
+
         if (commitTester) {
           commitTester.stopMonitoring();
           vscode.window.showInformationMessage("Commit testing stopped");
@@ -1464,11 +1464,11 @@ const getCommandsMap: (
 
       "debugg-ai.getCommitTestingStatus": async () => {
         captureCommandTelemetry("debugg-ai.getCommitTestingStatus");
-        
+
         if (commitTester) {
           const isMonitoring = commitTester.isMonitoringCommits();
           const outputDir = commitTester.getTestOutputDirectory();
-          
+
           vscode.window.showInformationMessage(
             `Commit testing is ${isMonitoring ? 'active' : 'inactive'}. Test output directory: ${outputDir}`
           );
@@ -1479,12 +1479,12 @@ const getCommandsMap: (
 
       "debugg-ai.setCommitTestOutputDirectory": async () => {
         captureCommandTelemetry("debugg-ai.setCommitTestOutputDirectory");
-        
+
         const newDir = await vscode.window.showInputBox({
           prompt: 'Enter the test output directory path',
           value: commitTester?.getTestOutputDirectory() || 'tests/playwright'
         });
-        
+
         if (newDir && commitTester) {
           commitTester.setTestOutputDirectory(newDir);
           vscode.window.showInformationMessage(`Test output directory set to: ${newDir}`);
@@ -1493,45 +1493,95 @@ const getCommandsMap: (
 
       "debugg-ai.generateTestsForWorkingChanges": async () => {
         captureCommandTelemetry("debugg-ai.generateTestsForWorkingChanges");
-        
+        const client = await debuggAIServerClientPromise;
+        const { config } = await configHandler.loadConfig();
+        let localPortConfig = config?.debuggAiServerPort;
+
         if (!commitTester) {
-          const client = await debuggAIServerClientPromise;
           commitTester = new CommitTester(client, ide, configHandler, extensionContext);
         }
-        
-        vscode.window.setStatusBarMessage("Generating tests for working changes...", 2500);
-        
+
+        vscode.window.setStatusBarMessage("Generating tests for working changes...", 4000);
+
+        const changes = await commitTester.generateTestsForWorkingChanges();
+
+        const aiE2eAgent = new AiE2eAgent(client, ide, {
+          testParams: {
+            description: "Generate tests for working changes",
+            changes: changes,
+            commitHash: changes.branchInfo?.commitHash,
+            branchName: changes.branchInfo?.branch,
+          },
+          title: "Generate tests for working changes",
+          testObjectType: "commit-suite",
+          testRunType: "generate",
+          remote: true,
+          localServerPort: localPortConfig ?? 3000,
+        } as unknown as AiE2eAgentOptions);
+
         try {
-          const result = await commitTester.generateTestsForWorkingChanges();
-          
-          if (result.success) {
-            vscode.window.showInformationMessage(
-              `Successfully generated ${result.testFiles.length} test files for working changes. Check the output directory: ${commitTester.getTestOutputDirectory()}`
-            );
-            
-            // Optionally open the test output directory
-            const openDir = await vscode.window.showInformationMessage(
-              `Generated ${result.testFiles.length} test files. Would you like to open the test directory?`,
-              'Yes', 'No'
-            );
-            
-            if (openDir === 'Yes') {
-              const testDirUri = vscode.Uri.file(commitTester.getTestOutputDirectory());
-              await vscode.commands.executeCommand('vscode.openFolder', testDirUri);
-            }
-          } else {
-            vscode.window.showErrorMessage(
-              `Failed to generate tests: ${result.error || 'Unknown error'}`
-            );
+          if (changes.workingChanges.changes.length === 0) {
+            vscode.window.showWarningMessage("No changes to generate tests for");
+            return;
+          }
+          // Actually run the handler to process the request
+          await aiE2eAgent.testHandler.run();
+
+          while (aiE2eAgent.testHandler.isTestRunning()) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
         } catch (error) {
-          console.error('[CommitTester] Error in generateTestsForWorkingChanges command:', error);
+          console.error('[Commands.generateTestsForWorkingChanges] Error running tests:', error);
           vscode.window.showErrorMessage(
-            `Error generating tests: ${error instanceof Error ? error.message : String(error)}`
+            `Error running tests: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+
+        try {
+          // TODO: handle the final state and results if needed
+          const testState = aiE2eAgent.testHandler.getTestState();
+          const testObjectS = await aiE2eAgent.testHandler.getTestObject();
+          if (testObjectS) {
+            let testObject = testObjectS.object as unknown as E2eTestCommitSuite;
+            console.log("Test object - ", testObject);
+            const tests = testObject.tests;
+            console.log("Tests - ", tests);
+
+            const workspaceDirs = await ide.getWorkspaceDirs();
+            console.log("Workspace dirs - ", workspaceDirs);
+
+            if (tests && tests.length > 0) {
+              for (const test of tests) {
+                // We need to save the test script files locally
+                const testScriptUrl = test.testScript;
+                console.log("Test script url - ", testScriptUrl);
+
+                try {
+                  const testScriptContent = await fetch(testScriptUrl).then(res => res.text());
+                  const testScriptName = test.testScript.split('/').pop() ?? `${testObject.uuid}`;
+                  await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: testScriptName, content: testScriptContent });
+                } catch (error) {
+                  console.error('[Commands.generateTestsForWorkingChanges] Error downloading test script:', error);
+                  // vscode.window.showErrorMessage(
+                  //   `Error downloading test script: ${error instanceof Error ? error.message : String(error)}`
+                  // );
+                }
+              }
+            }
+            if (testObject.runStatus === "completed") {
+              vscode.window.showInformationMessage("Tests generated successfully");
+            } else {
+              vscode.window.showErrorMessage("Tests generation failed");
+            }
+          }
+        } catch (error) {
+          console.error('[Commands.generateTestsForWorkingChanges] Error downloading test scripts:', error);
+          vscode.window.showErrorMessage(
+            `Error handling tests: ${error instanceof Error ? error.message : String(error)}`
           );
         }
       }
-    }
+    };
   };
 
 const registerCopyBufferSpy = (

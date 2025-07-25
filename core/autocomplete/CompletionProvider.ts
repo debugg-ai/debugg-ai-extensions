@@ -256,7 +256,7 @@ export class CompletionProvider {
 
       // Save to cache
       if (!outcome.cacheHit && helper.options.useCache) {
-        (await this.autocompleteCache).put(outcome.prefix, outcome.completion);
+        void (await this.autocompleteCache).put(outcome.prefix, outcome.completion);
       }
 
       // When using the JetBrains extension, Mark as displayed

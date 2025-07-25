@@ -5,9 +5,9 @@
 import { setupCa } from "core/util/ca";
 import { extractMinimalStackTraceInfo } from "core/util/extractMinimalStackTraceInfo";
 import { Telemetry } from "core/util/posthog";
+import { kill } from 'ngrok';
 import * as vscode from "vscode";
 
-import { kill } from 'ngrok';
 import { getExtensionVersion } from "./util/util";
 
 async function dynamicImportAndActivate(context: vscode.ExtensionContext) {

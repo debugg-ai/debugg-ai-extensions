@@ -256,7 +256,7 @@ export class AstraDbIndex implements CodebaseIndex {
         return chunks
             .map(c => ({ ...c, clean: this.sanitizeEmbeddingInput(c.content) }))
             .map((c, index) => c.clean === null ? index : null)
-            .filter(c => c !== null);
+            .filter((c): c is number => c !== null);
     }
 
     /*

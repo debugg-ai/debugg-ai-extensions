@@ -1,9 +1,10 @@
 // DebuggAIAuthProvider.ts  ───────────────────────────────────────
 import crypto from "crypto";
-import fetch from "node-fetch";
 
+import axios from "axios";
 import { ControlPlaneSessionInfo } from "core/control-plane/client";
 import { EXTENSION_NAME, getControlPlaneEnvSync } from "core/control-plane/env";
+import fetch from "node-fetch";
 import { v4 as uuidv4 } from "uuid";
 import {
     authentication,
@@ -20,7 +21,6 @@ import {
     workspace
 } from "vscode";
 
-import axios from "axios";
 import { PromiseAdapter, promiseFromEvent } from "./promiseUtils";
 import { SecretStorage } from "./SecretStorage";
 import { UriEventHandler } from "./uriHandler"; // same helper you used for WorkOS
@@ -37,7 +37,7 @@ const debuggAiTestEnv = workspace
     .get<"none" | "local" | "production" | "staging">("debuggAiTestEnvironment", "production");
 
 const controlPlaneEnv = getControlPlaneEnvSync(
-    debuggAiTestEnv,
+    'production',
     enableControlServerBeta,
 );
 console.log("Control plane env:", controlPlaneEnv);
@@ -79,7 +79,8 @@ function decodeJwt(jwt: string): any | null {
         return null;
     }
 }
-function jwtLifetime(jwt: string, fallbackMs = 15 * 60 * 1000) {
+function jwtLifetime(jwt: string, fallbackMs = 24 * 60 * 60 * 1000) {
+    // We are using a 24 hour access tokens for oauth.
     const t = decodeJwt(jwt);
     return t && t.exp && t.iat ? (t.exp - t.iat) * 1000 : fallbackMs;
 }
@@ -91,6 +92,7 @@ interface DebuggAIAuthenticationSession extends AuthenticationSession {
     refreshToken: string;
     expiresInMs: number;
     loginNeeded: boolean;
+    expiresAt: number;
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -114,7 +116,8 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
     >();
 
     private static EXPIRATION_TIME_MS = 1000 * 60 * 15;
-
+    private _lastRefreshTime: number = 0;
+    
     constructor(
         private readonly context: ExtensionContext,
         private readonly _uriHandler: UriEventHandler
@@ -142,7 +145,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
         const raw = await this.secretStorage.get(SESSIONS_SECRET_KEY);
         console.log("Raw sessions:", raw);
         console.log("Raw sessions count:", raw?.length);
-        if (!raw) return [];
+        if (!raw) {return [];}
         try {
             return JSON.parse(raw);
         } catch {
@@ -181,11 +184,13 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
             access
         );
 
+        const expiresAt = Date.now() + jwtLifetime(access);
         const session: DebuggAIAuthenticationSession = {
             id: uuidv4(),
             accessToken: access,
             refreshToken: refresh,
-            expiresInMs: jwtLifetime(access),
+            expiresAt,
+            expiresInMs: expiresAt - Date.now(),
             loginNeeded: false,
             account: {
                 id: user.email,
@@ -223,6 +228,11 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
         } catch (e) {
             console.error("Error refreshing sessions:", e);
         }
+    }
+
+    public async clearSessions() {
+        await this._storeSessions([]);
+        this._sessionChangeEmitter.fire({ added: [], removed: [], changed: [] });
     }
 
     /* ideRedirectUri / redirectUri ------------------------------------------*/
@@ -263,17 +273,17 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
         const final: DebuggAIAuthenticationSession[] = [];
         for (const s of sessions) {
             try {
-                const newS = await this._refreshSession(s.refreshToken);
+                const newS = await this._refreshSession(s.refreshToken, s);
                 final.push({ ...s, ...newS });
             } catch (e) {
                 console.log("Refresh failed, moving on", e);
-                if (controlPlaneEnv.AUTH_TYPE === 'debugg-ai-test') {
-                    final.push(s);
-                } else {
-                    final.push(s);
-                    // this._sessionChangeEmitter.fire({ added: [], removed: [s], changed: [] });
-                }
-                // console.debug("Refresh failed, dropping session:", e);
+                // if (controlPlaneEnv.AUTH_TYPE === 'debugg-ai-test') {
+                //     final.push(s);
+                // } else {
+                //     final.push(s);
+                // }
+                this._sessionChangeEmitter.fire({ added: [], removed: [s], changed: [] });
+                console.debug("Refresh failed, dropping session:", e);
             }
         }
         await this._storeSessions(final);
@@ -284,37 +294,55 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
         }
     }
 
-    private async _refreshSession(refreshToken: string) {
-        console.log("Attempting to refresh session... with refresh token:", refreshToken);
-        console.log('args - ', {
-            grant_type: "refresh_token",
-            refresh_token: refreshToken,
-            client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
-            client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
-            server: controlPlaneEnv.CONTROL_PLANE_URL
-        });
-        const response = await axios.post(TOKEN_REFRESH_ENDPOINT, {
-            grant_type: "refresh_token",
-            refresh_token: refreshToken,
-            client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
-            client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
-        }, {
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-        });
-        // const { access_token: access, refresh_token: refresh } = await fetchWithQueryParams<{ access_token: string, refresh_token: string }>(TOKEN_REFRESH_ENDPOINT, {
-        //     grant_type: "refresh_token",
-        //     refresh_token: refreshToken,
-        //     client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
-        //     client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
-        // });
-        console.log("Refreshed session... with access token:", response.data?.access_token);
-        return {
-            accessToken: response.data?.access_token,
-            refreshToken: response.data?.refresh_token,
-            expiresInMs: jwtLifetime(response.data?.access_token),
-        };
+    private async _refreshSession(refreshToken: string, session?: DebuggAIAuthenticationSession) {
+        // Check if the current access token is expired
+        const expiresAt = session?.expiresAt;
+        if (expiresAt && expiresAt < Date.now()) {
+            // Actually expired, try to refresh
+            console.log("Current access token is expired, refreshing session...");
+            const curTime = Date.now();
+            if (curTime - this._lastRefreshTime < 5000) {
+                console.log('Waiting for 5 seconds before refreshing again...');
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+            this._lastRefreshTime = Date.now();
+            console.log('args - ', {
+                grant_type: "refresh_token",
+                refresh_token: refreshToken,
+                client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
+                client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
+                server: controlPlaneEnv.CONTROL_PLANE_URL
+            });
+            const response = await axios.post(TOKEN_REFRESH_ENDPOINT, {
+                grant_type: "refresh_token",
+                refresh_token: refreshToken,
+                client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
+                client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
+            }, {
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+            });
+            this._lastRefreshTime = curTime;
+            const newExpiresAt = Date.now() + jwtLifetime(response.data?.access_token);
+            return {
+                accessToken: response.data?.access_token,
+                refreshToken: response.data?.refresh_token,
+                expiresInMs: newExpiresAt - Date.now(),
+                expiresAt: newExpiresAt,
+            };
+        } else if (expiresAt) {
+            // Not expired, just return the current session with updated expiresInMs
+            return {
+                accessToken: session?.accessToken,
+                refreshToken: session?.refreshToken,
+                expiresInMs: expiresAt - Date.now(),
+                expiresAt: expiresAt,
+            };
+        } else {
+            // No expiresAt, fallback to current session
+            return session!;
+        }
     }
 
     private _formatProfileLabel(first: string | undefined, last: string | undefined) {
@@ -390,7 +418,7 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
             // if (!access_token) return reject(new Error("No access_token"));
             // if (!code) return reject(new Error("No code"));
             if (!state || !this._pendingStates.includes(state))
-                return reject(new Error("Invalid state"));
+                {return reject(new Error("Invalid state"));}
             resolve(uri.query);
         };
 
@@ -405,14 +433,14 @@ export async function getControlPlaneSessionInfo(
     useOnboarding: boolean,
 ): Promise<ControlPlaneSessionInfo | undefined> {
     try {
-        if (useOnboarding) DebuggAIAuthProvider.useOnboardingUri = true;
+        if (useOnboarding) {DebuggAIAuthProvider.useOnboardingUri = true;}
 
         const session = await authentication.getSession(
             controlPlaneEnv.AUTH_TYPE,
             [],
             silent ? { silent: true } : { createIfNone: true },
         );
-        if (!session) return undefined;
+        if (!session) {return undefined;}
         return {
             accessToken: session.accessToken,
             account: { id: session.account.id, label: session.account.label },
@@ -438,7 +466,7 @@ async function fetchJson<T>(
         },
         body: body ? JSON.stringify(body) : undefined,
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) {throw new Error(await r.text());}
     return r.json() as Promise<T>;
 }
 
@@ -459,7 +487,7 @@ async function fetchOauthJson<T>(
         },
         body: body ? JSON.stringify(body) : undefined,
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) {throw new Error(await r.text());}
     return r.json() as Promise<T>;
 }
 
@@ -484,6 +512,6 @@ async function fetchWithQueryParams<T>(
         headers: headers,
         body: body,
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) {throw new Error(await r.text());}
     return r.json() as Promise<T>;
 }

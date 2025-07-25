@@ -1,5 +1,5 @@
-import { QuickPickItem } from 'vscode';
 import { Ngrok } from 'ngrok';
+import { QuickPickItem } from 'vscode';
 
 export type TunnelsResponse = {
   tunnels: Ngrok.Tunnel[];

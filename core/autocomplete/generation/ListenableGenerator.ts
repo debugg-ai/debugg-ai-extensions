@@ -12,7 +12,7 @@ export class ListenableGenerator<T> {
   ) {
     this._source = source;
     this._abortController = abortController;
-    this._start();
+    void this._start();
   }
 
   public cancel() {

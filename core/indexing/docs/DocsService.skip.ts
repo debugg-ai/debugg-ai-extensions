@@ -6,6 +6,7 @@ import { SiteIndexingConfig } from "../../index.js";
 import FileSystemIde from "../../util/filesystem.js";
 import { editConfigJson } from "../../util/paths.js";
 
+import { DebuggAIServerClient } from "../../debuggAIServer/stubs/client.js";
 import DocsService from "./DocsService.js";
 import preIndexedDocs from "./preIndexedDocs.js";
 
@@ -50,6 +51,8 @@ describe.skip("DocsService Integration Tests", () => {
       ideSettingsPromise,
       async () => {},
       Promise.resolve(undefined),
+      Promise.resolve(new DebuggAIServerClient(configHandler, ide)),
+      () => {},
     );
 
     docsService = DocsService.createSingleton(configHandler, ide);

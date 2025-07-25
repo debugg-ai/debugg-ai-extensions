@@ -108,11 +108,17 @@ export class Core {
       useOnboarding: false,
     });
 
+    let debuggAIServerClientResolve: (_: any) => void | undefined;
+    this.debuggAIServerClientPromise = new Promise(
+      (resolve) => (debuggAIServerClientResolve = resolve),
+    );
+
     this.configHandler = new ConfigHandler(
       this.ide,
       ideSettingsPromise,
       this.onWrite,
       sessionInfoPromise,
+      this.debuggAIServerClientPromise,
       (orgId: string | null) => {
         void messenger.request("didSelectOrganization", {
           orgId,
@@ -170,12 +176,6 @@ export class Core {
     // this.continueServerClientPromise = new Promise(
     //   (resolve) => (continueServerClientResolve = resolve),
     // );
-
-
-    let debuggAIServerClientResolve: (_: any) => void | undefined;
-    this.debuggAIServerClientPromise = new Promise(
-      (resolve) => (debuggAIServerClientResolve = resolve),
-    );
 
 
     void ideSettingsPromise.then((ideSettings) => {
@@ -1124,6 +1124,9 @@ export class Core {
       let retried = null;
       while (!retried) {
         const client = await this.debuggAIServerClientPromise;
+        while (!client.connected) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
         const e2es = client.e2es;
         if (e2es) {
           const params = {
@@ -1136,10 +1139,6 @@ export class Core {
             const tests = await e2es.listE2eTests(params);
             return tests;
           } catch (err: any) {
-            if (err.detail === "Authentication credentials were not provided.") {
-              console.error("Authentication credentials were not provided.");
-              await this.configHandler.reloadConfig();
-            }
             console.error("Error listing E2E tests:", err);
           }
         } else {

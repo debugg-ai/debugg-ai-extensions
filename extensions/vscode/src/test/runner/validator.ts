@@ -1,6 +1,7 @@
 // src/ValidatorRunner.ts
-import { PythonExtension } from "@vscode/python-extension";
 import { spawn } from 'child_process';
+
+import { PythonExtension } from "@vscode/python-extension";
 import * as vscode from 'vscode';
 
 // test-runner.ts

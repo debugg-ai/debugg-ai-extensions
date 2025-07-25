@@ -2,7 +2,9 @@
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
 import { Issue, IssueSuggestion, LogOverview } from 'core/debuggAIServer/types';
 import * as vscode from 'vscode';
+
 import { clearDecorations, highlightInlayLine } from '../highlightLine';
+
 import { getFixMarkdown, getIssueMarkdown, getMarkdownStructure } from './structure';
 
 
@@ -18,6 +20,8 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
     private cacheTTL = 10000;
     private debuggAIServerClientPromise: Promise<DebuggAIServerClient>;
     private debuggAIServerClient: DebuggAIServerClient | undefined;
+    private issuesRequestCache = new Map<string, { timestamp: number; promise: Promise<Issue[]> }>();
+    private issuesRequestDebounceMs = 5000;
 
     constructor(
         debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
@@ -190,31 +194,40 @@ export class OptionsInlayHintsProvider implements vscode.InlayHintsProvider {
      * @returns Array of line numbers where hints should be shown
      */
     private async getIssuesInDocument(document: vscode.TextDocument): Promise<Issue[]> {
-        // Implement this to return actual line numbers where you want the buttons to appear
-        // This could come from your diagnostic system, test coverage data, etc.
-        console.log("Getting issues in document...");
-        this.debuggAIServerClient = await this.debuggAIServerClientPromise;
-        try {
-            const { repoName, repoPath, branchName } = await this.debuggAIServerClient.getRepoInfo(document.uri.fsPath);
-            if (!repoName || !repoPath || !branchName) {
-                console.debug("No repo name, path, or branch name found for file");
+        // Debounce repeated calls for the same document within 5 seconds
+        const cacheKey = document.uri.toString();
+        const now = Date.now();
+        const cached = this.issuesRequestCache.get(cacheKey);
+        if (cached && now - cached.timestamp < this.issuesRequestDebounceMs) {
+            return cached.promise;
+        }
+        // Start a new request and cache the promise
+        const promise = (async () => {
+            console.log("Getting issues in document...");
+            this.debuggAIServerClient = await this.debuggAIServerClientPromise;
+            try {
+                const { repoName, repoPath, branchName } = await this.debuggAIServerClient.getRepoInfo(document.uri.fsPath);
+                if (!repoName || !repoPath || !branchName) {
+                    console.debug("No repo name, path, or branch name found for file");
+                    return [];
+                }
+                const issues = await this.debuggAIServerClient.issues?.getIssuesInFile(
+                    document.uri.fsPath,
+                    repoName,
+                    branchName,
+                    {
+                        repoPath,
+                    }
+                );
+                console.log("Issue count in document - ", issues?.length);
+                return issues ?? [];
+            } catch (e) {
+                console.error("Error getting repo info:", e);
                 return [];
             }
-            const issues = await this.debuggAIServerClient.issues?.getIssuesInFile(
-                document.uri.fsPath,
-                repoName,
-                branchName,
-                {
-                    repoPath,
-                }
-            );
-            console.log("Issue count in document - ", issues?.length);
-            return issues ?? [];
-        } catch (e) {
-            console.error("Error getting repo info:", e);
-            return [];
-        }
-        return [];
+        })();
+        this.issuesRequestCache.set(cacheKey, { timestamp: now, promise });
+        return promise;
     }
 
     // Returns Markdown as a string

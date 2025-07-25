@@ -2,7 +2,7 @@
   "name": "debugg-ai",
   "icon": "media/icon.png",
   "author": "Debugg Inc",
-  "version": "1.0.16",
+  "version": "1.0.21",
   "repository": {
     "type": "git",
     "url": "https://github.com/debugg-ai/debugg-ai-extensions"
@@ -133,11 +133,6 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically monitor git commits and generate E2E tests when new commits are detected."
-        },
-        "debugg-ai.debuggAiTestEnvironment": {
-          "type": "string",
-          "default": "local",
-          "description": ""
         }
       }
     },

@@ -10,6 +10,7 @@ import { TEST_DIR } from "../../test/testDir";
 import FileSystemIde from "../../util/filesystem";
 
 import { contextProviderClassFromName } from ".";
+import { debuggAIServerClientPromise } from "../../test/fixtures";
 
 const CONTEXT_PROVIDERS_TO_TEST: ContextProviderWithParams[] = [
   { name: "diff", params: {} },
@@ -32,6 +33,7 @@ async function getContextProviderExtras(
     ideSettingsPromise,
     async (text) => {},
     Promise.resolve(undefined),
+    debuggAIServerClientPromise,
   );
   await configHandler.initializedPromise;
   const { config } = await configHandler.loadConfig();
