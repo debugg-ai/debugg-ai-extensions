@@ -90,24 +90,45 @@ async function getConfigFromServer(
   configHandler: ConfigHandler,
   ide: IDE,
   debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
-) {
-  let config: SerializedDebuggAiConfig;
+): Promise<SerializedDebuggAiConfig | undefined> {
   try {
-    if (!debuggAIServerClient) {
-      debuggAIServerClient = await debuggAIServerClientPromise;
+    // Check if auth manager is available and authenticated
+    const authManager = configHandler.authManager;
+    if (!authManager) {
+      console.log("No auth manager available, skipping remote config");
+      return undefined;
     }
-    await debuggAIServerClient.waitForAuthProvider();
-    
-    console.log("DebuggAIServerClient initialized");
-    await debuggAIServerClient.awaitInit();
 
-    config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
-    console.log("Loaded remote config", config);
+    // Try to get auth session with a reasonable timeout
+    const authSession = await authManager.waitForAuth(5000).catch(() => null);
+    if (!authSession) {
+      console.log("No auth session available, skipping remote config");
+      return undefined;
+    }
+
+    console.log("Auth session available, attempting to load remote config");
+    
+    // Get the DebuggAI server client (but don't wait indefinitely)
+    const debuggAIServerClient = await Promise.race([
+      debuggAIServerClientPromise,
+      new Promise<null>((_, reject) => 
+        setTimeout(() => reject(new Error("Server client timeout")), 5000)
+      )
+    ]).catch(() => null);
+
+    if (!debuggAIServerClient) {
+      console.log("DebuggAI server client not available");
+      return undefined;
+    }
+
+    // Try to get user config
+    const config = await debuggAIServerClient.users?.getUserConfig() as unknown as SerializedDebuggAiConfig;
+    console.log("Successfully loaded remote config");
     return config;
     
   } catch (e) {
-    console.error("Error loading remote config", e);
-    throw e;
+    console.warn("Failed to load remote config (non-fatal):", e);
+    return undefined; // Return undefined instead of throwing to allow fallback
   }
 }
 

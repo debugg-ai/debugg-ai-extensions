@@ -11,9 +11,9 @@ import { AxiosTransport } from "../utils/axiosTransport.js";
 
 import { AxiosRequestConfig } from "axios";
 import type {
-  ArtifactType,
-  EmbeddingsCacheResponse,
-  IDebuggAIServerClient,
+    ArtifactType,
+    EmbeddingsCacheResponse,
+    IDebuggAIServerClient,
 } from "../interface.js";
 
 /**
@@ -254,8 +254,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.initStarted = true;
     console.log("Starting DebuggAIServerClient init...");
     
-    // Ensure auth provider is available before proceeding
-    await this.waitForAuthProvider();
+    // Auth is now handled by AuthManager, so we can proceed directly
     
     const serverUrl = await this.getServerUrl();
     console.log("Server URL:", serverUrl);
@@ -342,36 +341,49 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     if (this.inFlightGetAccessToken) return this.inFlightGetAccessToken;
     this.inFlightGetAccessToken = withExponentialBackoff(async () => {
       let accessToken: string | undefined;
-      // Wait for auth provider to be available
-      let attempts = 0;
-      const maxAttempts = 10;
-      while (!this.configHandler.debuggAIAuthProvider && attempts < maxAttempts) {
-        console.log(`Waiting for auth provider to be available... (attempt ${attempts + 1}/${maxAttempts})`);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
+      
+      // Try to get access token from AuthManager first
+      if (this.configHandler.authManager) {
+        const token = this.configHandler.authManager.getAccessToken();
+        accessToken = token || undefined;
+        if (accessToken) {
+          console.log(`getAccessToken from AuthManager: ${accessToken.substring(0, 10)}...`);
+        } else {
+          // Try to wait for auth with a reasonable timeout
+          try {
+            const session = await this.configHandler.authManager.waitForAuth(3000);
+            if (session?.accessToken) {
+              accessToken = session.accessToken;
+              console.log(`getAccessToken after waiting: ${accessToken.substring(0, 10)}...`);
+            }
+          } catch (error) {
+            console.warn("AuthManager timeout, falling back to legacy auth:", error);
+          }
+        }
       }
-      if (this.configHandler.debuggAIAuthProvider) {
+      
+      // Fallback to legacy auth provider if AuthManager didn't provide token
+      if (!accessToken && this.configHandler.debuggAIAuthProvider) {
         const sessions = await this.configHandler.debuggAIAuthProvider.getSessions();
         if (sessions.length > 0) {
           accessToken = sessions[0].accessToken;
-          console.log(`getAccessToken called, got token: ${accessToken?.substring(0, 10)}...`);
+          console.log(`getAccessToken from legacy provider: ${accessToken?.substring(0, 10)}...`);
         }
-      } else {
-        console.error(`getAccessToken called with no auth provider after ${maxAttempts} attempts`);
       }
+      
       if (!accessToken) {
-        console.log("No access token found, attempting refresh...");
+        console.log("No access token found, attempting control plane fallback...");
         if (!this.cachedAccessTokenRefresh) {
           this.cachedAccessTokenRefresh = true;
           await new Promise(resolve => setTimeout(resolve, 1500));
           accessToken = await this.configHandler.controlPlaneClient.getAccessToken();
-          console.log(`After refresh attempt, got token: ${accessToken?.substring(0, 10)}...`);
+          console.log(`After control plane attempt: ${accessToken?.substring(0, 10)}...`);
           setTimeout(() => {
             this.cachedAccessTokenRefresh = false;
           }, 30_000);
         }
         if (!accessToken) {
-          console.error("No access token found");
+          console.error("No access token found from any source");
           throw new Error("No access token found");
         }
       }
