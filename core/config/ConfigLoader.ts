@@ -27,6 +27,12 @@ export enum ConfigLoadState {
   FAILED = "FAILED"
 }
 
+interface RemoteConfigCache {
+  config: SerializedDebuggAiConfig;
+  timestamp: number;
+  errors: ConfigValidationError[];
+}
+
 /**
  * Decoupled config loader that can work independently of auth state
  * Provides proper fallbacks and doesn't cascade auth failures
@@ -36,6 +42,14 @@ export class ConfigLoader extends EventEmitter {
   private currentConfig: SerializedDebuggAiConfig | null = null;
   private configSources: ConfigSource[] = [];
   private loadPromise: Promise<ConfigLoadResult> | null = null;
+  
+  // Remote config caching to prevent redundant fetches
+  private remoteConfigCache: RemoteConfigCache | null = null;
+  private readonly REMOTE_CONFIG_CACHE_DURATION_MS = 4 * 60 * 60 * 1000; // 4 hours
+  
+  // Debouncing for config reloads
+  private debounceTimeout: NodeJS.Timeout | null = null;
+  private readonly DEBOUNCE_DELAY_MS = 500; // 500ms debounce
   
   constructor(
     private readonly ide: IDE,
@@ -49,16 +63,38 @@ export class ConfigLoader extends EventEmitter {
   }
 
   /**
-   * Load configuration with fallback strategy
+   * Load configuration with fallback strategy and debouncing
    */
   async loadConfig(forceReload: boolean = false): Promise<ConfigLoadResult> {
     if (this.loadPromise && !forceReload) {
       return this.loadPromise;
     }
 
+    // Debounce rapid config reload requests unless forced
+    if (!forceReload) {
+      return new Promise((resolve, reject) => {
+        if (this.debounceTimeout) {
+          clearTimeout(this.debounceTimeout);
+        }
+        
+        this.debounceTimeout = setTimeout(async () => {
+          try {
+            const result = await this.performConfigLoadInternal(false);
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        }, this.DEBOUNCE_DELAY_MS);
+      });
+    }
+
+    return this.performConfigLoadInternal(forceReload);
+  }
+
+  private async performConfigLoadInternal(forceRefresh: boolean = false): Promise<ConfigLoadResult> {
     this.setState(ConfigLoadState.LOADING);
     
-    this.loadPromise = this.performConfigLoad();
+    this.loadPromise = this.performConfigLoad(forceRefresh);
     
     try {
       const result = await this.loadPromise;
@@ -98,9 +134,26 @@ export class ConfigLoader extends EventEmitter {
     );
   }
 
+  /**
+   * Invalidate the remote config cache to force a fresh fetch on next load
+   */
+  invalidateRemoteConfigCache(): void {
+    this.remoteConfigCache = null;
+    console.log("Remote config cache invalidated");
+  }
+
+  /**
+   * Force refresh remote config immediately, bypassing cache
+   */
+  async forceRefreshRemoteConfig(): Promise<ConfigLoadResult> {
+    console.log("Force refreshing remote config");
+    this.invalidateRemoteConfigCache();
+    return this.loadConfig(true);
+  }
+
   // Private methods
 
-  private async performConfigLoad(): Promise<ConfigLoadResult> {
+  private async performConfigLoad(forceRefresh: boolean = false): Promise<ConfigLoadResult> {
     const errors: ConfigValidationError[] = [];
     let finalConfig: SerializedDebuggAiConfig | null = null;
     let sourceUsed: ConfigSource | null = null;
@@ -112,7 +165,7 @@ export class ConfigLoader extends EventEmitter {
       try {
         console.log(`Attempting to load config from ${source.type} source`);
         
-        const result = await this.loadFromSource(source);
+        const result = await this.loadFromSource(source, forceRefresh);
         if (result.config) {
           finalConfig = result.config;
           sourceUsed = source;
@@ -143,7 +196,7 @@ export class ConfigLoader extends EventEmitter {
     };
   }
 
-  private async loadFromSource(source: ConfigSource): Promise<{
+  private async loadFromSource(source: ConfigSource, forceRefresh: boolean = false): Promise<{
     config: SerializedDebuggAiConfig | null;
     errors: ConfigValidationError[];
   }> {
@@ -151,7 +204,7 @@ export class ConfigLoader extends EventEmitter {
       case 'local':
         return this.loadLocalConfig();
       case 'remote':
-        return this.loadRemoteConfig();
+        return this.loadRemoteConfig(forceRefresh);
       case 'default':
         return this.loadDefaultConfig();
       default:
@@ -187,11 +240,25 @@ export class ConfigLoader extends EventEmitter {
     }
   }
 
-  private async loadRemoteConfig(): Promise<{
+  private async loadRemoteConfig(forceRefresh: boolean = false): Promise<{
     config: SerializedDebuggAiConfig | null;
     errors: ConfigValidationError[];
   }> {
     const errors: ConfigValidationError[] = [];
+
+    // Check cache first unless force refresh is requested
+    if (!forceRefresh && this.remoteConfigCache) {
+      const cacheAge = Date.now() - this.remoteConfigCache.timestamp;
+      if (cacheAge < this.REMOTE_CONFIG_CACHE_DURATION_MS) {
+        console.log("Using cached remote config (age: " + Math.round(cacheAge / 1000 / 60) + " minutes)");
+        return { 
+          config: this.remoteConfigCache.config, 
+          errors: [...this.remoteConfigCache.errors] 
+        };
+      } else {
+        console.log("Remote config cache expired, fetching fresh config");
+      }
+    }
 
     try {
       // Check if auth is available (but don't wait indefinitely)
@@ -202,13 +269,21 @@ export class ConfigLoader extends EventEmitter {
         return { config: null, errors };
       }
 
-      console.log("Auth available, attempting to load remote config");
+      console.log("Auth session available, attempting to load remote config");
       
       // Try to load from the debugg AI server
       const config = await this.loadFromDebuggAIServer(authSession.accessToken);
       
       if (config) {
         console.log("Successfully loaded remote config");
+        
+        // Cache the successful result
+        this.remoteConfigCache = {
+          config,
+          timestamp: Date.now(),
+          errors: [...errors]
+        };
+        
         return { config, errors };
       } else {
         throw new Error("Remote config was empty or invalid");
@@ -219,6 +294,16 @@ export class ConfigLoader extends EventEmitter {
         fatal: false,
         message: `Failed to load remote config: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
+      
+      // If we have a cached config and this is not a forced refresh, use the cache as fallback
+      if (!forceRefresh && this.remoteConfigCache) {
+        console.log("Using cached remote config as fallback due to fetch failure");
+        return { 
+          config: this.remoteConfigCache.config, 
+          errors: [...this.remoteConfigCache.errors, ...errors] 
+        };
+      }
+      
       return { config: null, errors };
     }
   }

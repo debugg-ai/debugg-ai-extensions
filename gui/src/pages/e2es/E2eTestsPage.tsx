@@ -1,100 +1,269 @@
-import { useContext, useState } from "react";
+import {
+    ArrowPathIcon,
+    PlusIcon
+} from "@heroicons/react/24/outline";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { E2eTestsTable } from "../../components/e2es/e2e-tests-table";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import KeyboardShortcuts from "../More/KeyboardShortcuts";
+import { fetchE2eTests } from "../../redux/thunks/e2eTestsThunks";
+
+interface CreateTestModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { description: string; filePath?: string; repoName?: string; branchName?: string }) => Promise<void>;
+  loading: boolean;
+}
+
+function CreateTestModal({ isOpen, onClose, onSubmit, loading }: CreateTestModalProps) {
+  const [description, setDescription] = useState("");
+  const [filePath, setFilePath] = useState("");
+  const [repoName, setRepoName] = useState("");
+  const [branchName, setBranchName] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!description.trim()) return;
+    
+    await onSubmit({
+      description: description.trim(),
+      filePath: filePath.trim() || undefined,
+      repoName: repoName.trim() || undefined,
+      branchName: branchName.trim() || undefined,
+    });
+    
+    // Reset form
+    setDescription("");
+    setFilePath("");
+    setRepoName("");
+    setBranchName("");
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-vsc-editor-background border border-vsc-panel-border rounded-sm max-w-md w-full max-h-[80vh] overflow-auto">
+        <div className="p-4 border-b border-vsc-panel-border">
+          <h2 className="text-sm font-medium text-vsc-foreground">Create E2E Test</h2>
+          <p className="text-xs text-vsc-descriptionForeground mt-1">Generate a new end-to-end test</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-4 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-vsc-foreground mb-1">
+              Description *
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe what this test should validate..."
+              className="w-full px-2 py-1.5 text-xs bg-vsc-input-background border border-vsc-input-border text-vsc-foreground rounded-sm focus:outline-none focus:ring-1 focus:ring-vsc-button-background resize-none"
+              rows={3}
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-vsc-foreground mb-1">
+              File Path
+            </label>
+            <input
+              type="text"
+              value={filePath}
+              onChange={(e) => setFilePath(e.target.value)}
+              placeholder="/path/to/test/file"
+              className="w-full px-2 py-1.5 text-xs bg-vsc-input-background border border-vsc-input-border text-vsc-foreground rounded-sm focus:outline-none focus:ring-1 focus:ring-vsc-button-background font-mono"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-vsc-foreground mb-1">
+              Repository
+            </label>
+            <input
+              type="text"
+              value={repoName}
+              onChange={(e) => setRepoName(e.target.value)}
+              placeholder="owner/repository-name"
+              className="w-full px-2 py-1.5 text-xs bg-vsc-input-background border border-vsc-input-border text-vsc-foreground rounded-sm focus:outline-none focus:ring-1 focus:ring-vsc-button-background"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-vsc-foreground mb-1">
+              Branch
+            </label>
+            <input
+              type="text"
+              value={branchName}
+              onChange={(e) => setBranchName(e.target.value)}
+              placeholder="main"
+              className="w-full px-2 py-1.5 text-xs bg-vsc-input-background border border-vsc-input-border text-vsc-foreground rounded-sm focus:outline-none focus:ring-1 focus:ring-vsc-button-background"
+            />
+          </div>
+          
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-3 py-1.5 text-xs font-medium text-vsc-button-secondaryForeground bg-vsc-button-secondaryBackground rounded-sm hover:bg-vsc-button-secondaryHoverBackground transition-colors"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!description.trim() || loading}
+              className="flex-1 px-3 py-1.5 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground disabled:opacity-50 transition-colors"
+            >
+              {loading ? "Creating..." : "Create Test"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 function E2eTestsPage() {
-    useNavigationListener();
-    const dispatch = useAppDispatch();
-    const navigate = useNavigate();
-    const ideMessenger = useContext(IdeMessengerContext);
-    const config = useAppSelector((store) => store.config.config);
-    const { disableIndexing } = config;
-    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  useNavigationListener();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const ideMessenger = useContext(IdeMessengerContext);
+  
+  // Redux state
+  const config = useAppSelector((store) => store.config.config);
+  const currentFilters = useAppSelector((store) => store.e2eTests.currentFilters);
+  const currentPagination = useAppSelector((store) => store.e2eTests.currentPagination);
 
-    // Placeholder for E2E tests data
-    // const tests = [];
-    // const loading = false;
-    // const error = null;
+  // Local state
+  const [refreshing, setRefreshing] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
 
-    const handleCreateSuccess = () => {
-        // Refresh the e2e tests list (placeholder)
-        // dispatch(fetchE2eTests(...))
+  // Refs for cleanup
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
     };
-    const handleCreateNewTest = () => {
-        // setIsCreateDialogOpen(true);
-        ideMessenger.request("ideCommand/run", {
-            slashCommandName: "run-command",
-            params: {
-                command: "e2eTests/create",
-            },
+  }, []);
+
+  // Handle refresh
+  const handleRefresh = useCallback(async () => {
+    if (!mountedRef.current) return;
+
+    try {
+      setRefreshing(true);
+      await dispatch(fetchE2eTests({ filters: currentFilters, pagination: currentPagination }));
+    } catch (error) {
+      console.error('Error refreshing tests:', error);
+    } finally {
+      if (mountedRef.current) {
+        setRefreshing(false);
+      }
+    }
+  }, [dispatch, currentFilters, currentPagination]);
+
+  // Modal handlers
+  const handleOpenModal = useCallback(() => {
+    if (mountedRef.current) {
+      setIsCreateModalOpen(true);
+    }
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    if (mountedRef.current) {
+      setIsCreateModalOpen(false);
+    }
+  }, []);
+
+  // Handle test creation
+  const handleCreateTest = useCallback(async (data: { description: string; filePath?: string; repoName?: string; branchName?: string }) => {
+    if (!mountedRef.current) return;
+
+    try {
+      setCreateLoading(true);
+
+      // Use IDE messenger to create test
+      if (ideMessenger) {
+        await ideMessenger.request('ideCommand/run', {
+          slashCommandName: 'run-command',
+          params: {
+            command: 'e2eTests/create',
+            description: data.description,
+            filePath: data.filePath,
+            repoName: data.repoName,
+            branchName: data.branchName,
+          },
         });
-    };
+      }
 
-    return (
-        <div className="overflow-y-scroll">
-            <E2eTestsTable />
-            {/* <PageHeader showBorder onTitleClick={() => navigate("/")} title="Testing Home" /> */}
+      if (mountedRef.current) {
+        setIsCreateModalOpen(false);
+        handleRefresh(); // Refresh the list after creation
+      }
+    } catch (error) {
+      console.error('Error creating test:', error);
+      // Handle error (could show toast notification)
+    } finally {
+      if (mountedRef.current) {
+        setCreateLoading(false);
+      }
+    }
+  }, [ideMessenger, handleRefresh]);
 
-            <div className="gap-2 divide-x-0 divide-y-2 divide-solid divide-zinc-700 px-4">
-                <div className="flex justify-between items-center mb-4 mt-4">
-                    {/* <h3 className="mx-auto mb-1 text-lg">E2E Test Shortcuts</h3> */}
-                    {/* <button
-            className="flex items-center gap-2 px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
-            onClick={handleCreateNewTest}
-          >
-            <PlusIcon className="h-4 w-4" />
-            New Test
-          </button> */}
-                </div>
-            </div>
-
-            <div className="gap-2 divide-x-0 divide-y-2 divide-solid divide-zinc-700 px-4 mt-6">
-                <div className="py-5">
-                </div>
-            </div>
-
-            {/* <div className="gap-2 divide-x-0 divide-y-2 divide-solid divide-zinc-700 px-4 mt-6">
-        <div className="py-5">
-          <h3 className="mb-4 mt-0 text-xl">E2E Tests Table</h3>
-          <div className="border rounded p-4 text-center text-stone-500">
-            E2E tests table coming soon...
+  return (
+    <div className="h-full bg-vsc-editor-background text-vsc-foreground flex flex-col">
+      {/* VS Code-style Header */}
+      <div className="p-3 border-b border-vsc-panel-border">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-medium text-vsc-foreground">E2E Tests</h2>
+            <p className="text-xs text-vsc-descriptionForeground">Manage your individual end-to-end tests</p>
+          </div>
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-1.5 text-vsc-tab-inactiveForeground hover:text-vsc-tab-activeForeground hover:bg-vsc-list-hoverBackground rounded-sm transition-colors disabled:opacity-50"
+              title="Refresh tests"
+            >
+              <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={handleOpenModal}
+              className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors"
+            >
+              <PlusIcon className="h-4 w-4" />
+              <span>Create</span>
+            </button>
           </div>
         </div>
-      </div> */}
+        {refreshing && (
+          <div className="text-xs text-vsc-textLink-foreground mt-1">Refreshing...</div>
+        )}
+      </div>
 
-            <KeyboardShortcuts top={true} />
-            {/* Placeholder for Create E2E Test Dialog */}
-            {isCreateDialogOpen && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-                    <div className="bg-white dark:bg-zinc-900 rounded-lg p-8 shadow-lg min-w-[300px]">
-                        <h2 className="text-xl font-bold mb-4">Create E2E Test</h2>
-                        <p className="mb-4">Dialog coming soon...</p>
-                        <div className="flex justify-end gap-2">
-                            <button
-                                className="px-4 py-2 rounded bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600"
-                                onClick={() => setIsCreateDialogOpen(false)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-                                onClick={() => {
-                                    setIsCreateDialogOpen(false);
-                                    handleCreateSuccess();
-                                }}
-                            >
-                                Create
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
+      {/* Table Content */}
+      <div className="flex-1 overflow-auto">
+        <E2eTestsTable />
+      </div>
+
+      {/* Create Test Modal */}
+      <CreateTestModal
+        isOpen={isCreateModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={handleCreateTest}
+        loading={createLoading}
+      />
+    </div>
+  );
 }
 
 export default E2eTestsPage; 

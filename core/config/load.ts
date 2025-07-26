@@ -90,6 +90,7 @@ async function getConfigFromServer(
   configHandler: ConfigHandler,
   ide: IDE,
   debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
+  forceRefresh: boolean = false,
 ): Promise<SerializedDebuggAiConfig | undefined> {
   try {
     // Check if auth manager is available and authenticated
@@ -151,7 +152,8 @@ export async function resolveSerializedConfig(
     config = JSON.parse(content) as unknown as SerializedDebuggAiConfig;
 
     if (!config.vectorDatabaseOpts?.apiKey) {
-      const remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise);
+      console.log("Local config has no vectorDatabaseOpts.apiKey, attempting to use remote config");
+      const remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise, false);
       if (remoteConfig) {
         // config = mergeJson(config, remoteConfig, "merge", configMergeKeys);
         config = remoteConfig;
@@ -161,7 +163,8 @@ export async function resolveSerializedConfig(
     console.error("Error parsing config.json, attempting to load remote for file", filepath);
     let remoteConfig: SerializedDebuggAiConfig | undefined;
     try {
-      remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise);
+      // Force refresh when local config is broken to ensure we get fresh remote config
+      remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise, true);
     } catch (e) {
       console.error("Error loading remote config", e);
     }

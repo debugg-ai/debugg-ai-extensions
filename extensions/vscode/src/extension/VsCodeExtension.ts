@@ -386,6 +386,9 @@ export class VsCodeExtension {
     });
 
     // When GitHub sign-in status changes, reload config
+    // Track last session to avoid redundant reloads
+    let lastSessionInfoHash: string | null = null;
+    
     vscode.authentication.onDidChangeSessions(async (e) => {
       const env = await getControlPlaneEnv(this.ide.getIdeSettings());
       if (e.provider.id === env.AUTH_TYPE) {
@@ -396,17 +399,33 @@ export class VsCodeExtension {
         );
 
         const sessionInfo = await getControlPlaneSessionInfo(true, false);
-        this.webviewProtocolPromise.then(async (webviewProtocol) => {
-          void webviewProtocol.request("didChangeControlPlaneSessionInfo", {
+        
+        // Create a hash of the session info to detect meaningful changes
+        const sessionInfoHash = sessionInfo ? 
+          JSON.stringify({ 
+            accountId: sessionInfo.account?.id, 
+            accessTokenPrefix: sessionInfo.accessToken?.substring(0, 10) 
+          }) : null;
+        
+        // Only trigger reload if session info actually changed
+        if (sessionInfoHash !== lastSessionInfoHash) {
+          console.log("Session info changed meaningfully, triggering config reload");
+          lastSessionInfoHash = sessionInfoHash;
+          
+          this.webviewProtocolPromise.then(async (webviewProtocol) => {
+            void webviewProtocol.request("didChangeControlPlaneSessionInfo", {
+              sessionInfo,
+            });
+
+            // To make sure continue-proxy models and anything else requiring it get updated access token
+            this.configHandler.reloadConfig();
+          });
+          void this.core.invoke("didChangeControlPlaneSessionInfo", {
             sessionInfo,
           });
-
-          // To make sure continue-proxy models and anything else requiring it get updated access token
-          this.configHandler.reloadConfig();
-        });
-        void this.core.invoke("didChangeControlPlaneSessionInfo", {
-          sessionInfo,
-        });
+        } else {
+          console.log("Session info unchanged, skipping config reload");
+        }
       } else {
         vscode.commands.executeCommand(
           "setContext",
