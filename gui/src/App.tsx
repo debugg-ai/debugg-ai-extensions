@@ -7,6 +7,8 @@ import { AddNewModel, ConfigureProvider } from "./pages/AddNewModel";
 import ConfigPage from "./pages/config";
 import ConfigErrorPage from "./pages/config-error";
 import E2es from "./pages/e2es";
+import E2eCommitSuitesPage from "./pages/e2es/E2eCommitSuitesPage";
+import E2eSuitesPage from "./pages/e2es/E2eSuitesPage";
 import ErrorPage from "./pages/error";
 import Chat from "./pages/gui";
 import History from "./pages/history";
@@ -32,6 +34,14 @@ const router = createMemoryRouter([
       {
         path: "/chat",
         element: <Chat />,
+      },
+      {
+        path: ROUTES.E2E_SUITES,
+        element: <E2eSuitesPage />,
+      },
+      {
+        path: ROUTES.E2E_COMMIT_SUITES,
+        element: <E2eCommitSuitesPage />,
       },
       {
         path: "/history",

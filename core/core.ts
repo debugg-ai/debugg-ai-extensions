@@ -1324,13 +1324,13 @@ export class Core {
           }
           console.log("Listing E2E commit suites", params);
                      try {
-             // Use the actual service method if available (when implemented)
-             // const commitSuites = await e2es.listE2eCommitSuites?.(params);
-             // if (commitSuites) {
-             //   return commitSuites;
-             // }
+             // Use the actual service method
+             const commitSuites = await e2es.listE2eCommitSuites?.(params);
+             if (commitSuites) {
+               return commitSuites;
+             }
              
-                          // Return empty data for now - to be implemented with real service
+             // Fallback to empty data if service method not available
              return {
                count: 0,
                next: null,

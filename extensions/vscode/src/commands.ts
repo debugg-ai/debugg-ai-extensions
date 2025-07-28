@@ -838,6 +838,12 @@ const getCommandsMap: (
       "debugg-ai.showE2es": () => {
         vscode.commands.executeCommand("debugg-ai.navigateTo", "/", true);
       },
+      "debugg-ai.showE2eSuites": () => {
+        vscode.commands.executeCommand("debugg-ai.navigateTo", "/e2e-suites", true);
+      },
+      "debugg-ai.showE2eCommitSuites": () => {
+        vscode.commands.executeCommand("debugg-ai.navigateTo", "/e2e-commit-suites", true);
+      },
       "debugg-ai.newSession": () => {
         sidebar.webviewProtocol?.request("newSession", undefined);
       },

@@ -1,7 +1,3 @@
-import {
-    ArrowPathIcon,
-    PlusIcon
-} from "@heroicons/react/24/outline";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { E2eTestsTable } from "../../components/e2es/e2e-tests-table";
@@ -234,7 +230,7 @@ function E2eTestsPage() {
             <h2 className="text-sm font-medium text-vsc-foreground">E2E Tests</h2>
             <p className="text-xs text-vsc-descriptionForeground">Manage your individual end-to-end tests</p>
           </div>
-          <div className="flex items-center space-x-1">
+          {/* <div className="flex items-center space-x-1">
             <button
               onClick={handleRefresh}
               disabled={refreshing}
@@ -250,7 +246,7 @@ function E2eTestsPage() {
               <PlusIcon className="h-4 w-4" />
               <span>Create</span>
             </button>
-          </div>
+          </div> */}
         </div>
         {refreshing && (
           <div className="text-xs text-vsc-textLink-foreground mt-1">Refreshing...</div>
