@@ -7,10 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '../context/Auth';
 import { IdeMessengerContext } from '../context/IdeMessenger';
 import { AccountButton } from '../pages/config/AccountButton';
-import configSlice from '../redux/slices/configSlice';
-import miscSlice from '../redux/slices/miscSlice';
-import sessionSlice from '../redux/slices/sessionSlice';
-import uiSlice from '../redux/slices/uiSlice';
 
 // Mock the webview listener hook
 const mockWebviewListeners: Map<string, Function[]> = new Map();
@@ -166,13 +162,13 @@ describe('Auth Integration Tests', () => {
 
     extensionMock = new ExtensionGUICommunicationMock();
 
-    // Create Redux store
+    // Create Redux store with mock reducers
     store = configureStore({
       reducer: {
-        session: sessionSlice,
-        config: configSlice,
-        ui: uiSlice,
-        misc: miscSlice
+        session: (state = {}, action: any) => state,
+        config: (state = {}, action: any) => state,
+        ui: (state = {}, action: any) => state,
+        misc: (state = {}, action: any) => state
       },
       preloadedState: {
         session: {
@@ -214,7 +210,7 @@ describe('Auth Integration Tests', () => {
       const user = userEvent.setup();
 
       // 1. Initial state: no session
-      extensionMock.setRequestHandler('getControlPlaneSessionInfo', (params) => {
+      extensionMock.setRequestHandler('getControlPlaneSessionInfo', (params: any) => {
         if (params?.silent === true) {
           return { status: 'success', content: null };
         } else {
@@ -267,7 +263,7 @@ describe('Auth Integration Tests', () => {
       const user = userEvent.setup();
 
       // Mock failed login
-      extensionMock.setRequestHandler('getControlPlaneSessionInfo', (params) => {
+      extensionMock.setRequestHandler('getControlPlaneSessionInfo', (params: any) => {
         if (params?.silent === false) {
           return { status: 'error', error: 'Authentication failed' };
         }
@@ -421,7 +417,7 @@ describe('Auth Integration Tests', () => {
 
         if (sessions[i]) {
           await waitFor(() => {
-            expect(screen.getByTestId('auth-status')).toHaveTextContent(`authenticated:${sessions[i].account.id}`);
+            expect(screen.getByTestId('auth-status')).toHaveTextContent(`authenticated:${sessions[i]?.account?.id}`);
           });
         } else {
           await waitFor(() => {
@@ -681,7 +677,7 @@ describe('Auth Integration Tests', () => {
     it('should handle concurrent login/logout operations', async () => {
       const user = userEvent.setup();
 
-      extensionMock.setRequestHandler('getControlPlaneSessionInfo', (params) => {
+      extensionMock.setRequestHandler('getControlPlaneSessionInfo', (params: any) => {
         if (params?.silent === false) {
           return {
             status: 'success',

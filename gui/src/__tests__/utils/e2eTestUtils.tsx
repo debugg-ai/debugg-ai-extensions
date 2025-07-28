@@ -1,11 +1,10 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { render } from '@testing-library/react';
+import type { E2eRun, E2eTest, E2eTestCommitSuite, E2eTestSuite } from 'core/debuggAIServer/types';
 import React from 'react';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
-import type { E2eRun, E2eTest, E2eTestSuite, E2eTestCommitSuite } from 'core/debuggAIServer/types';
-import { AuthProvider } from '../../context/Auth';
 import { IdeMessengerContext } from '../../context/IdeMessenger';
 
 /**
@@ -18,7 +17,12 @@ import { IdeMessengerContext } from '../../context/IdeMessenger';
 // =================
 
 export const createMockIdeMessenger = (overrides = {}) => ({
+  post: vi.fn(),
+  respond: vi.fn(),
   request: vi.fn().mockResolvedValue({ success: true }),
+  streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()), 
+  llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  ide: {} as any,
   ...overrides,
 });
 
@@ -29,6 +33,11 @@ export const createMockAuth = (overrides = {}) => ({
   isLoading: false,
   ...overrides,
 });
+
+// Test-specific AuthProvider that accepts a value prop for mocking
+const TestAuthProvider: React.FC<{ children: React.ReactNode; value: any }> = ({ children, value }) => {
+  return <div data-testid="mock-auth-provider">{children}</div>;
+};
 
 export const createMockAuthenticatedUser = () => ({
   session: {
@@ -73,16 +82,39 @@ export const createMockE2eRun = (overrides: Partial<E2eRun> = {}): E2eRun => ({
   timestamp: '2024-01-01T10:30:00Z',
   lastModified: '2024-01-01T11:00:00Z',
   key: 'test-run-key-456',
-  runType: 'automated',
+  runType: 'run',
   test: null,
   status: 'completed',
   outcome: 'pass',
   conversations: [
     {
       uuid: 'conv-1',
+      creatorUuid: 'user-123',
+      user: 1,
+      company: 1,
+      timestamp: '2024-01-01T10:30:00Z',
+      lastMod: '2024-01-01T10:31:00Z',
       messages: [
-        { role: 'user', content: 'Start test execution' },
-        { role: 'assistant', content: 'Test completed successfully' }
+        { 
+          uuid: 'msg-1',
+          sender: 'user',
+          role: 'user', 
+          content: 'Start test execution',
+          cleanedTickedContent: null,
+          jsonContent: null,
+          timestamp: '2024-01-01T10:30:00Z',
+          lastMod: '2024-01-01T10:30:00Z'
+        },
+        { 
+          uuid: 'msg-2',
+          sender: 'assistant',
+          role: 'assistant', 
+          content: 'Test completed successfully',
+          cleanedTickedContent: null,
+          jsonContent: null,
+          timestamp: '2024-01-01T10:31:00Z',
+          lastMod: '2024-01-01T10:31:00Z'
+        }
       ]
     }
   ],
@@ -165,13 +197,13 @@ export const createMockStore = (initialState = {}) => {
       tests: [],
       loading: false,
       error: null,
-      ...initialState.e2eTests,
+      ...(initialState as any).e2eTests,
     },
     config: {
       config: {
         disableIndexing: false,
       },
-      ...initialState.config,
+      ...(initialState as any).config,
     },
   };
 
@@ -213,11 +245,11 @@ export const renderWithProviders = (
     ...render(
       <Provider store={store}>
         <MemoryRouter initialEntries={[initialRoute]}>
-          <AuthProvider value={authContext}>
+          <TestAuthProvider value={authContext}>
             <IdeMessengerContext.Provider value={ideMessenger}>
               {component}
             </IdeMessengerContext.Provider>
-          </AuthProvider>
+          </TestAuthProvider>
         </MemoryRouter>
       </Provider>
     ),

@@ -7,10 +7,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '../../context/Auth';
 import { IdeMessengerContext } from '../../context/IdeMessenger';
 import { AccountButton } from '../../pages/config/AccountButton';
-import configSlice from '../../redux/slices/configSlice';
-import miscSlice from '../../redux/slices/miscSlice';
-import sessionSlice from '../../redux/slices/sessionSlice';
-import uiSlice from '../../redux/slices/uiSlice';
 
 // Mock the webview listener hook
 vi.mock('../../hooks/useWebviewListener', () => ({
@@ -127,13 +123,13 @@ describe('Auth State Components', () => {
 
     mockIdeMessenger = new MockIdeMessenger();
 
-    // Create Redux store
+    // Create Redux store with mock reducers
     store = configureStore({
       reducer: {
-        session: sessionSlice,
-        config: configSlice,
-        ui: uiSlice,
-        misc: miscSlice
+        session: (state = {}, action: any) => state,
+        config: (state = {}, action: any) => state,
+        ui: (state = {}, action: any) => state,
+        misc: (state = {}, action: any) => state
       },
       preloadedState: {
         session: {
@@ -215,7 +211,7 @@ describe('Auth State Components', () => {
       const user = userEvent.setup();
       
       // Initially no session
-      mockIdeMessenger.setRequestHandler('getControlPlaneSessionInfo', (params) => {
+      mockIdeMessenger.setRequestHandler('getControlPlaneSessionInfo', (params: any) => {
         if (params?.silent === false) {
           return {
             status: 'success',
@@ -334,7 +330,7 @@ describe('Auth State Components', () => {
     it('should trigger login with onboarding when get started is clicked', async () => {
       const user = userEvent.setup();
 
-      mockIdeMessenger.setRequestHandler('getControlPlaneSessionInfo', (params) => {
+      mockIdeMessenger.setRequestHandler('getControlPlaneSessionInfo', (params: any) => {
         if (params?.useOnboarding === true) {
           return {
             status: 'success',
@@ -368,7 +364,7 @@ describe('Auth State Components', () => {
     it('should show authenticated state after successful onboarding', async () => {
       const user = userEvent.setup();
 
-      mockIdeMessenger.setRequestHandler('getControlPlaneSessionInfo', (params) => {
+      mockIdeMessenger.setRequestHandler('getControlPlaneSessionInfo', (params: any) => {
         if (params?.useOnboarding === true) {
           return {
             status: 'success',

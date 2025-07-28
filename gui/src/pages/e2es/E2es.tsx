@@ -12,7 +12,7 @@ import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import E2eCommitSuites from "./E2eCommitSuites";
 import E2eSuites from "./E2eSuites";
-import E2eTests from "./E2eTestsPage";
+import E2eTestsPage from "./E2eTestsPage";
 
 interface TabType {
   id: string;
@@ -32,6 +32,9 @@ function E2esPage() {
 
   const [activeTab, setActiveTab] = useState("tests");
   
+  // Debug logging
+  console.log('E2es component rendered, activeTab:', activeTab);
+  
   // Refs for cleanup
   const mountedRef = useRef(true);
 
@@ -47,7 +50,7 @@ function E2esPage() {
       id: "tests",
       label: "Tests",
       icon: <BeakerIcon className="w-4 h-4" />,
-      component: <E2eTests />,
+      component: <E2eTestsPage />,
     },
     {
       id: "suites",
@@ -66,10 +69,12 @@ function E2esPage() {
   const currentTab = tabs.find(tab => tab.id === activeTab) || tabs[0];
 
   const handleTabChange = useCallback((tabId: string) => {
+    console.log('Tab clicked:', tabId, 'Current tab:', activeTab);
     if (mountedRef.current) {
       setActiveTab(tabId);
+      console.log('Tab changed to:', tabId);
     }
-  }, []);
+  }, [activeTab]);
 
   const getTabDescription = (tabId: string): string => {
     switch (tabId) {
@@ -127,6 +132,10 @@ function E2esPage() {
 
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden">
+        {/* Debug info */}
+        <div className="p-1 text-xs text-gray-500 bg-gray-100 border-b">
+          Debug: Active Tab = {activeTab} | Current Tab ID = {currentTab.id}
+        </div>
         {currentTab.component}
       </div>
     </div>

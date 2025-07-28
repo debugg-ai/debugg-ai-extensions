@@ -18,7 +18,12 @@ vi.mock('react-router-dom', async () => {
 
 // Create mock IDE messenger
 const createMockIdeMessenger = (overrides = {}) => ({
+  post: vi.fn(),
+  respond: vi.fn(),
   request: vi.fn(),
+  streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  ide: {} as any,
   ...overrides,
 });
 

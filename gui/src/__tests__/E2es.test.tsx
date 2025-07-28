@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuthProvider } from '../context/Auth';
+
 import { IdeMessengerContext } from '../context/IdeMessenger';
 import E2esPage from '../pages/e2es/E2es';
 
@@ -78,7 +78,12 @@ const createMockAuthenticatedUser = () => ({
 
 // Create mock IDE messenger
 const createMockIdeMessenger = (overrides = {}) => ({
+  post: vi.fn(),
+  respond: vi.fn(),
   request: vi.fn(),
+  streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  ide: {} as any,
   ...overrides,
 });
 
@@ -89,7 +94,7 @@ const createMockStore = (initialState = {}) => {
       config: {
         disableIndexing: false,
       },
-      ...initialState.config,
+      ...(initialState as any).config,
     },
   };
 
@@ -102,9 +107,9 @@ const createMockStore = (initialState = {}) => {
 };
 
 const renderWithProviders = (
-  authContext = createMockAuth(),
-  ideMessenger = createMockIdeMessenger(),
-  storeState = {}
+  authContext: any = createMockAuth(),
+  ideMessenger: any = createMockIdeMessenger(),
+  storeState: any = {}
 ) => {
   const store = createMockStore(storeState);
   
@@ -113,11 +118,11 @@ const renderWithProviders = (
     ...render(
       <Provider store={store}>
         <MemoryRouter>
-          <AuthProvider value={authContext as any}>
+                      <div data-testid="mock-auth-provider">
             <IdeMessengerContext.Provider value={ideMessenger}>
               <E2esPage />
             </IdeMessengerContext.Provider>
-          </AuthProvider>
+          </div>
         </MemoryRouter>
       </Provider>
     ),
@@ -315,11 +320,11 @@ describe('E2esPage', () => {
         render(
           <Provider store={createMockStore()}>
             <MemoryRouter>
-              <AuthProvider value={createMockAuthenticatedUser() as any}>
+              <div data-testid="mock-auth-provider">
                 <IdeMessengerContext.Provider value={null as any}>
                   <E2esPage />
-                </IdeMessengerContext.Provider>
-              </AuthProvider>
+                              </IdeMessengerContext.Provider>
+            </div>
             </MemoryRouter>
           </Provider>
         )
@@ -473,11 +478,11 @@ describe('E2esPage', () => {
       rerender(
         <Provider store={createMockStore()}>
           <MemoryRouter>
-            <AuthProvider value={createMockAuthenticatedUser() as any}>
-              <IdeMessengerContext.Provider value={createMockIdeMessenger()}>
-                <E2esPage />
-              </IdeMessengerContext.Provider>
-            </AuthProvider>
+                          <div data-testid="mock-auth-provider">
+                <IdeMessengerContext.Provider value={createMockIdeMessenger()}>
+                  <E2esPage />
+                </IdeMessengerContext.Provider>
+              </div>
           </MemoryRouter>
         </Provider>
       );

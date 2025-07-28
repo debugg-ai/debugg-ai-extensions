@@ -4,10 +4,6 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Provider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import configSlice from '../../redux/slices/configSlice';
-import miscSlice from '../../redux/slices/miscSlice';
-import sessionSlice from '../../redux/slices/sessionSlice';
-import uiSlice from '../../redux/slices/uiSlice';
 import { AuthProvider, useAuth } from '../Auth';
 import { IdeMessengerContext } from '../IdeMessenger';
 
@@ -144,13 +140,13 @@ describe('Auth Context', () => {
     // Create mock IDE messenger
     mockIdeMessenger = new MockIdeMessenger();
 
-    // Create Redux store with required slices
+    // Create Redux store with mock reducers
     store = configureStore({
       reducer: {
-        session: sessionSlice,
-        config: configSlice,
-        ui: uiSlice,
-        misc: miscSlice
+        session: (state = {}, action: any) => state,
+        config: (state = {}, action: any) => state,
+        ui: (state = {}, action: any) => state,
+        misc: (state = {}, action: any) => state
       },
       preloadedState: {
         session: {
@@ -281,7 +277,7 @@ describe('Auth Context', () => {
         workspaceId: 'new-workspace'
       };
 
-      mockIdeMessenger.setRequestHandler('getControlPlaneSessionInfo', (params) => {
+      mockIdeMessenger.setRequestHandler('getControlPlaneSessionInfo', (params: any) => {
         if (params.silent === false) {
           return {
             status: 'success',
@@ -329,7 +325,7 @@ describe('Auth Context', () => {
 
       const user = userEvent.setup();
       
-      mockIdeMessenger.setRequestHandler('getControlPlaneSessionInfo', (params) => ({
+      mockIdeMessenger.setRequestHandler('getControlPlaneSessionInfo', (params: any) => ({
         status: 'success',
         content: {
           account: { id: 'onboard-user', label: 'onboard@example.com' },
@@ -588,7 +584,7 @@ describe('Auth Context', () => {
 
     it('should handle profile refresh failure', async () => {
       const user = userEvent.setup();
-      const consoleError = vi.spyOn(console, 'error').mockImplementation();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       mockIdeMessenger.setRequestHandler('config/refreshProfiles', () => {
         throw new Error('Refresh failed');
@@ -613,7 +609,7 @@ describe('Auth Context', () => {
       };
 
       // Mock console.error to avoid noise in test output
-      const consoleError = vi.spyOn(console, 'error').mockImplementation();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       expect(() => {
         render(<TestErrorComponent />);

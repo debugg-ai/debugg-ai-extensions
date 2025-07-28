@@ -1,8 +1,8 @@
-import { renderHook, act } from '@testing-library/react';
-import { vi, describe, beforeEach, afterEach, it, expect } from 'vitest';
-import { useWebviewListener } from '../useWebviewListener';
-import { IdeMessengerContext } from '../../context/IdeMessenger';
+import { act, renderHook } from '@testing-library/react';
 import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { IdeMessengerContext } from '../../context/IdeMessenger';
+import { useWebviewListener } from '../useWebviewListener';
 
 // Mock IdeMessenger
 class MockIdeMessenger {
@@ -18,18 +18,16 @@ describe('useWebviewListener', () => {
   const originalRemoveEventListener = window.removeEventListener;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    messageHandlers = [];
     mockIdeMessenger = new MockIdeMessenger();
+    messageHandlers = [];
 
-    // Mock window event listeners
-    window.addEventListener = vi.fn().mockImplementation((event, handler) => {
+    window.addEventListener = vi.fn((event, handler) => {
       if (event === 'message') {
         messageHandlers.push(handler);
       }
     });
-
-    window.removeEventListener = vi.fn().mockImplementation((event, handler) => {
+    
+    window.removeEventListener = vi.fn((event, handler) => {
       if (event === 'message') {
         const index = messageHandlers.indexOf(handler);
         if (index > -1) {
@@ -37,6 +35,8 @@ describe('useWebviewListener', () => {
         }
       }
     });
+
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -247,7 +247,7 @@ describe('useWebviewListener', () => {
   describe('error handling', () => {
     it('should handle handler errors gracefully', async () => {
       const mockHandler = vi.fn().mockRejectedValue(new Error('Handler error'));
-      const consoleError = vi.spyOn(console, 'error').mockImplementation();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       renderHook(
         () => useWebviewListener('didChangeControlPlaneSessionInfo', mockHandler),

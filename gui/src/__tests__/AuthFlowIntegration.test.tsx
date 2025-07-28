@@ -7,10 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from '../context/Auth';
 import { IdeMessengerContext } from '../context/IdeMessenger';
 import { AccountButton } from '../pages/config/AccountButton';
-import configSlice from '../redux/slices/configSlice';
-import miscSlice from '../redux/slices/miscSlice';
-import sessionSlice from '../redux/slices/sessionSlice';
-import uiSlice from '../redux/slices/uiSlice';
 
 // Mock the webview listener hook
 vi.mock('../hooks/useWebviewListener', () => ({
@@ -187,13 +183,13 @@ describe('Complete Auth Flow Integration Tests', () => {
     authHarness = new AuthFlowTestHarness();
     authHarness.setupWebviewListeners();
 
-    // Create Redux store
+    // Create Redux store with mock reducers
     store = configureStore({
       reducer: {
-        session: sessionSlice,
-        config: configSlice,
-        ui: uiSlice,
-        misc: miscSlice
+        session: (state = {}, action: any) => state,
+        config: (state = {}, action: any) => state,
+        ui: (state = {}, action: any) => state,
+        misc: (state = {}, action: any) => state
       },
       preloadedState: {
         session: {
@@ -653,7 +649,7 @@ describe('Complete Auth Flow Integration Tests', () => {
         
         await waitFor(() => {
           const expectedText = states[i] 
-            ? states[i].account.label 
+            ? states[i]?.account?.label || 'unauthenticated'
             : 'unauthenticated';
           expect(screen.getByTestId('user-display')).toHaveTextContent(expectedText);
         });

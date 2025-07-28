@@ -14,6 +14,8 @@ import type { E2eTestSuite } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { fetchE2eSuites } from "../../redux/thunks/e2eSuitesThunks";
 
 interface CreateSuiteModalProps {
   isOpen: boolean;
@@ -53,7 +55,7 @@ function CreateSuiteModal({ isOpen, onClose, onSubmit, loading }: CreateSuiteMod
       <div className="bg-vsc-editor-background border border-vsc-panel-border rounded-sm max-w-md w-full max-h-[80vh] overflow-auto">
         <div className="p-4 border-b border-vsc-panel-border">
           <h2 className="text-sm font-medium text-vsc-foreground">Create Test Suite</h2>
-          <p className="text-xs text-vsc-descriptionForeground mt-1">Generate a new E2E test suite</p>
+          <p className="text-xs text-vsc-descriptionForeground mt-1">Generate a new test suite collection</p>
         </div>
         
         <form onSubmit={handleSubmit} className="p-4 space-y-3">
@@ -64,7 +66,7 @@ function CreateSuiteModal({ isOpen, onClose, onSubmit, loading }: CreateSuiteMod
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what this test suite should cover..."
+              placeholder="Describe what this test suite should validate..."
               className="w-full px-2 py-1.5 text-xs bg-vsc-input-background border border-vsc-input-border text-vsc-foreground rounded-sm focus:outline-none focus:ring-1 focus:ring-vsc-button-background resize-none"
               rows={3}
               required
@@ -79,8 +81,8 @@ function CreateSuiteModal({ isOpen, onClose, onSubmit, loading }: CreateSuiteMod
               type="text"
               value={filePath}
               onChange={(e) => setFilePath(e.target.value)}
-              placeholder="/path/to/relevant/file"
-              className="w-full px-2 py-1.5 text-xs bg-vsc-input-background border border-vsc-input-border text-vsc-foreground rounded-sm focus:outline-none focus:ring-1 focus:ring-vsc-button-background"
+              placeholder="/path/to/test/file"
+              className="w-full px-2 py-1.5 text-xs bg-vsc-input-background border border-vsc-input-border text-vsc-foreground rounded-sm focus:outline-none focus:ring-1 focus:ring-vsc-button-background font-mono"
             />
           </div>
           
@@ -133,226 +135,54 @@ function CreateSuiteModal({ isOpen, onClose, onSubmit, loading }: CreateSuiteMod
   );
 }
 
-// Status badge component
-interface StatusBadgeProps {
-  status: 'completed' | 'running' | 'pending' | 'failed';
-}
-
-function StatusBadge({ status }: StatusBadgeProps) {
-  const config = {
-    completed: { icon: CheckCircleIcon, bgColor: 'bg-vsc-testing-iconPassed', textColor: 'text-white', label: 'Completed' },
-    running: { icon: ClockIcon, bgColor: 'bg-vsc-notificationsInfoIcon-foreground', textColor: 'text-white', label: 'Running' },
-    pending: { icon: ExclamationTriangleIcon, bgColor: 'bg-vsc-testing-iconQueued', textColor: 'text-black', label: 'Pending' },
-    failed: { icon: ExclamationTriangleIcon, bgColor: 'bg-vsc-testing-iconFailed', textColor: 'text-white', label: 'Failed' },
-  };
-
-  const { icon: Icon, bgColor, textColor, label } = config[status] || config.pending;
-
-  return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-xs font-medium ${bgColor} ${textColor}`}>
-      <Icon className="h-3 w-3" />
-      {label}
-    </span>
-  );
-}
-
-// Loading state component
-function LoadingState() {
-  return (
-    <div className="flex items-center justify-center py-8">
-      <div className="flex items-center gap-2">
-        <div className="animate-spin rounded-full h-4 w-4 border-2 border-vsc-button-background border-t-transparent" role="progressbar"></div>
-        <span className="text-xs text-vsc-descriptionForeground">Loading test suites...</span>
-      </div>
-    </div>
-  );
-}
-
-// Error state component
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="text-center py-8">
-      <ExclamationTriangleIcon className="h-8 w-8 text-vsc-notificationsErrorIcon-foreground mx-auto mb-2" />
-      <h3 className="text-sm font-medium text-vsc-foreground mb-1">Error Loading</h3>
-      <p className="text-xs text-vsc-descriptionForeground mb-3">Failed to load test suites</p>
-      <button
-        onClick={onRetry}
-        className="px-3 py-1.5 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors"
-      >
-        Try Again
-      </button>
-    </div>
-  );
-}
-
-// Empty state component
-function EmptyState({ onCreateSuite }: { onCreateSuite: () => void }) {
-  return (
-    <div className="text-center py-8">
-      <FolderOpenIcon className="h-8 w-8 text-vsc-descriptionForeground mx-auto mb-2" />
-      <h3 className="text-sm font-medium text-vsc-foreground mb-1">No Test Suites Found</h3>
-      <p className="text-xs text-vsc-descriptionForeground mb-3">Get started by creating your first test suite</p>
-      <button
-        onClick={onCreateSuite}
-        className="px-3 py-1.5 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors"
-      >
-        Create Your First Suite
-      </button>
-    </div>
-  );
-}
-
 // Main component
 function E2eSuites() {
   const navigate = useNavigate();
   const ideMessenger = useContext(IdeMessengerContext);
+  const dispatch = useAppDispatch();
   
-  // State management with default empty states
-  const EMPTY_SUITES: E2eTestSuite[] = [];
-  const [suites, setSuites] = useState<E2eTestSuite[]>(EMPTY_SUITES);
-  const [loading, setLoading] = useState(false);
+  // Redux state
+  const suites = useAppSelector((store) => store.e2eSuites.items);
+  const loading = useAppSelector((store) => store.e2eSuites.loading);
+  const error = useAppSelector((store) => store.e2eSuites.error);
+  const currentFilters = useAppSelector((store) => store.e2eSuites.currentFilters);
+  const currentPagination = useAppSelector((store) => store.e2eSuites.currentPagination);
+
+  // Local state for UI controls
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
 
-  // Refs for cleanup and request cancellation
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // Refs for cleanup
   const mountedRef = useRef(true);
 
   // Fetch suites data
-  const fetchSuites = useCallback(async (isRefresh = false) => {
-    // Cancel any ongoing requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
+  const handleRefresh = useCallback(async () => {
+    if (!mountedRef.current) return;
 
     try {
-      if (!isRefresh) {
-        setSuites(EMPTY_SUITES);
-        setLoading(true);
-      } else {
-        setRefreshing(true);
-      }
-      setError(null);
-
-      // TODO: Replace with real API call when ideMessenger protocol is available
-      // const result = await ideMessenger?.request('e2eSuites/list', {}, { signal });
-      
-      // Mock API call with delay to simulate loading
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(resolve, 500);
-        signal.addEventListener('abort', () => {
-          clearTimeout(timeout);
-          reject(new Error('Request cancelled'));
-        });
-      });
-
-      // Check if component is still mounted and request wasn't cancelled
-      if (mountedRef.current && !signal.aborted) {
-        // Mock data - replace with real data when API is available
-        const mockSuites: E2eTestSuite[] = [
-          {
-            uuid: 'suite-1',
-            id: 1,
-            name: 'Authentication Flow Tests',
-            description: 'Comprehensive tests for user authentication and authorization flows',
-            project: 1,
-            completed: true,
-            completedAt: '2024-01-01T12:00:00Z',
-            timestamp: '2024-01-01T10:00:00Z',
-            lastMod: '2024-01-01T12:00:00Z',
-            key: 'auth-suite-key',
-            createdBy: 1,
-            host: 1,
-            tests: [],
-            feature: null,
-            testType: null,
-            userRole: null,
-            deviceType: null,
-            region: null,
-            featureId: null,
-            testTypeId: null,
-            userRoleId: null,
-            deviceTypeId: null,
-            regionId: null,
-            tunnelKey: null,
-          },
-          {
-            uuid: 'suite-2',
-            id: 2,
-            name: 'Shopping Cart Integration',
-            description: 'End-to-end tests for shopping cart functionality',
-            project: 1,
-            completed: false,
-            completedAt: null,
-            timestamp: '2024-01-01T11:00:00Z',
-            lastMod: '2024-01-01T11:30:00Z',
-            key: 'cart-suite-key',
-            createdBy: 2,
-            host: 1,
-            tests: [],
-            feature: null,
-            testType: null,
-            userRole: null,
-            deviceType: null,
-            region: null,
-            featureId: null,
-            testTypeId: null,
-            userRoleId: null,
-            deviceTypeId: null,
-            regionId: null,
-            tunnelKey: null,
-          }
-        ];
-
-        setSuites(mockSuites);
-      }
+      setRefreshing(true);
+      await dispatch(fetchE2eSuites({ filters: currentFilters, pagination: currentPagination }));
     } catch (error) {
-      if (mountedRef.current && !signal.aborted) {
-        console.error('Error fetching suites:', error);
-        setError('Failed to load test suites');
-        setSuites(EMPTY_SUITES);
-      }
+      console.error('Error refreshing suites:', error);
     } finally {
-      if (mountedRef.current && !signal.aborted) {
-        setLoading(false);
+      if (mountedRef.current) {
         setRefreshing(false);
       }
     }
-  }, [ideMessenger]);
+  }, [dispatch, currentFilters, currentPagination]);
 
   // Initial data fetch
   useEffect(() => {
-    fetchSuites();
-    
-    // Cleanup function
-    return () => {
-      mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [fetchSuites]);
+    dispatch(fetchE2eSuites({ filters: currentFilters, pagination: currentPagination }));
+  }, [dispatch, currentFilters, currentPagination]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
     };
   }, []);
-
-  // Handle refresh
-  const handleRefresh = useCallback(() => {
-    fetchSuites(true);
-  }, [fetchSuites]);
 
   // Modal handlers
   const handleOpenModal = useCallback(() => {
@@ -371,103 +201,105 @@ function E2eSuites() {
   const handleCreateSuite = useCallback(async (data: { description: string; filePath?: string; repoName?: string; branchName?: string }) => {
     if (!mountedRef.current) return;
 
-    // Cancel any ongoing requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-
     try {
       setCreateLoading(true);
 
-      // TODO: Replace with real API call when ideMessenger protocol is available
-      // const result = await ideMessenger?.request('e2eSuites/create', data, { signal });
-      
-      // Mock API call with delay
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(resolve, 1500);
-        signal.addEventListener('abort', () => {
-          clearTimeout(timeout);
-          reject(new Error('Request cancelled'));
+      // Use IDE messenger to create suite
+      if (ideMessenger) {
+        await ideMessenger.request('ideCommand/run', {
+          slashCommandName: 'run-command',
+          params: {
+            command: 'e2eSuites/create',
+            description: data.description,
+            filePath: data.filePath,
+            repoName: data.repoName,
+            branchName: data.branchName,
+          },
         });
-      });
+      }
 
-      // Check if component is still mounted and request wasn't cancelled
-      if (mountedRef.current && !signal.aborted) {
+      if (mountedRef.current) {
         setIsCreateModalOpen(false);
-        handleRefresh(); // Refresh the list
+        handleRefresh(); // Refresh the list after creation
       }
     } catch (error) {
-      if (mountedRef.current && !signal.aborted) {
-        console.error('Error creating suite:', error);
-        // Handle error (could show toast notification)
-      }
+      console.error('Error creating suite:', error);
     } finally {
-      if (mountedRef.current && !signal.aborted) {
+      if (mountedRef.current) {
         setCreateLoading(false);
       }
     }
-  }, [handleRefresh, ideMessenger]);
+  }, [ideMessenger, handleRefresh]);
 
   // Handle suite actions
   const handleViewSuite = useCallback((suite: E2eTestSuite) => {
     navigate(`/e2es/suites/${suite.uuid}`);
   }, [navigate]);
 
-  const handleRunSuite = useCallback(async (suite: E2eTestSuite) => {
-    try {
-      // Optimistic UI update
-      setSuites(prevSuites => 
-        prevSuites.map(s => 
-          s.uuid === suite.uuid 
-            ? { ...s, completed: false }
-            : s
-        )
-      );
+  const handleRunSuite = useCallback((suite: E2eTestSuite) => {
+    console.log('Running suite:', suite.uuid);
+    // TODO: Implement suite run logic with ideMessenger
+  }, []);
 
-      // TODO: Replace with real API call
-      // await ideMessenger?.request('e2eSuites/run', { uuid: suite.uuid });
-      
-      console.log('Running suite:', suite.name);
-    } catch (error) {
-      console.error('Error running suite:', error);
-      // Revert optimistic update on error
-      setSuites(prevSuites => 
-        prevSuites.map(s => 
-          s.uuid === suite.uuid 
-            ? { ...s, completed: true }
-            : s
-        )
-      );
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircleIcon className="h-4 w-4 text-green-500" />;
+      case 'running':
+        return <ClockIcon className="h-4 w-4 text-blue-500" />;
+      case 'failed':
+        return <ExclamationTriangleIcon className="h-4 w-4 text-red-500" />;
+      default:
+        return <ClockIcon className="h-4 w-4 text-gray-500" />;
     }
-  }, [ideMessenger]);
+  };
 
-  // Render loading state
-  if (loading) {
-    return <LoadingState />;
+  if (loading && !refreshing) {
+    return (
+      <div className="h-full bg-vsc-editor-background text-vsc-foreground flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-vsc-button-background"></div>
+          <p className="text-xs text-vsc-descriptionForeground mt-2">Loading test suites...</p>
+        </div>
+      </div>
+    );
   }
 
-  // Render error state
   if (error) {
-    return <ErrorState onRetry={() => fetchSuites()} />;
-  }
-
-  // Render empty state
-  if (suites.length === 0) {
-    return <EmptyState onCreateSuite={handleOpenModal} />;
+    return (
+      <div className="h-full bg-vsc-editor-background text-vsc-foreground flex items-center justify-center">
+        <div className="text-center">
+          <ExclamationTriangleIcon className="h-8 w-8 text-red-500 mx-auto" />
+          <p className="text-sm text-vsc-foreground mt-2">Error loading test suites</p>
+          <p className="text-xs text-vsc-descriptionForeground">{error}</p>
+          <button
+            onClick={handleRefresh}
+            className="mt-3 px-3 py-1.5 text-xs bg-vsc-button-background text-vsc-button-foreground rounded-sm hover:bg-vsc-button-hoverBackground"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="h-full bg-vsc-editor-background text-vsc-foreground flex flex-col">
-      {/* Compact Header */}
-      <div className="p-2 border-b border-vsc-panel-border">
+      {/* VS Code-style Header */}
+      <div className="p-3 border-b border-vsc-panel-border">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-sm font-medium text-vsc-foreground">Test Suites</h2>
-            <p className="text-xs text-vsc-descriptionForeground">Organized test collections</p>
+            <p className="text-xs text-vsc-descriptionForeground">Organized collections of related tests</p>
           </div>
           <div className="flex items-center space-x-1">
             <button
@@ -492,62 +324,85 @@ function E2eSuites() {
         )}
       </div>
 
-      {/* Suites list */}
-      <div className="p-2 space-y-2">
-        {suites.map((suite) => (
-          <div
-            key={suite.uuid}
-            className="bg-vsc-input-background border border-vsc-input-border rounded-sm p-2 hover:bg-vsc-list-hoverBackground transition-colors"
-          >
-            <div className="flex items-start justify-between mb-1">
-              <h3 className="text-xs font-medium text-vsc-foreground leading-tight">
-                {suite.name || "Unnamed Suite"}
-              </h3>
-              <StatusBadge status={suite.completed ? 'completed' : 'running'} />
-            </div>
-            
-            <p className="text-xs text-vsc-descriptionForeground mb-2 leading-tight">
-              {suite.description || "No description provided"}
-            </p>
-            
-            <div className="flex items-center justify-between text-xs text-vsc-descriptionForeground">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-0.5">
-                  <UserIcon className="h-3 w-3" />
-                  <span>User {suite.createdBy}</span>
-                </div>
-                <div className="flex items-center gap-0.5">
-                  <CalendarIcon className="h-3 w-3" />
-                  <span>{new Date(suite.timestamp || Date.now()).toLocaleDateString()}</span>
-                </div>
-              </div>
-              <div className="text-xs text-vsc-foreground">
-                {suite.tests?.length || 0} tests
-              </div>
-            </div>
-
-            <div className="flex gap-1 mt-2">
+      {/* Content */}
+      <div className="flex-1 overflow-auto">
+        {suites.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <FolderOpenIcon className="h-12 w-12 text-vsc-descriptionForeground mx-auto mb-3" />
+              <p className="text-sm text-vsc-foreground mb-1">No test suites found</p>
+              <p className="text-xs text-vsc-descriptionForeground mb-4">Create your first test suite to get started</p>
               <button
-                onClick={() => handleViewSuite(suite)}
-                className="flex items-center gap-1 px-2 py-1 text-xs text-vsc-foreground hover:text-vsc-foreground hover:bg-vsc-button-secondaryBackground rounded-sm transition-colors"
-                title="View Details"
+                onClick={handleOpenModal}
+                className="px-3 py-1.5 text-xs bg-vsc-button-background text-vsc-button-foreground rounded-sm hover:bg-vsc-button-hoverBackground"
               >
-                <EyeIcon className="h-3 w-3" />
-                View
+                Create Test Suite
               </button>
-              {suite.completed && (
-                <button
-                  onClick={() => handleRunSuite(suite)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-vsc-textLink-foreground hover:text-vsc-textLink-foreground hover:bg-vsc-button-secondaryBackground rounded-sm transition-colors"
-                  title="Run Suite"
-                >
-                  <PlayIcon className="h-3 w-3" />
-                  Run
-                </button>
-              )}
             </div>
           </div>
-        ))}
+        ) : (
+          <div className="p-3">
+            <div className="space-y-2">
+              {suites.map((suite) => (
+                <div
+                  key={suite.uuid}
+                  className="p-3 bg-vsc-list-inactiveSelectionBackground border border-vsc-panel-border rounded-sm hover:bg-vsc-list-hoverBackground transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <FolderOpenIcon className="h-4 w-4 text-vsc-symbolIcon-namespaceForeground flex-shrink-0" />
+                        <h3 className="text-sm font-medium text-vsc-foreground truncate">
+                          {suite.name || suite.description}
+                        </h3>
+                        {getStatusIcon(suite.completed ? 'completed' : 'pending')}
+                      </div>
+                      
+                      {suite.description && suite.name && (
+                        <p className="text-xs text-vsc-descriptionForeground mt-1 line-clamp-2">
+                          {suite.description}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center space-x-4 mt-2 text-xs text-vsc-descriptionForeground">
+                        <div className="flex items-center space-x-1">
+                          <UserIcon className="h-3 w-3" />
+                          <span>Created by User {suite.createdBy}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <CalendarIcon className="h-3 w-3" />
+                          <span>{formatDate(suite.timestamp)}</span>
+                        </div>
+                        {suite.tests && (
+                          <div className="flex items-center space-x-1">
+                            <span>{suite.tests.length} tests</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-1 ml-3">
+                      <button
+                        onClick={() => handleViewSuite(suite)}
+                        className="p-1 text-vsc-tab-inactiveForeground hover:text-vsc-tab-activeForeground hover:bg-vsc-list-hoverBackground rounded-sm transition-colors"
+                        title="View suite details"
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleRunSuite(suite)}
+                        className="p-1 text-vsc-tab-inactiveForeground hover:text-vsc-tab-activeForeground hover:bg-vsc-list-hoverBackground rounded-sm transition-colors"
+                        title="Run test suite"
+                      >
+                        <PlayIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Create Suite Modal */}

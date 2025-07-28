@@ -19,7 +19,12 @@ vi.mock('react-router-dom', async () => {
 
 // Create mock IDE messenger
 const createMockIdeMessenger = (overrides = {}) => ({
+  post: vi.fn(),
+  respond: vi.fn(),
   request: vi.fn(),
+  streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  ide: {} as any,
   ...overrides,
 });
 
@@ -48,17 +53,49 @@ const mockRun: E2eRun = {
   timestamp: '2024-01-01T10:00:00Z',
   lastModified: '2024-01-01T10:30:00Z',
   key: 'test-run-key-456',
-  runType: 'automated',
+  runType: 'run',
   test: mockTest,
   status: 'completed',
   outcome: 'pass',
   conversations: [
     {
       uuid: 'conv-1',
+      creatorUuid: 'user-123',
+      user: 1,
+      company: 1,
+      timestamp: '2024-01-01T10:30:00Z',
+      lastMod: '2024-01-01T10:32:00Z',
       messages: [
-        { role: 'user', content: 'Start authentication test' },
-        { role: 'assistant', content: 'Navigating to login page...' },
-        { role: 'assistant', content: 'Test completed successfully!' }
+        { 
+          uuid: 'msg-1',
+          sender: 'user',
+          role: 'user', 
+          content: 'Start authentication test',
+          cleanedTickedContent: null,
+          jsonContent: null,
+          timestamp: '2024-01-01T10:30:00Z',
+          lastMod: '2024-01-01T10:30:00Z'
+        },
+        { 
+          uuid: 'msg-2',
+          sender: 'assistant',
+          role: 'assistant', 
+          content: 'Navigating to login page...',
+          cleanedTickedContent: null,
+          jsonContent: null,
+          timestamp: '2024-01-01T10:31:00Z',
+          lastMod: '2024-01-01T10:31:00Z'
+        },
+        { 
+          uuid: 'msg-3',
+          sender: 'assistant',
+          role: 'assistant', 
+          content: 'Test completed successfully!',
+          cleanedTickedContent: null,
+          jsonContent: null,
+          timestamp: '2024-01-01T10:32:00Z',
+          lastMod: '2024-01-01T10:32:00Z'
+        }
       ]
     }
   ],

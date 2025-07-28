@@ -44,7 +44,12 @@ vi.mock('../../redux/thunks/e2eTestsThunks', () => ({
 
 // Create mock IDE messenger
 const createMockIdeMessenger = (overrides = {}) => ({
+  post: vi.fn(),
+  respond: vi.fn(),
   request: vi.fn().mockResolvedValue({ success: true }),
+  streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  ide: {} as any,
   ...overrides,
 });
 
@@ -57,13 +62,13 @@ const createMockStore = (initialState = {}) => {
       tests: [],
       loading: false,
       error: null,
-      ...initialState.e2eTests,
+      ...(initialState as any).e2eTests,
     },
     config: {
       config: {
         disableIndexing: false,
       },
-      ...initialState.config,
+      ...(initialState as any).config,
     },
   };
 
