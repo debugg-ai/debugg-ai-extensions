@@ -367,7 +367,12 @@ function E2eSuites() {
                       <div className="flex items-center space-x-4 mt-2 text-xs text-vsc-descriptionForeground">
                         <div className="flex items-center space-x-1">
                           <UserIcon className="h-3 w-3" />
-                          <span>Created by User {suite.createdBy}</span>
+                          <span>
+                            {suite.createdBy && typeof suite.createdBy === 'object' 
+                              ? `${(suite.createdBy as any).firstName || ''} ${(suite.createdBy as any).lastName || ''}`.trim() || 'Unknown User'
+                              : `User ${suite.createdBy || 'Unknown'}`
+                            }
+                          </span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <CalendarIcon className="h-3 w-3" />

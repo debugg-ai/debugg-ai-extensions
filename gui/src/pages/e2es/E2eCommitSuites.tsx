@@ -14,6 +14,8 @@ import type { E2eTestCommitSuite } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { fetchE2eCommitSuites, runE2eCommitSuite } from "../../redux/thunks/e2eCommitSuitesThunks";
 
 interface CreateCommitSuiteModalProps {
   isOpen: boolean;
@@ -222,147 +224,50 @@ function EmptyState({ onCreateCommitSuite }: { onCreateCommitSuite: () => void }
 function E2eCommitSuites() {
   const navigate = useNavigate();
   const ideMessenger = useContext(IdeMessengerContext);
+  const dispatch = useAppDispatch();
   
-  // State management with default empty states
-  const EMPTY_COMMIT_SUITES: E2eTestCommitSuite[] = [];
-  const [commitSuites, setCommitSuites] = useState<E2eTestCommitSuite[]>(EMPTY_COMMIT_SUITES);
-  const [loading, setLoading] = useState(false);
+  // Redux state
+  const commitSuites = useAppSelector((store) => store.e2eCommitSuites.items);
+  const loading = useAppSelector((store) => store.e2eCommitSuites.loading);
+  const error = useAppSelector((store) => store.e2eCommitSuites.error);
+  const currentFilters = useAppSelector((store) => store.e2eCommitSuites.currentFilters);
+  const currentPagination = useAppSelector((store) => store.e2eCommitSuites.currentPagination);
+
+  // Local state for UI controls
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
 
-  // Refs for cleanup and request cancellation
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // Refs for cleanup
   const mountedRef = useRef(true);
 
   // Fetch commit suites data
-  const fetchCommitSuites = useCallback(async (isRefresh = false) => {
-    // Cancel any ongoing requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
+  const handleRefresh = useCallback(async () => {
+    if (!mountedRef.current) return;
 
     try {
-      if (!isRefresh) {
-        setCommitSuites(EMPTY_COMMIT_SUITES);
-        setLoading(true);
-      } else {
-        setRefreshing(true);
-      }
-      setError(null);
-
-      // TODO: Replace with real API call when ideMessenger protocol is available
-      // const result = await ideMessenger?.request('e2eCommitSuites/list', {}, { signal });
-      
-      // Mock API call with delay to simulate loading
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(resolve, 500);
-        signal.addEventListener('abort', () => {
-          clearTimeout(timeout);
-          reject(new Error('Request cancelled'));
-        });
-      });
-
-      // Check if component is still mounted and request wasn't cancelled
-      if (mountedRef.current && !signal.aborted) {
-        // Mock data - replace with real data when API is available
-        const mockCommitSuites: E2eTestCommitSuite[] = [
-          {
-            id: 1,
-            uuid: 'commit-suite-1',
-            commitHash: 'a1b2c3d4e5f6789abcdef1234567890abcdef123',
-            commitHashShort: 'a1b2c3d4',
-            project: 1,
-            projectName: 'MyApp Frontend',
-            description: 'Tests for authentication refactor',
-            summarizedChanges: 'Updated login flow, added OAuth integration, fixed password validation',
-            tests: [],
-            tunnelKey: null,
-            key: 'auth-refactor-tests',
-            runStatus: 'completed',
-            createdBy: {
-              uuid: 'user-1',
-              firstName: 'John',
-              lastName: 'Doe',
-              email: 'john.doe@example.com',
-              company: 'Example Corp'
-            },
-            timestamp: '2024-01-01T10:00:00Z',
-            lastMod: '2024-01-01T12:00:00Z',
-          },
-          {
-            id: 2,
-            uuid: 'commit-suite-2',
-            commitHash: 'f6e5d4c3b2a1098765432109876543210987654f',
-            commitHashShort: 'f6e5d4c3',
-            project: 1,
-            projectName: 'MyApp Frontend',
-            description: 'Shopping cart feature implementation',
-            summarizedChanges: 'Added cart state management, implemented add/remove items, created checkout flow',
-            tests: [],
-            tunnelKey: null,
-            key: 'cart-feature-tests',
-            runStatus: 'running',
-            createdBy: {
-              uuid: 'user-2',
-              firstName: 'Jane',
-              lastName: 'Smith',
-              email: 'jane.smith@example.com',
-              company: 'Example Corp'
-            },
-            timestamp: '2024-01-01T11:00:00Z',
-            lastMod: '2024-01-01T11:30:00Z',
-          }
-        ];
-
-        setCommitSuites(mockCommitSuites);
-      }
+      setRefreshing(true);
+      await dispatch(fetchE2eCommitSuites({ filters: currentFilters, pagination: currentPagination }));
     } catch (error) {
-      if (mountedRef.current && !signal.aborted) {
-        console.error('Error fetching commit suites:', error);
-        setError('Failed to load commit suites');
-        setCommitSuites(EMPTY_COMMIT_SUITES);
-      }
+      console.error('Error refreshing commit suites:', error);
     } finally {
-      if (mountedRef.current && !signal.aborted) {
-        setLoading(false);
+      if (mountedRef.current) {
         setRefreshing(false);
       }
     }
-  }, [ideMessenger]);
+  }, [dispatch, currentFilters, currentPagination]);
 
   // Initial data fetch
   useEffect(() => {
-    fetchCommitSuites();
-    
-    // Cleanup function
-    return () => {
-      mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [fetchCommitSuites]);
+    dispatch(fetchE2eCommitSuites({ filters: currentFilters, pagination: currentPagination }));
+  }, [dispatch, currentFilters, currentPagination]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
     };
   }, []);
-
-  // Handle refresh
-  const handleRefresh = useCallback(() => {
-    fetchCommitSuites(true);
-  }, [fetchCommitSuites]);
 
   // Modal handlers
   const handleOpenModal = useCallback(() => {
@@ -381,79 +286,37 @@ function E2eCommitSuites() {
   const handleCreateCommitSuite = useCallback(async (data: { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string }) => {
     if (!mountedRef.current) return;
 
-    // Cancel any ongoing requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-
     try {
       setCreateLoading(true);
-
-      // TODO: Replace with real API call when ideMessenger protocol is available
-      // const result = await ideMessenger?.request('e2eCommitSuites/create', data, { signal });
       
-      // Mock API call with delay
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(resolve, 1500);
-        signal.addEventListener('abort', () => {
-          clearTimeout(timeout);
-          reject(new Error('Request cancelled'));
-        });
-      });
-
-      // Check if component is still mounted and request wasn't cancelled
-      if (mountedRef.current && !signal.aborted) {
+      // TODO: Implement create commit suite API call
+      console.log('Creating commit suite with data:', data);
+      
+      if (mountedRef.current) {
         setIsCreateModalOpen(false);
-        handleRefresh(); // Refresh the list
+        await handleRefresh(); // Refresh the list
       }
     } catch (error) {
-      if (mountedRef.current && !signal.aborted) {
+      if (mountedRef.current) {
         console.error('Error creating commit suite:', error);
-        // Handle error (could show toast notification)
       }
     } finally {
-      if (mountedRef.current && !signal.aborted) {
+      if (mountedRef.current) {
         setCreateLoading(false);
       }
     }
-  }, [handleRefresh, ideMessenger]);
+  }, [handleRefresh]);
 
   // Handle commit suite actions
   const handleViewCommitSuite = useCallback((suite: E2eTestCommitSuite) => {
+    console.log('Viewing commit suite:', suite.uuid);
     navigate(`/e2es/commit-suites/${suite.uuid}`);
   }, [navigate]);
 
-  const handleRunCommitSuite = useCallback(async (suite: E2eTestCommitSuite) => {
-    try {
-      // Optimistic UI update
-      setCommitSuites(prevSuites => 
-        prevSuites.map(s => 
-          s.uuid === suite.uuid 
-            ? { ...s, runStatus: 'running' }
-            : s
-        )
-      );
-
-      // TODO: Replace with real API call
-      // await ideMessenger?.request('e2eCommitSuites/run', { uuid: suite.uuid });
-      
-      console.log('Running commit suite:', suite.description);
-    } catch (error) {
-      console.error('Error running commit suite:', error);
-      // Revert optimistic update on error
-      setCommitSuites(prevSuites => 
-        prevSuites.map(s => 
-          s.uuid === suite.uuid 
-            ? { ...s, runStatus: 'completed' }
-            : s
-        )
-      );
-    }
-  }, [ideMessenger]);
+  const handleRunCommitSuite = useCallback((suite: E2eTestCommitSuite) => {
+    console.log('Running commit suite:', suite.uuid);
+    dispatch(runE2eCommitSuite(suite.uuid));
+  }, [dispatch]);
 
   // Render loading state
   if (loading) {
@@ -462,7 +325,7 @@ function E2eCommitSuites() {
 
   // Render error state
   if (error) {
-    return <ErrorState onRetry={() => fetchCommitSuites()} />;
+    return <div className="p-4 text-center text-red-500">Error: {error}</div>;
   }
 
   // Render empty state
