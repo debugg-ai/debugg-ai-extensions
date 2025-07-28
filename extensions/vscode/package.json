@@ -2,7 +2,7 @@
   "name": "debugg-ai",
   "icon": "media/icon.png",
   "author": "Debugg Inc",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "repository": {
     "type": "git",
     "url": "https://github.com/debugg-ai/debugg-ai-extensions"
@@ -254,7 +254,7 @@
       },
       {
         "command": "debugg-ai.showE2eSuites",
-        "category": "Debugg AI", 
+        "category": "Debugg AI",
         "title": "E2E Suites",
         "icon": "$(folder-opened)",
         "group": "Debugg AI"
@@ -262,7 +262,7 @@
       {
         "command": "debugg-ai.showE2eCommitSuites",
         "category": "Debugg AI",
-        "title": "E2E Commit Suites", 
+        "title": "E2E Commit Suites",
         "icon": "$(git-branch)",
         "group": "Debugg AI"
       },
@@ -621,7 +621,7 @@
         },
         {
           "command": "debugg-ai.showE2eSuites",
-          "group": "navigation@2", 
+          "group": "navigation@2",
           "when": "view == debugg-ai.debuggaiGUIView"
         },
         {
@@ -652,13 +652,13 @@
           "when": "activeWebviewPanelId == debugg-ai.debuggaiGUIView"
         },
         {
-          "command": "debugg-ai.showE2eSuites", 
+          "command": "debugg-ai.showE2eSuites",
           "group": "navigation@2",
           "when": "activeWebviewPanelId == debugg-ai.debuggaiGUIView"
         },
         {
           "command": "debugg-ai.showE2eCommitSuites",
-          "group": "navigation@3", 
+          "group": "navigation@3",
           "when": "activeWebviewPanelId == debugg-ai.debuggaiGUIView"
         }
       ],
