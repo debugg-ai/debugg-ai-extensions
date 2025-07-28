@@ -1,15 +1,17 @@
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import {
-  createMigrate,
-  MigrationManifest,
-  persistReducer,
-  persistStore,
+    createMigrate,
+    MigrationManifest,
+    persistReducer,
+    persistStore,
 } from "redux-persist";
 import { createFilter } from "redux-persist-transform-filter";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import storage from "redux-persist/lib/storage";
 import { IdeMessenger, IIdeMessenger } from "../context/IdeMessenger";
 import configReducer from "./slices/configSlice";
+import e2eCommitSuitesReducer from "./slices/e2eCommitSuitesSlice";
+import e2eSuitesReducer from "./slices/e2eSuitesSlice";
 import e2eTestsReducer from "./slices/e2eTestsSlice";
 import editModeStateReducer from "./slices/editModeState";
 import indexingReducer from "./slices/indexingSlice";
@@ -26,6 +28,8 @@ export interface ChatMessage {
 const rootReducer = combineReducers({
   session: sessionReducer,
   e2eTests: e2eTestsReducer,
+  e2eSuites: e2eSuitesReducer,
+  e2eCommitSuites: e2eCommitSuitesReducer,
   misc: miscReducer,
   ui: uiReducer,
   editModeState: editModeStateReducer,

@@ -1,6 +1,6 @@
 import {
-  ToCoreFromWebviewProtocol,
-  ToWebviewFromCoreProtocol,
+    ToCoreFromWebviewProtocol,
+    ToWebviewFromCoreProtocol,
 } from "./coreWebview.js";
 
 // Message types to pass through from webview to core
@@ -65,6 +65,17 @@ export const WEBVIEW_TO_CORE_PASS_THROUGH: (keyof ToCoreFromWebviewProtocol)[] =
     "e2eTests/fetchE2eTests",
     "e2eTests/runE2eTest",
     "e2eTests/deleteE2eTest",
+    "e2eTests/create",
+    "e2eSuites/fetchE2eSuites",
+    "e2eSuites/run",
+    "e2eSuites/delete",
+    "e2eSuites/create",
+      "e2eCommitSuites/fetchE2eCommitSuites",
+  "e2eCommitSuites/getE2eCommitSuite",
+  "e2eCommitSuites/run",
+  "e2eCommitSuites/delete",
+  "e2eCommitSuites/create",
+    "executeVSCodeCommand",
     "controlPlane/openUrl",
     "controlPlane/listOrganizations",
   ];

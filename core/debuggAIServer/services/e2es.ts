@@ -23,6 +23,7 @@ export interface E2esService {
     createE2eCommitSuite(description: string, params?: Record<string, any>): Promise<E2eTestCommitSuite | null>;
     runE2eCommitSuite(uuid: string, params?: Record<string, any>): Promise<E2eTestCommitSuite | null>;
     getE2eCommitSuite(uuid: string, params?: Record<string, any>): Promise<E2eTestCommitSuite | null>;
+    listE2eCommitSuites(params?: Record<string, any>): Promise<PaginatedResponse<E2eTestCommitSuite> | null>;
 }
 
 const paramsToBody = (params: Record<string, any>) => {
@@ -346,6 +347,17 @@ export const createE2esService = (tx: DebuggTransport): E2esService => ({
                 data: err.response?.data,
                 message: err.message
             });
+            return null;
+        }
+    },
+    async listE2eCommitSuites(params?: Record<string, any>): Promise<PaginatedResponse<E2eTestCommitSuite> | null> {
+        try {
+            const serverUrl = "api/v1/commit-suites/";
+            const response = await tx.get<PaginatedResponse<E2eTestCommitSuite>>(serverUrl, { ...params }, true);
+            console.log("Raw API response for commit suites:", response);
+            return response;
+        } catch (err) {
+            console.error("Error listing E2E commit suites:", err);
             return null;
         }
     },

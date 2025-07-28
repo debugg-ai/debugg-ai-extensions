@@ -1,6 +1,6 @@
 // src/E2eTestRunner.ts
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
-import { fetchAndOpenGif } from 'core/e2es/recordingHandler';
+import { fetchAndOpenGif, fetchAndOpenJson, fetchAndOpenScript } from 'core/e2es/recordingHandler';
 import { IDE } from 'core/index';
 import * as vscode from 'vscode';
 
@@ -167,9 +167,24 @@ export abstract class TestHandler {
 
         if (state.tests && state.tests.length > 0) {
             for (const test of state.tests) {
-                console.log("Processing GIF for test: ", test);
-                if (test.object?.curRun?.runGif) {
-                    fetchAndOpenGif(this.ide, test.object?.curRun?.runGif, test.object?.curRun?.test?.name ?? "", test.object?.curRun?.uuid);
+                console.log("Processing files for test: ", test);
+                const testRun = test.object?.curRun;
+                const testName = testRun?.test?.name ?? "";
+                const testUuid = testRun?.uuid ?? "";
+                
+                // Download GIF recording if available
+                if (testRun?.runGif) {
+                    fetchAndOpenGif(this.ide, testRun.runGif, testName, testUuid);
+                }
+                
+                // Download script file if available
+                if (testRun?.runScript) {
+                    fetchAndOpenScript(this.ide, testRun.runScript, testName, testUuid);
+                }
+                
+                // Download JSON details file if available
+                if (testRun?.runJson) {
+                    fetchAndOpenJson(this.ide, testRun.runJson, testName, testUuid);
                 }
             }
         } else {

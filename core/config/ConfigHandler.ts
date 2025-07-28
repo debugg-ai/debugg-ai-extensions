@@ -1,5 +1,6 @@
 import { ConfigResult, FullSlug } from "@continuedev/config-yaml";
 
+import { AuthManager } from "../auth/AuthManager.js";
 import {
     ControlPlaneClient,
     ControlPlaneSessionInfo,
@@ -45,6 +46,7 @@ export class ConfigHandler {
   private debuggAIServerClientPromise: Promise<DebuggAIServerClient>;
   controlPlaneClient: ControlPlaneClient;
   debuggAIAuthProvider: any = null;
+  authManager: AuthManager | null = null;
   initializedPromise: Promise<void>;
 
   constructor(

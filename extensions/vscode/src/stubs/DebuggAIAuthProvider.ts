@@ -306,33 +306,58 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
                 await new Promise(resolve => setTimeout(resolve, 5000));
             }
             this._lastRefreshTime = Date.now();
-            console.log('args - ', {
+            console.log('Token refresh args:', {
                 grant_type: "refresh_token",
-                refresh_token: refreshToken,
+                refresh_token: refreshToken?.substring(0, 10) + '...',
                 client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
-                client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
-                server: controlPlaneEnv.CONTROL_PLANE_URL
+                client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET ? 'SET' : 'NOT_SET',
+                server: controlPlaneEnv.CONTROL_PLANE_URL,
+                endpoint: TOKEN_REFRESH_ENDPOINT
             });
-            const response = await axios.post(TOKEN_REFRESH_ENDPOINT, {
-                grant_type: "refresh_token",
-                refresh_token: refreshToken,
-                client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
-                client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
-            }, {
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
-            });
-            this._lastRefreshTime = curTime;
-            const newExpiresAt = Date.now() + jwtLifetime(response.data?.access_token);
-            return {
-                accessToken: response.data?.access_token,
-                refreshToken: response.data?.refresh_token,
-                expiresInMs: newExpiresAt - Date.now(),
-                expiresAt: newExpiresAt,
-            };
+            
+            try {
+                const response = await axios.post(TOKEN_REFRESH_ENDPOINT, {
+                    grant_type: "refresh_token",
+                    refresh_token: refreshToken,
+                    client_id: controlPlaneEnv.OAUTH_CLIENT_ID,
+                    client_secret: controlPlaneEnv.OAUTH_CLIENT_SECRET,
+                }, {
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                });
+                
+                console.log('Token refresh response status:', response.status);
+                console.log('Token refresh response data keys:', Object.keys(response.data || {}));
+                
+                if (!response.data?.access_token) {
+                    throw new Error('No access token in refresh response');
+                }
+                
+                this._lastRefreshTime = curTime;
+                const newExpiresAt = Date.now() + jwtLifetime(response.data?.access_token);
+                
+                console.log(`Token refreshed successfully. New token: ${response.data.access_token.substring(0, 10)}...`);
+                console.log(`New token expires at: ${new Date(newExpiresAt).toISOString()}`);
+                
+                return {
+                    accessToken: response.data?.access_token,
+                    refreshToken: response.data?.refresh_token,
+                    expiresInMs: newExpiresAt - Date.now(),
+                    expiresAt: newExpiresAt,
+                };
+            } catch (error) {
+                console.error('Token refresh failed:', error);
+                if (axios.isAxiosError(error)) {
+                    console.error('Refresh error status:', error.response?.status);
+                    console.error('Refresh error data:', error.response?.data);
+                    console.error('Refresh error headers:', error.response?.headers);
+                }
+                throw error;
+            }
         } else if (expiresAt) {
             // Not expired, just return the current session with updated expiresInMs
+            console.log(`Token not yet expired. Expires at: ${new Date(expiresAt).toISOString()}, current time: ${new Date().toISOString()}`);
             return {
                 accessToken: session?.accessToken,
                 refreshToken: session?.refreshToken,
@@ -341,7 +366,53 @@ export class DebuggAIAuthProvider implements AuthenticationProvider, Disposable 
             };
         } else {
             // No expiresAt, fallback to current session
+            console.log('No expiry time found, returning current session');
             return session!;
+        }
+    }
+
+    /**
+     * Force refresh a session even if it's not expired (useful for 401 errors)
+     */
+    public async forceRefreshSession(sessionId?: string): Promise<void> {
+        console.log('Force refreshing session:', sessionId || 'first available');
+        const sessions = await this.getSessions();
+        if (!sessions.length) {
+            console.log("No sessions found for force refresh");
+            throw new Error("No sessions available to refresh");
+        }
+        
+        const session = sessionId ? sessions.find(s => s.id === sessionId) : sessions[0];
+        if (!session) {
+            throw new Error(`Session ${sessionId} not found`);
+        }
+        
+        if (!session.refreshToken) {
+            throw new Error('No refresh token available for session');
+        }
+        
+        console.log(`Force refreshing session with token: ${session.accessToken?.substring(0, 10)}...`);
+        
+        try {
+            // Force refresh by temporarily setting expiresAt to past
+            const originalExpiresAt = session.expiresAt;
+            session.expiresAt = Date.now() - 1000; // 1 second ago
+            
+            const refreshedSession = await this._refreshSession(session.refreshToken, session);
+            
+            // Restore the session with new token data
+            const updatedSession = { ...session, ...refreshedSession };
+            
+            // Update the stored sessions
+            const updatedSessions = sessions.map(s => s.id === session.id ? updatedSession : s);
+            await this._storeSessions(updatedSessions);
+            
+            this._sessionChangeEmitter.fire({ added: [], removed: [], changed: [updatedSession] });
+            
+            console.log(`Session force refreshed successfully. New token: ${refreshedSession.accessToken?.substring(0, 10)}...`);
+        } catch (error) {
+            console.error('Force refresh failed:', error);
+            throw error;
         }
     }
 

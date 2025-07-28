@@ -46,33 +46,68 @@ export class DebuggTransportManager {
 
     if (!this.transports.has(key)) {
       console.log(`Creating new DebuggTransport for key: ${key}`);
-      this.transports.set(key, new DebuggTransport(ide, serverUrl, token, onAuthFailure));
+      const transport = new DebuggTransport(ide, serverUrl, token, onAuthFailure);
+      this.transports.set(key, transport);
+      console.log(`New transport created with auth header: ${transport.getAuthorizationHeader()}`);
     } else {
       console.log(`Reusing existing DebuggTransport for key: ${key}`);
       const existingTransport = this.transports.get(key)!;
       console.log(`Existing transport auth header before update: ${existingTransport.getAuthorizationHeader()}`);
+      
       // Always update token if provided to ensure we have the latest
       if (token) {
         console.log(`Updating token for existing transport: ${token.substring(0, 10)}...`);
         existingTransport.updateToken(token);
         console.log(`Token update completed for transport instanceId: ${(existingTransport as any).axios?.instanceId || 'unknown'}`);
       }
-      // Update the auth failure callback if provided
+      
+      // Always update the auth failure callback if provided
       if (onAuthFailure) {
-        existingTransport.onAuthFailure = onAuthFailure;
+        console.log(`Updating onAuthFailure callback for existing transport`);
+        existingTransport.setOnAuthFailure(onAuthFailure);
+      } else {
+        console.warn(`⚠️ Warning: No onAuthFailure callback provided for existing transport`);
       }
+      
       console.log(`Existing transport auth header after update: ${existingTransport.getAuthorizationHeader()}`);
     }
 
     const transport = this.transports.get(key)!;
     console.log(`Returning transport with auth header: ${transport.getAuthorizationHeader()}`);
+    
+    // Debug the transport state
+    transport.debugTransportState();
+    
     return transport;
+  }
+
+  /**
+   * Update tokens for all transports (useful when authentication changes globally)
+   */
+  public updateAllTokens(newToken: string): void {
+    console.log(`Updating token for all ${this.transports.size} transports to: ${newToken.substring(0, 10)}...`);
+    for (const [key, transport] of this.transports) {
+      console.log(`Updating token for transport ${key}`);
+      transport.updateToken(newToken);
+    }
+  }
+
+  /**
+   * Set onAuthFailure callback for all transports
+   */
+  public setOnAuthFailureForAll(callback: () => void): void {
+    console.log(`Setting onAuthFailure callback for all ${this.transports.size} transports`);
+    for (const [key, transport] of this.transports) {
+      console.log(`Setting onAuthFailure for transport ${key}`);
+      transport.setOnAuthFailure(callback);
+    }
   }
 
   /**
    * Clear all cached transports (useful for testing or when IDE changes)
    */
   public clearTransports(): void {
+    console.log(`Clearing all ${this.transports.size} cached transports`);
     this.transports.clear();
   }
 
@@ -81,6 +116,18 @@ export class DebuggTransportManager {
    */
   public getTransportCount(): number {
     return this.transports.size;
+  }
+
+  /**
+   * Debug all transports
+   */
+  public debugAllTransports(): void {
+    console.log(`=== TransportManager Debug - ${this.transports.size} transports ===`);
+    for (const [key, transport] of this.transports) {
+      console.log(`Transport ${key}:`);
+      transport.debugTransportState();
+    }
+    console.log(`===================================================`);
   }
 }
 
@@ -99,6 +146,8 @@ export class DebuggTransport extends AxiosTransport {
     this.ide = ide;
     this.token = token;
     this.onAuthFailure = onAuthFailure;
+    
+    console.log(`DebuggTransport created with baseURL: ${baseUrl}, token: ${token?.substring(0, 10)}..., onAuthFailure: ${typeof onAuthFailure}`);
   }
 
   /**
@@ -106,10 +155,21 @@ export class DebuggTransport extends AxiosTransport {
    */
   public updateToken(token: string): void {
     console.log(`DebuggTransport.updateToken called with token: ${token.substring(0, 10)}...`);
+    const oldToken = this.token;
     this.token = token;
+    
     // Update the underlying AxiosTransport token
     super.updateToken(token);
+    
+    console.log(`DebuggTransport token updated from ${oldToken?.substring(0, 10)}... to ${token.substring(0, 10)}...`);
     console.log(`DebuggTransport current auth header: ${this.getAuthorizationHeader()}`);
+    
+    // Verify the onAuthFailure callback is still properly set
+    if (!this.onAuthFailure) {
+      console.warn("⚠️ Warning: onAuthFailure callback is not set on transport after token update");
+    } else {
+      console.log("✅ onAuthFailure callback is properly set on transport");
+    }
   }
 
   /**
@@ -117,6 +177,27 @@ export class DebuggTransport extends AxiosTransport {
    */
   public getAuthorizationHeader(): string | undefined {
     return super.getAuthorizationHeader();
+  }
+
+  /**
+   * Set or update the onAuthFailure callback
+   */
+  public setOnAuthFailure(callback: () => void): void {
+    console.log(`Setting onAuthFailure callback on DebuggTransport`);
+    this.onAuthFailure = callback;
+  }
+
+  /**
+   * Debug method to verify transport configuration
+   */
+  public debugTransportState(): void {
+    console.log(`=== DebuggTransport Debug State ===`);
+    console.log(`Token: ${this.token?.substring(0, 10)}...`);
+    console.log(`Auth Header: ${this.getAuthorizationHeader()}`);
+    console.log(`onAuthFailure callback: ${typeof this.onAuthFailure}`);
+    console.log(`Base URL: ${(this as any).axios?.defaults?.baseURL}`);
+    this.verifyTokenConfiguration();
+    console.log(`===================================`);
   }
 
   /*
@@ -254,8 +335,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.initStarted = true;
     console.log("Starting DebuggAIServerClient init...");
     
-    // Ensure auth provider is available before proceeding
-    await this.waitForAuthProvider();
+    // Auth is now handled by AuthManager, so we can proceed directly
     
     const serverUrl = await this.getServerUrl();
     console.log("Server URL:", serverUrl);
@@ -265,15 +345,26 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.userToken = this.accessToken;
     console.log("Got access token:", this.accessToken?.substring(0, 10) + "...");
 
+    // Create the onAuthFailure callback with proper error handling
+    const onAuthFailureCallback = () => {
+      console.log("onAuthFailure callback triggered, attempting token refresh...");
+      this.forceRefreshToken().catch((error) => {
+        console.error("Failed to refresh token in onAuthFailure callback:", error);
+      });
+    };
+
     // Use the singleton transport manager to get or create the transport
     const transportManager = DebuggTransportManager.getInstance();
     this.tx = transportManager.getOrCreateTransport(
       this.ide,
       serverUrl,
       this.accessToken,
-      () => this.forceRefreshToken()
+      onAuthFailureCallback
     );
     console.log("Transport created with auth header:", this.tx.getAuthorizationHeader());
+
+    // Verify the transport is properly configured
+    this.tx.debugTransportState();
 
     this.repos = createReposService(this.tx);
     this.issues = createIssuesService(this.tx);
@@ -293,6 +384,16 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     // Update the transport token if we have a transport instance
     if (this.tx && this.accessToken) {
       this.tx.updateToken(this.accessToken);
+      
+      // Ensure the onAuthFailure callback is still set after token update
+      const onAuthFailureCallback = () => {
+        console.log("onAuthFailure callback triggered, attempting token refresh...");
+        this.forceRefreshToken().catch((error) => {
+          console.error("Failed to refresh token in onAuthFailure callback:", error);
+        });
+      };
+      this.tx.setOnAuthFailure(onAuthFailureCallback);
+      
       // Recreate services with the updated transport to ensure they use the new token
       this.repos = createReposService(this.tx);
       this.issues = createIssuesService(this.tx);
@@ -306,6 +407,34 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     if (!this.tx) {
       await this.init();
     }
+  }
+
+  /**
+   * Debug method to output current client state for troubleshooting
+   */
+  public debugClientState(): void {
+    console.log(`=== DebuggAIServerClient Debug State ===`);
+    console.log(`Initialized: ${this.initialized}`);
+    console.log(`Init Started: ${this.initStarted}`);
+    console.log(`Token Refresh In Progress: ${this.tokenRefreshInProgress}`);
+    console.log(`Cached Access Token Refresh: ${this.cachedAccessTokenRefresh}`);
+    console.log(`Access Token: ${this.accessToken?.substring(0, 10)}...`);
+    console.log(`User Token: ${this.userToken?.substring(0, 10)}...`);
+    console.log(`Server URL: ${this.url?.toString()}`);
+    console.log(`Consecutive 401s: ${this.consecutive401s}`);
+    console.log(`Has Transport: ${!!this.tx}`);
+    console.log(`Has Auth Provider: ${!!this.configHandler.debuggAIAuthProvider}`);
+    console.log(`Has Auth Manager: ${!!this.configHandler.authManager}`);
+    
+    if (this.tx) {
+      console.log(`Transport Debug:`);
+      this.tx.debugTransportState();
+    }
+    
+    const transportManager = DebuggTransportManager.getInstance();
+    transportManager.debugAllTransports();
+    
+    console.log(`========================================`);
   }
 
   /**
@@ -342,36 +471,49 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     if (this.inFlightGetAccessToken) return this.inFlightGetAccessToken;
     this.inFlightGetAccessToken = withExponentialBackoff(async () => {
       let accessToken: string | undefined;
-      // Wait for auth provider to be available
-      let attempts = 0;
-      const maxAttempts = 10;
-      while (!this.configHandler.debuggAIAuthProvider && attempts < maxAttempts) {
-        console.log(`Waiting for auth provider to be available... (attempt ${attempts + 1}/${maxAttempts})`);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
+      
+      // Try to get access token from AuthManager first
+      if (this.configHandler.authManager) {
+        const token = this.configHandler.authManager.getAccessToken();
+        accessToken = token || undefined;
+        if (accessToken) {
+          console.log(`getAccessToken from AuthManager: ${accessToken.substring(0, 10)}...`);
+        } else {
+          // Try to wait for auth with a reasonable timeout
+          try {
+            const session = await this.configHandler.authManager.waitForAuth(3000);
+            if (session?.accessToken) {
+              accessToken = session.accessToken;
+              console.log(`getAccessToken after waiting: ${accessToken.substring(0, 10)}...`);
+            }
+          } catch (error) {
+            console.warn("AuthManager timeout, falling back to legacy auth:", error);
+          }
+        }
       }
-      if (this.configHandler.debuggAIAuthProvider) {
+      
+      // Fallback to legacy auth provider if AuthManager didn't provide token
+      if (!accessToken && this.configHandler.debuggAIAuthProvider) {
         const sessions = await this.configHandler.debuggAIAuthProvider.getSessions();
         if (sessions.length > 0) {
           accessToken = sessions[0].accessToken;
-          console.log(`getAccessToken called, got token: ${accessToken?.substring(0, 10)}...`);
+          console.log(`getAccessToken from legacy provider: ${accessToken?.substring(0, 10)}...`);
         }
-      } else {
-        console.error(`getAccessToken called with no auth provider after ${maxAttempts} attempts`);
       }
+      
       if (!accessToken) {
-        console.log("No access token found, attempting refresh...");
+        console.log("No access token found, attempting control plane fallback...");
         if (!this.cachedAccessTokenRefresh) {
           this.cachedAccessTokenRefresh = true;
           await new Promise(resolve => setTimeout(resolve, 1500));
           accessToken = await this.configHandler.controlPlaneClient.getAccessToken();
-          console.log(`After refresh attempt, got token: ${accessToken?.substring(0, 10)}...`);
+          console.log(`After control plane attempt: ${accessToken?.substring(0, 10)}...`);
           setTimeout(() => {
             this.cachedAccessTokenRefresh = false;
           }, 30_000);
         }
         if (!accessToken) {
-          console.error("No access token found");
+          console.error("No access token found from any source");
           throw new Error("No access token found");
         }
       }
@@ -431,82 +573,107 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
       return this.accessToken || '';
     }
 
-        console.log("Force refreshing token...");
+    console.log("Force refreshing token...");
     this.tokenRefreshInProgress = true;
     this.cachedAccessTokenRefresh = false;
     
-    // Ensure auth provider is available before attempting refresh
-    await this.waitForAuthProvider();
-    
-    // Don't reload config here as it creates a circular dependency
-    // Instead, just get the token directly from the control plane client
-    let newToken: string | undefined;
-    
     try {
-      // Try to get a fresh token without reloading config
-      console.log("Current token before refresh:", this.accessToken?.substring(0, 10) + "...");
+      // Ensure auth provider is available before attempting refresh
+      await this.waitForAuthProvider();
       
-      // Note: Token refresh is handled at the IDE level via messenger
-      console.log("Token refresh is handled at the IDE level");
-
-      // Run the actual refresh
-      if (this.configHandler.debuggAIAuthProvider) {
-        await this.configHandler.debuggAIAuthProvider.refreshSessions();
-      }
-      // Get the new token from the store
-      newToken = await this.getAccessToken();
-      console.log(`Got fresh token: ${newToken?.substring(0, 10)}...`);
-
-      if (!newToken) {
-        console.log("No fresh token available, attempting config reload...");
-        // Only reload config if we don't have a token
-        // await this.configHandler.reloadConfig();
-        newToken = await this.getAccessToken();
-        console.log(`After config reload, got token: ${newToken?.substring(0, 10)}...`);
-      }
-
-      if (newToken === this.accessToken) {
-        console.log("⚠️ Warning: New token is the same as current token!");
-        console.log("This suggests the token refresh didn't work properly on the server side");
-      } else {
-        console.log("✅ New token is different from current token");
-      }
-    } catch (error) {
-      console.error("Failed to get fresh token:", error);
-      this.tokenRefreshInProgress = false;
-      throw error;
-    }
-
-    if (newToken && this.tx) {
-      console.log(`Force refreshed token to: ${newToken.substring(0, 10)}...`);
-      this.tx.updateToken(newToken);
-
-      // Verify the token was actually updated
-      console.log(`Transport auth header after force refresh: ${this.tx.getAuthorizationHeader()}`);
-      this.tx.verifyTokenConfiguration();
-
-      // Test the new token immediately
+      // Don't reload config here as it creates a circular dependency
+      // Instead, just get the token directly from the control plane client
+      let newToken: string | undefined;
+      
       try {
-        console.log("Testing new token with API call...");
-        console.log("Waiting 1 second before testing to allow server to process token refresh...");
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Try to get a fresh token without reloading config
+        console.log("Current token before refresh:", this.accessToken?.substring(0, 10) + "...");
+        
+        // Note: Token refresh is handled at the IDE level via messenger
+        console.log("Token refresh is handled at the IDE level");
 
-        // Make a direct API call to test the token without going through the service layer
-        if (this.tx) {
-          console.log("Making direct API call to test token...");
-          await this.tx.get("api/v1/users/get_ide_config/");
-          console.log("✅ New token works!");
+        // Run the actual refresh
+        if (this.configHandler.debuggAIAuthProvider) {
+          console.log("Refreshing sessions via debuggAIAuthProvider...");
+          
+          // Use force refresh if available (for 401 errors when token isn't technically expired)
+          if (typeof this.configHandler.debuggAIAuthProvider.forceRefreshSession === 'function') {
+            console.log("Using forceRefreshSession for immediate token refresh...");
+            await this.configHandler.debuggAIAuthProvider.forceRefreshSession();
+          } else {
+            console.log("Using regular refreshSessions...");
+            await this.configHandler.debuggAIAuthProvider.refreshSessions();
+          }
         } else {
-          console.error("❌ No transport available for testing");
+          console.warn("No debuggAIAuthProvider available for session refresh");
         }
-      } catch (testError) {
-        console.error("❌ New token still fails:", testError);
-        console.error("This suggests the token refresh didn't resolve the authentication issue");
-      }
-    }
+        
+        // Get the new token from the store
+        newToken = await this.getAccessToken();
+        console.log(`Got fresh token: ${newToken?.substring(0, 10)}...`);
 
-    this.tokenRefreshInProgress = false;
-    return newToken || '';
+        if (!newToken) {
+          console.log("No fresh token available, attempting config reload...");
+          // Only reload config if we don't have a token
+          // await this.configHandler.reloadConfig();
+          newToken = await this.getAccessToken();
+          console.log(`After config reload, got token: ${newToken?.substring(0, 10)}...`);
+        }
+
+        if (newToken === this.accessToken) {
+          console.log("⚠️ Warning: New token is the same as current token!");
+          console.log("This suggests the token refresh didn't work properly on the server side");
+        } else {
+          console.log("✅ New token is different from current token");
+        }
+      } catch (error) {
+        console.error("Failed to get fresh token:", error);
+        throw error;
+      }
+
+      if (newToken && this.tx) {
+        console.log(`Force refreshed token to: ${newToken.substring(0, 10)}...`);
+        this.tx.updateToken(newToken);
+
+        // Verify the token was actually updated
+        console.log(`Transport auth header after force refresh: ${this.tx.getAuthorizationHeader()}`);
+        this.tx.verifyTokenConfiguration();
+
+        // Test the new token immediately
+        try {
+          console.log("Testing new token with API call...");
+          console.log("Waiting 1 second before testing to allow server to process token refresh...");
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // Make a direct API call to test the token without going through the service layer
+          if (this.tx) {
+            console.log("Making direct API call to test token...");
+            await this.tx.get("api/v1/users/me/");
+            console.log("✅ New token works!");
+            this.consecutive401s = 0; // Reset the counter on success
+          } else {
+            console.error("❌ No transport available for testing");
+          }
+        } catch (testError) {
+          console.error("❌ New token still fails:", testError);
+          console.error("This suggests the token refresh didn't resolve the authentication issue");
+          this.consecutive401s++;
+          
+          // If we've had too many consecutive 401s, throw an error to prevent infinite loops
+          if (this.consecutive401s >= DebuggAIServerClient.MAX_401_ATTEMPTS) {
+            console.error(`Too many consecutive 401 attempts (${this.consecutive401s}), stopping refresh attempts`);
+            throw new Error("Authentication failed: Too many consecutive 401 errors");
+          }
+        }
+      }
+
+      return newToken || '';
+    } catch (error) {
+      console.error("Force refresh token failed:", error);
+      throw error;
+    } finally {
+      this.tokenRefreshInProgress = false;
+    }
   }
 
   public async awaitInit() {
@@ -668,6 +835,136 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
       return this.inFlightRefreshSessions!.then(() => {});
     }
     return Promise.resolve();
+  }
+
+  /**
+   * Test the current token by making a simple API call
+   */
+  public async testCurrentToken(): Promise<{ success: boolean; error?: any; tokenInfo?: any }> {
+    if (!this.tx) {
+      return { success: false, error: 'No transport available' };
+    }
+
+    try {
+      console.log(`Testing current token: ${this.accessToken?.substring(0, 10)}...`);
+      const result = await this.tx.get("api/v1/users/me/");
+      console.log("✅ Token test successful");
+      return { success: true, tokenInfo: result };
+    } catch (error) {
+      console.error("❌ Token test failed:", error);
+      return { success: false, error };
+    }
+  }
+
+  /**
+   * Comprehensive authentication debugging and recovery method
+   */
+  public async debugAndRecoverAuth(): Promise<void> {
+    console.log("=== Starting Authentication Debug and Recovery ===");
+    
+    // Step 1: Debug current state
+    this.debugClientState();
+    
+    // Step 2: Test current token
+    console.log("\n--- Testing Current Token ---");
+    const tokenTest = await this.testCurrentToken();
+    
+    if (tokenTest.success) {
+      console.log("✅ Current token works, no recovery needed");
+      return;
+    }
+    
+    console.log("❌ Current token failed, attempting recovery...");
+    
+    // Step 3: Try to force refresh the token
+    console.log("\n--- Attempting Token Refresh ---");
+    try {
+      const newToken = await this.forceRefreshToken();
+      console.log(`New token obtained: ${newToken?.substring(0, 10)}...`);
+      
+      // Step 4: Test the new token
+      console.log("\n--- Testing New Token ---");
+      const newTokenTest = await this.testCurrentToken();
+      
+      if (newTokenTest.success) {
+        console.log("✅ Token refresh successful, authentication recovered");
+        this.consecutive401s = 0;
+      } else {
+        console.log("❌ Token refresh failed to resolve authentication issue");
+        this.consecutive401s++;
+        
+        // Step 5: If refresh failed, clear sessions and force re-auth
+        if (this.consecutive401s >= DebuggAIServerClient.MAX_401_ATTEMPTS) {
+          console.log("Too many failed attempts, clearing sessions...");
+          if (this.configHandler.debuggAIAuthProvider?.clearSessions) {
+            await this.configHandler.debuggAIAuthProvider.clearSessions();
+          }
+          throw new Error("Authentication failed: Maximum retry attempts exceeded");
+        }
+      }
+    } catch (error) {
+      console.error("Token refresh failed:", error);
+      throw error;
+    }
+    
+    console.log("=== Authentication Debug and Recovery Complete ===");
+  }
+
+  /**
+   * Test E2E API functionality to verify authentication is working
+   */
+  public async testE2EAuthentication(): Promise<void> {
+    console.log("=== Testing E2E Authentication ===");
+    
+    try {
+      // Test 1: List E2E tests
+      console.log("\n--- Test 1: Listing E2E tests ---");
+      if (this.e2es) {
+        const e2eTests = await this.e2es.listE2eTests();
+        console.log(`✅ Successfully retrieved ${e2eTests?.results?.length || 0} E2E tests`);
+      } else {
+        console.log("❌ E2Es service not available");
+      }
+
+      // Test 2: Get user info
+      console.log("\n--- Test 2: Getting user info ---");
+      if (this.users) {
+        const userInfo = await this.users.getUserConfig();
+        console.log(`✅ Successfully retrieved user info:`, userInfo);
+      } else {
+        console.log("❌ Users service not available");
+      }
+
+      // Test 3: Direct API call test
+      console.log("\n--- Test 3: Direct API call test ---");
+      const tokenTest = await this.testCurrentToken();
+      if (tokenTest.success) {
+        console.log("✅ Direct API call successful");
+      } else {
+        console.log("❌ Direct API call failed:", tokenTest.error);
+        throw new Error("Authentication test failed");
+      }
+
+      console.log("\n✅ All E2E authentication tests passed");
+      
+    } catch (error) {
+      console.error("❌ E2E authentication test failed:", error);
+      
+      // If tests fail, try to recover
+      console.log("\n--- Attempting authentication recovery ---");
+      await this.debugAndRecoverAuth();
+      
+      // Retry the tests after recovery
+      console.log("\n--- Retrying tests after recovery ---");
+      const retryTest = await this.testCurrentToken();
+      if (retryTest.success) {
+        console.log("✅ Authentication recovered successfully");
+      } else {
+        throw new Error("Authentication recovery failed");
+      }
+    }
+    
+    console.log("=== E2E Authentication Test Complete ===");
   }
 
 }

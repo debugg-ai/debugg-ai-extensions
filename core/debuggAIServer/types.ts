@@ -30,7 +30,7 @@ interface BaseModel {
 }
 
 // User information (from PublicUserInfoSerializer)
-interface PublicUserInfo {
+export interface PublicUserInfo {
     uuid: string;
     email: string;
     firstName: string;
@@ -208,8 +208,6 @@ export interface Host {
 export interface E2eTest {
     id: string;
     uuid: string;
-    timeStamp: string;
-    lastModified: string;
     project: number;
     projectName?: string | null;
     tunnelKey?: string | null;
@@ -220,6 +218,8 @@ export interface E2eTest {
     agent?: number | null;
     agentTaskDescription?: string | null;
     testScript: string; // path or URL
+    timestamp: string;
+    lastMod: string;
     createdBy?: number | null;
 }
 
@@ -237,7 +237,7 @@ export interface E2eRun {
     id: number;
     uuid: string;
     timestamp: string;
-    lastModified: string;
+    lastMod: string;
     key: string;
     runType: E2eRunType;
     test?: E2eTest | null;
@@ -249,6 +249,7 @@ export interface E2eRun {
     runOnHost?: number | null;
     targetUrl?: string | null;
     runGif?: string | null;  // Url to the gif file containing the run
+    runScript?: string | null;  // Url to the script file (js, py, ts, etc) with playwright code
     runJson?: string | null;  // Url to the json file containing the run data
     metrics?: E2eRunMetrics | null;
 }

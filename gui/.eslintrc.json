@@ -12,11 +12,35 @@
     // "plugin:react/recommended"
   ],
   "rules": {
-    "@typescript-eslint/naming-convention": "off"
+    "@typescript-eslint/naming-convention": "off",
+    // Prevent rendering objects directly in JSX
+    "react/jsx-no-leaked-render": "error",
+    // Warn about potentially unsafe JSX expressions
+    "@typescript-eslint/restrict-template-expressions": ["warn", {
+      "allowNumber": true,
+      "allowBoolean": true,
+      "allowAny": false,
+      "allowNullish": true,
+      "allowRegExp": false
+    }]
   },
   "overrides": [
     {
-      "files": ["src/**/*.{js,ts,jsx,tsx}"]
+      "files": ["src/**/*.{js,ts,jsx,tsx}"],
+      "rules": {
+        // Custom rule to catch object rendering in JSX
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "JSXExpressionContainer > ObjectExpression",
+            "message": "Don't render objects directly in JSX. Use formatUserDisplay() or similar utility functions."
+          },
+          {
+            "selector": "JSXExpressionContainer > ConditionalExpression[test.property.name='object']",
+            "message": "Potential object rendering detected. Ensure ternary expressions return strings, not objects."
+          }
+        ]
+      }
     }
   ],
   "ignorePatterns": ["dist/**/*"],

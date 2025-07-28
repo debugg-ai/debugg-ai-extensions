@@ -7,28 +7,28 @@ import { SharedConfigSchema } from "../config/sharedConfig";
 import { GlobalContextModelSelections } from "../util/GlobalContext";
 
 import type {
-  BrowserSerializedDebuggAiConfig,
-  ChatMessage,
-  ContextItem,
-  ContextItemWithId,
-  ContextProviderWithParams,
-  ContextSubmenuItem,
-  DiffLine,
-  DocsIndexingDetails,
-  ExperimentalModelRoles,
-  FileSymbolMap,
-  IdeSettings,
-  LLMFullCompletionOptions,
-  ModelDescription,
-  PromptLog,
-  RangeInFile,
-  SerializedDebuggAiConfig,
-  Session,
-  SessionMetadata,
-  SiteIndexingConfig,
-  ToolCall,
+    BrowserSerializedDebuggAiConfig,
+    ChatMessage,
+    ContextItem,
+    ContextItemWithId,
+    ContextProviderWithParams,
+    ContextSubmenuItem,
+    DiffLine,
+    DocsIndexingDetails,
+    ExperimentalModelRoles,
+    FileSymbolMap,
+    IdeSettings,
+    LLMFullCompletionOptions,
+    ModelDescription,
+    PromptLog,
+    RangeInFile,
+    SerializedDebuggAiConfig,
+    Session,
+    SessionMetadata,
+    SiteIndexingConfig,
+    ToolCall,
 } from "../";
-import { E2eTest, PaginatedResponse } from "../debuggAIServer/types";
+import { E2eTest, E2eTestCommitSuite, E2eTestSuite, PaginatedResponse } from "../debuggAIServer/types";
 import E2eTestHandler from "../e2es/e2eTestHandler";
 
 
@@ -211,10 +211,40 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   ];
   "e2eTests/runE2eTest": [{ uuid: string }, E2eTestHandler];
   "e2eTests/deleteE2eTest": [{ uuid: string }, void];
+  "e2eTests/create": [
+    { description: string; filePath?: string; repoName?: string; branchName?: string }, 
+    E2eTest | null
+  ];
+  
+  // E2E Test Suites
+  "e2eSuites/fetchE2eSuites": [
+    {filters: Record<string, any>, pagination: Record<string, any>, search: string}, 
+    PaginatedResponse<E2eTestSuite> | null
+  ];
+  "e2eSuites/run": [{ suiteId: string }, void];
+  "e2eSuites/delete": [{ suiteId: string }, string];
+  "e2eSuites/create": [
+    { description: string; filePath?: string; repoName?: string; branchName?: string }, 
+    E2eTestSuite | null
+  ];
+  
+  // E2E Commit Suites
+  "e2eCommitSuites/fetchE2eCommitSuites": [
+    {filters: Record<string, any>, pagination: Record<string, any>, search: string}, 
+    PaginatedResponse<E2eTestCommitSuite> | null
+  ];
+  "e2eCommitSuites/getE2eCommitSuite": [{ uuid: string }, E2eTestCommitSuite | null];
+  "e2eCommitSuites/run": [{ commitSuiteId: string }, void];
+  "e2eCommitSuites/delete": [{ commitSuiteId: string }, string];
+  "e2eCommitSuites/create": [
+    { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string }, 
+    E2eTestCommitSuite | null
+  ];
   "ideCommand/run": [{
     slashCommandName: string;
     params: any;
   }, void];
+  "executeVSCodeCommand": [{ command: string; args?: any[] }, void];
   "clipboardCache/add": [{ content: string }, void];
   "controlPlane/openUrl": [{ path: string; orgSlug: string | undefined }, void];
   "controlPlane/listOrganizations": [undefined, OrganizationDescription[]];

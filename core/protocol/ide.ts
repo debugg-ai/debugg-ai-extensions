@@ -1,23 +1,23 @@
 import { ControlPlaneSessionInfo } from "../control-plane/client";
 
 import type {
-  ContinueRcJson,
-  DiffLine,
-  FileStatsMap,
-  FileType,
-  IDE,
-  IdeInfo,
-  IdeSettings,
-  IndexTag,
-  Location,
-  Problem,
-  Range,
-  RangeInFile,
-  Repository,
-  TerminalOptions,
-  TestController,
-  TestRunRequest,
-  Thread,
+    ContinueRcJson,
+    DiffLine,
+    FileStatsMap,
+    FileType,
+    IDE,
+    IdeInfo,
+    IdeSettings,
+    IndexTag,
+    Location,
+    Problem,
+    Range,
+    RangeInFile,
+    Repository,
+    TerminalOptions,
+    TestController,
+    TestRunRequest,
+    Thread,
 } from "../";
 
 export interface GetGhTokenArgs {
@@ -110,6 +110,9 @@ export type ToIdeFromWebviewOrCoreProtocol = {
     TestController,
   ];
   createTestRunRequest: [undefined, TestRunRequest];
+  
+  // VS Code Command Execution
+  executeVSCodeCommand: [{ command: string; args?: any[] }, void];
 };
 
 export type ToWebviewOrCoreFromIdeProtocol = {

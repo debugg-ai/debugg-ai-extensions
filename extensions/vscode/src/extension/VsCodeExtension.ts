@@ -1,24 +1,25 @@
 import fs from "fs";
 
 import { IContextProvider } from "core";
+import { AuthManager } from "core/auth/AuthManager";
 import { ConfigHandler } from "core/config/ConfigHandler";
 import { EXTENSION_NAME, getControlPlaneEnv } from "core/control-plane/env";
 import { Core } from "core/core";
 import { FromCoreProtocol, ToCoreProtocol } from "core/protocol";
 import { InProcessMessenger } from "core/protocol/messenger";
 import {
-  getConfigJsonPath,
-  getConfigTsPath,
-  getConfigYamlPath,
+    getConfigJsonPath,
+    getConfigTsPath,
+    getConfigYamlPath,
 } from "core/util/paths";
 import { v4 as uuidv4 } from "uuid";
 import * as vscode from "vscode";
 
 import { ContinueCompletionProvider } from "../autocomplete/completionProvider";
 import {
-  monitorBatteryChanges,
-  setupStatusBar,
-  StatusBarStatus,
+    monitorBatteryChanges,
+    setupStatusBar,
+    StatusBarStatus,
 } from "../autocomplete/statusBar";
 import { registerAllCommands } from "../commands";
 import { OptionsInlayHintsProvider } from "../debug/codeLens/inlayHintsProvider";
@@ -31,8 +32,8 @@ import EditDecorationManager from "../quickEdit/EditDecorationManager";
 import { QuickEdit } from "../quickEdit/QuickEditQuickPick";
 import { setupRemoteConfigSync } from "../stubs/activation";
 import {
-  DebuggAIAuthProvider,
-  getControlPlaneSessionInfo,
+    DebuggAIAuthProvider,
+    getControlPlaneSessionInfo,
 } from "../stubs/DebuggAIAuthProvider";
 import { UriEventHandler } from "../stubs/uriHandler";
 import { Battery } from "../util/battery";
@@ -63,6 +64,7 @@ export class VsCodeExtension {
   private core: Core;
   private battery: Battery;
   private debuggAIAuthProvider: DebuggAIAuthProvider;
+  private authManager: AuthManager;
   private fileSearch: FileSearch;
   private uriHandler = new UriEventHandler();
 
@@ -72,6 +74,9 @@ export class VsCodeExtension {
     this.debuggAIAuthProvider.refreshSessions();
     context.subscriptions.push(this.debuggAIAuthProvider);
 
+    // Initialize auth manager (will be properly initialized after IDE is ready)
+    this.authManager = new AuthManager({} as any);
+    
     this.editDecorationManager = new EditDecorationManager(context);
 
     let resolveWebviewProtocol: any = undefined;
@@ -143,9 +148,15 @@ export class VsCodeExtension {
       outputChannel.append(log);
     });
     this.core.configHandler.debuggAIAuthProvider = this.debuggAIAuthProvider;
+    this.core.configHandler.authManager = this.authManager;
     
     this.configHandler = this.core.configHandler;
     resolveConfigHandler?.(this.configHandler);
+
+    // Initialize auth manager with the auth provider
+    this.authManager.initialize(this.debuggAIAuthProvider).catch(error => {
+      console.error("Failed to initialize auth manager:", error);
+    });
 
     // Need to pull in the remote config for Debugg AI first
     setupRemoteConfigSync(
@@ -375,6 +386,9 @@ export class VsCodeExtension {
     });
 
     // When GitHub sign-in status changes, reload config
+    // Track last session to avoid redundant reloads
+    let lastSessionInfoHash: string | null = null;
+    
     vscode.authentication.onDidChangeSessions(async (e) => {
       const env = await getControlPlaneEnv(this.ide.getIdeSettings());
       if (e.provider.id === env.AUTH_TYPE) {
@@ -385,17 +399,33 @@ export class VsCodeExtension {
         );
 
         const sessionInfo = await getControlPlaneSessionInfo(true, false);
-        this.webviewProtocolPromise.then(async (webviewProtocol) => {
-          void webviewProtocol.request("didChangeControlPlaneSessionInfo", {
+        
+        // Create a hash of the session info to detect meaningful changes
+        const sessionInfoHash = sessionInfo ? 
+          JSON.stringify({ 
+            accountId: sessionInfo.account?.id, 
+            accessTokenPrefix: sessionInfo.accessToken?.substring(0, 10) 
+          }) : null;
+        
+        // Only trigger reload if session info actually changed
+        if (sessionInfoHash !== lastSessionInfoHash) {
+          console.log("Session info changed meaningfully, triggering config reload");
+          lastSessionInfoHash = sessionInfoHash;
+          
+          this.webviewProtocolPromise.then(async (webviewProtocol) => {
+            void webviewProtocol.request("didChangeControlPlaneSessionInfo", {
+              sessionInfo,
+            });
+
+            // To make sure continue-proxy models and anything else requiring it get updated access token
+            this.configHandler.reloadConfig();
+          });
+          void this.core.invoke("didChangeControlPlaneSessionInfo", {
             sessionInfo,
           });
-
-          // To make sure continue-proxy models and anything else requiring it get updated access token
-          this.configHandler.reloadConfig();
-        });
-        void this.core.invoke("didChangeControlPlaneSessionInfo", {
-          sessionInfo,
-        });
+        } else {
+          console.log("Session info unchanged, skipping config reload");
+        }
       } else {
         vscode.commands.executeCommand(
           "setContext",
