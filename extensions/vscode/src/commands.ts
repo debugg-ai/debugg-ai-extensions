@@ -2,10 +2,10 @@
 import * as os from "node:os";
 
 import {
-  ContextMenuConfig,
-  ILLM,
-  ModelInstaller,
-  RangeInFileWithContents,
+    ContextMenuConfig,
+    ILLM,
+    ModelInstaller,
+    RangeInFileWithContents,
 } from "core";
 import { CompletionProvider } from "core/autocomplete/CompletionProvider";
 import { ConfigHandler } from "core/config/ConfigHandler";
@@ -26,13 +26,13 @@ import readLastLines from "read-last-lines";
 import * as vscode from "vscode";
 
 import {
-  getAutocompleteStatusBarDescription,
-  getAutocompleteStatusBarTitle,
-  getStatusBarStatus,
-  getStatusBarStatusFromQuickPickItemLabel,
-  quickPickStatusText,
-  setupStatusBar,
-  StatusBarStatus,
+    getAutocompleteStatusBarDescription,
+    getAutocompleteStatusBarTitle,
+    getStatusBarStatus,
+    getStatusBarStatusFromQuickPickItemLabel,
+    quickPickStatusText,
+    setupStatusBar,
+    StatusBarStatus,
 } from "./autocomplete/statusBar";
 import { SuggestionCodeLensProvider } from "./debug/codeLens/suggestionsLensProvider";
 import { pullErrorsAndHighlight } from "./debug/pullErrors";
@@ -1272,9 +1272,13 @@ const getCommandsMap: (
           errorFileDecorationProvider.updateErrorFiles(errorFiles.map(f => f.filePath));
         }
       },
-      "debugg-ai.createNewE2eTest": async () => {
+      "debugg-ai.createNewE2eTest": async (description?: string) => {
         captureCommandTelemetry("debugg-ai.createNewE2eTest");
         const getTestDescription = async () => {
+          // If description is provided as parameter, use it; otherwise prompt user
+          if (description) {
+            return description;
+          }
           const testDescription = await vscode.window.showInputBox({
             prompt: 'Provide a description for the new E2E test',
           });
@@ -1329,11 +1333,15 @@ const getCommandsMap: (
         }
         await e2eTestRunner.runE2eTest(testDescription, localPortConfig ?? 3000);
       },
-      "debugg-ai.runE2eSuiteGenerator": async () => {
+      "debugg-ai.runE2eSuiteGenerator": async (description?: string) => {
         captureCommandTelemetry("debugg-ai.runE2eSuiteGenerator");
         vscode.window.setStatusBarMessage("Running E2E test generator...", 2500);
 
         const getTestDescription = async () => {
+          // If description is provided as parameter, use it; otherwise prompt user
+          if (description) {
+            return description;
+          }
           const testDescription = await vscode.window.showInputBox({
             prompt: 'What section of the app do you want to create test suites for?',
             value: 'User authentication',

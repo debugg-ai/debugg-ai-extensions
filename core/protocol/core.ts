@@ -211,6 +211,10 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   ];
   "e2eTests/runE2eTest": [{ uuid: string }, E2eTestHandler];
   "e2eTests/deleteE2eTest": [{ uuid: string }, void];
+  "e2eTests/create": [
+    { description: string; filePath?: string; repoName?: string; branchName?: string }, 
+    E2eTest | null
+  ];
   
   // E2E Test Suites
   "e2eSuites/fetchE2eSuites": [
@@ -219,6 +223,10 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   ];
   "e2eSuites/run": [{ suiteId: string }, void];
   "e2eSuites/delete": [{ suiteId: string }, string];
+  "e2eSuites/create": [
+    { description: string; filePath?: string; repoName?: string; branchName?: string }, 
+    E2eTestSuite | null
+  ];
   
   // E2E Commit Suites
   "e2eCommitSuites/fetchE2eCommitSuites": [
@@ -227,10 +235,15 @@ export type ToCoreFromIdeOrWebviewProtocol = {
   ];
   "e2eCommitSuites/run": [{ commitSuiteId: string }, void];
   "e2eCommitSuites/delete": [{ commitSuiteId: string }, string];
+  "e2eCommitSuites/create": [
+    { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string }, 
+    E2eTestCommitSuite | null
+  ];
   "ideCommand/run": [{
     slashCommandName: string;
     params: any;
   }, void];
+  "executeVSCodeCommand": [{ command: string; args?: any[] }, void];
   "clipboardCache/add": [{ content: string }, void];
   "controlPlane/openUrl": [{ path: string; orgSlug: string | undefined }, void];
   "controlPlane/listOrganizations": [undefined, OrganizationDescription[]];

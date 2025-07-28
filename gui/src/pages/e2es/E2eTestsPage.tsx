@@ -160,7 +160,12 @@ function E2eTestsPage() {
 
     try {
       setRefreshing(true);
-      await dispatch(fetchE2eTests({ filters: currentFilters, pagination: currentPagination }));
+      // Dispatch Redux action to ensure state is updated
+      (dispatch as any)(fetchE2eTests({
+        filters: currentFilters,
+        pagination: currentPagination,
+        search: ""
+      }));
     } catch (error) {
       console.error('Error refreshing tests:', error);
     } finally {
@@ -190,23 +195,25 @@ function E2eTestsPage() {
     try {
       setCreateLoading(true);
 
-      // Use IDE messenger to create test
+      // Use convenience method to create test
       if (ideMessenger) {
-        await ideMessenger.request('ideCommand/run', {
-          slashCommandName: 'run-command',
-          params: {
-            command: 'e2eTests/create',
-            description: data.description,
-            filePath: data.filePath,
-            repoName: data.repoName,
-            branchName: data.branchName,
-          },
+        await ideMessenger.createE2eTest({
+          description: data.description,
+          filePath: data.filePath,
+          repoName: data.repoName,
+          branchName: data.branchName,
         });
+
+        // Refresh the list after creation by dispatching Redux action
+        (dispatch as any)(fetchE2eTests({
+          filters: currentFilters,
+          pagination: currentPagination,
+          search: ""
+        }));
       }
 
       if (mountedRef.current) {
         setIsCreateModalOpen(false);
-        handleRefresh(); // Refresh the list after creation
       }
     } catch (error) {
       console.error('Error creating test:', error);
@@ -216,7 +223,7 @@ function E2eTestsPage() {
         setCreateLoading(false);
       }
     }
-  }, [ideMessenger, handleRefresh]);
+  }, [ideMessenger, dispatch, currentFilters, currentPagination]);
 
   return (
     <div className="h-full bg-vsc-editor-background text-vsc-foreground flex flex-col">

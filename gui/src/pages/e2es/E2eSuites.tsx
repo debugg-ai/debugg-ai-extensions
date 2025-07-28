@@ -162,7 +162,12 @@ function E2eSuites() {
 
     try {
       setRefreshing(true);
-      await dispatch(fetchE2eSuites({ filters: currentFilters, pagination: currentPagination }));
+      // Dispatch Redux action to ensure state is updated
+      (dispatch as any)(fetchE2eSuites({
+        filters: currentFilters,
+        pagination: currentPagination,
+        search: ""
+      }));
     } catch (error) {
       console.error('Error refreshing suites:', error);
     } finally {
@@ -174,8 +179,14 @@ function E2eSuites() {
 
   // Initial data fetch
   useEffect(() => {
-    dispatch(fetchE2eSuites({ filters: currentFilters, pagination: currentPagination }));
-  }, [dispatch, currentFilters, currentPagination]);
+    if (ideMessenger) {
+      (dispatch as any)(fetchE2eSuites({
+        filters: currentFilters,
+        pagination: currentPagination,
+        search: ""
+      }));
+    }
+  }, [ideMessenger, dispatch, currentFilters, currentPagination]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -204,23 +215,25 @@ function E2eSuites() {
     try {
       setCreateLoading(true);
 
-      // Use IDE messenger to create suite
+      // Use convenience method to create suite
       if (ideMessenger) {
-        await ideMessenger.request('ideCommand/run', {
-          slashCommandName: 'run-command',
-          params: {
-            command: 'e2eSuites/create',
-            description: data.description,
-            filePath: data.filePath,
-            repoName: data.repoName,
-            branchName: data.branchName,
-          },
+        await ideMessenger.createE2eSuite({
+          description: data.description,
+          filePath: data.filePath,
+          repoName: data.repoName,
+          branchName: data.branchName,
         });
+
+        // Refresh the list after creation by dispatching Redux action
+        (dispatch as any)(fetchE2eSuites({
+          filters: currentFilters,
+          pagination: currentPagination,
+          search: ""
+        }));
       }
 
       if (mountedRef.current) {
         setIsCreateModalOpen(false);
-        handleRefresh(); // Refresh the list after creation
       }
     } catch (error) {
       console.error('Error creating suite:', error);
@@ -229,17 +242,23 @@ function E2eSuites() {
         setCreateLoading(false);
       }
     }
-  }, [ideMessenger, handleRefresh]);
+  }, [ideMessenger, dispatch, currentFilters, currentPagination]);
 
   // Handle suite actions
   const handleViewSuite = useCallback((suite: E2eTestSuite) => {
     navigate(`/e2es/suites/${suite.uuid}`);
   }, [navigate]);
 
-  const handleRunSuite = useCallback((suite: E2eTestSuite) => {
-    console.log('Running suite:', suite.uuid);
-    // TODO: Implement suite run logic with ideMessenger
-  }, []);
+  const handleRunSuite = useCallback(async (suite: E2eTestSuite) => {
+    try {
+      console.log('Running suite:', suite.uuid);
+      if (ideMessenger) {
+        await ideMessenger.runE2eSuite(suite.uuid);
+      }
+    } catch (error) {
+      console.error('Error running suite:', error);
+    }
+  }, [ideMessenger]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

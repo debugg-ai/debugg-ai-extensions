@@ -1,15 +1,14 @@
 import { ChatMessage, IDE, LLMFullCompletionOptions, PromptLog } from "core";
 import type { FromWebviewProtocol, ToWebviewProtocol } from "core/protocol";
-import {
-  GeneratorReturnType,
-  GeneratorYieldType,
-  WebviewMessage,
-  WebviewProtocolGeneratorMessage,
-  WebviewSingleMessage,
-  WebviewSingleProtocolMessage,
-} from "core/protocol/util";
-import { MessageIde } from "core/protocol/messenger/messageIde";
 import { Message } from "core/protocol/messenger";
+import { MessageIde } from "core/protocol/messenger/messageIde";
+import {
+    GeneratorReturnType,
+    GeneratorYieldType,
+    WebviewProtocolGeneratorMessage,
+    WebviewSingleMessage,
+    WebviewSingleProtocolMessage
+} from "core/protocol/util";
 import { createContext } from "react";
 import { v4 as uuidv4 } from "uuid";
 import "vscode-webview";
@@ -55,6 +54,24 @@ export interface IIdeMessenger {
     messages: ChatMessage[],
     options?: LLMFullCompletionOptions,
   ): AsyncGenerator<ChatMessage[], PromptLog | undefined>;
+
+  // E2E Tests convenience methods
+  fetchE2eTests(filters: Record<string, any>, pagination: Record<string, any>, search: string): Promise<any>;
+  createE2eTest(data: { description: string; filePath?: string; repoName?: string; branchName?: string }): Promise<any>;
+  runE2eTest(uuid: string): Promise<any>;
+  deleteE2eTest(uuid: string): Promise<void>;
+
+  // E2E Test Suites convenience methods
+  fetchE2eSuites(filters: Record<string, any>, pagination: Record<string, any>, search: string): Promise<any>;
+  createE2eSuite(data: { description: string; filePath?: string; repoName?: string; branchName?: string }): Promise<any>;
+  runE2eSuite(suiteId: string): Promise<void>;
+  deleteE2eSuite(suiteId: string): Promise<string>;
+
+  // E2E Commit Suites convenience methods
+  fetchE2eCommitSuites(filters: Record<string, any>, pagination: Record<string, any>, search: string): Promise<any>;
+  createE2eCommitSuite(data: { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string }): Promise<any>;
+  runE2eCommitSuite(commitSuiteId: string): Promise<void>;
+  deleteE2eCommitSuite(commitSuiteId: string): Promise<string>;
 
   ide: IDE;
 }
@@ -268,6 +285,81 @@ export class IdeMessenger implements IIdeMessenger {
       next = await gen.next();
     }
     return next.value;
+  }
+
+  // E2E Tests convenience methods
+  async fetchE2eTests(filters: Record<string, any>, pagination: Record<string, any>, search: string) {
+    const result = await this.request("e2eTests/fetchE2eTests", { filters, pagination, search });
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
+  async createE2eTest(data: { description: string; filePath?: string; repoName?: string; branchName?: string }) {
+    const result = await this.request("e2eTests/create", data);
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
+  async runE2eTest(uuid: string) {
+    const result = await this.request("e2eTests/runE2eTest", { uuid });
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
+  async deleteE2eTest(uuid: string): Promise<void> {
+    const result = await this.request("e2eTests/deleteE2eTest", { uuid });
+    if (result.status === "error") throw new Error(result.error);
+    return;
+  }
+
+  // E2E Test Suites convenience methods
+  async fetchE2eSuites(filters: Record<string, any>, pagination: Record<string, any>, search: string) {
+    const result = await this.request("e2eSuites/fetchE2eSuites", { filters, pagination, search });
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
+  async createE2eSuite(data: { description: string; filePath?: string; repoName?: string; branchName?: string }) {
+    const result = await this.request("e2eSuites/create", data);
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
+  async runE2eSuite(suiteId: string): Promise<void> {
+    const result = await this.request("e2eSuites/run", { suiteId });
+    if (result.status === "error") throw new Error(result.error);
+    return;
+  }
+
+  async deleteE2eSuite(suiteId: string) {
+    const result = await this.request("e2eSuites/delete", { suiteId });
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
+  // E2E Commit Suites convenience methods
+  async fetchE2eCommitSuites(filters: Record<string, any>, pagination: Record<string, any>, search: string) {
+    const result = await this.request("e2eCommitSuites/fetchE2eCommitSuites", { filters, pagination, search });
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
+  async createE2eCommitSuite(data: { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string }) {
+    const result = await this.request("e2eCommitSuites/create", data);
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
+  async runE2eCommitSuite(commitSuiteId: string): Promise<void> {
+    const result = await this.request("e2eCommitSuites/run", { commitSuiteId });
+    if (result.status === "error") throw new Error(result.error);
+    return;
+  }
+
+  async deleteE2eCommitSuite(commitSuiteId: string) {
+    const result = await this.request("e2eCommitSuites/delete", { commitSuiteId });
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
   }
 }
 

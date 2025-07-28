@@ -15,7 +15,7 @@ import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { fetchE2eCommitSuites, runE2eCommitSuite } from "../../redux/thunks/e2eCommitSuitesThunks";
+import { fetchE2eCommitSuites } from "../../redux/thunks/e2eCommitSuitesThunks";
 
 interface CreateCommitSuiteModalProps {
   isOpen: boolean;
@@ -247,7 +247,12 @@ function E2eCommitSuites() {
 
     try {
       setRefreshing(true);
-      await dispatch(fetchE2eCommitSuites({ filters: currentFilters, pagination: currentPagination }));
+      // Dispatch Redux action to ensure state is updated
+      (dispatch as any)(fetchE2eCommitSuites({
+        filters: currentFilters,
+        pagination: currentPagination,
+        search: ""
+      }));
     } catch (error) {
       console.error('Error refreshing commit suites:', error);
     } finally {
@@ -259,8 +264,14 @@ function E2eCommitSuites() {
 
   // Initial data fetch
   useEffect(() => {
-    dispatch(fetchE2eCommitSuites({ filters: currentFilters, pagination: currentPagination }));
-  }, [dispatch, currentFilters, currentPagination]);
+    if (ideMessenger) {
+      (dispatch as any)(fetchE2eCommitSuites({
+        filters: currentFilters,
+        pagination: currentPagination,
+        search: ""
+      }));
+    }
+  }, [ideMessenger, dispatch, currentFilters, currentPagination]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -289,12 +300,26 @@ function E2eCommitSuites() {
     try {
       setCreateLoading(true);
       
-      // TODO: Implement create commit suite API call
-      console.log('Creating commit suite with data:', data);
+      // Use convenience method to create commit suite
+      if (ideMessenger) {
+        await ideMessenger.createE2eCommitSuite({
+          description: data.description,
+          commitHash: data.commitHash,
+          branchName: data.branchName,
+          filePath: data.filePath,
+          repoName: data.repoName,
+        });
+
+        // Refresh the list after creation by dispatching Redux action
+        (dispatch as any)(fetchE2eCommitSuites({
+          filters: currentFilters,
+          pagination: currentPagination,
+          search: ""
+        }));
+      }
       
       if (mountedRef.current) {
         setIsCreateModalOpen(false);
-        await handleRefresh(); // Refresh the list
       }
     } catch (error) {
       if (mountedRef.current) {
@@ -305,7 +330,7 @@ function E2eCommitSuites() {
         setCreateLoading(false);
       }
     }
-  }, [handleRefresh]);
+  }, [ideMessenger, dispatch, currentFilters, currentPagination]);
 
   // Handle commit suite actions
   const handleViewCommitSuite = useCallback((suite: E2eTestCommitSuite) => {
@@ -313,10 +338,16 @@ function E2eCommitSuites() {
     navigate(`/e2es/commit-suites/${suite.uuid}`);
   }, [navigate]);
 
-  const handleRunCommitSuite = useCallback((suite: E2eTestCommitSuite) => {
-    console.log('Running commit suite:', suite.uuid);
-    dispatch(runE2eCommitSuite(suite.uuid));
-  }, [dispatch]);
+  const handleRunCommitSuite = useCallback(async (suite: E2eTestCommitSuite) => {
+    try {
+      console.log('Running commit suite:', suite.uuid);
+      if (ideMessenger) {
+        await ideMessenger.runE2eCommitSuite(suite.uuid);
+      }
+    } catch (error) {
+      console.error('Error running commit suite:', error);
+    }
+  }, [ideMessenger]);
 
   // Render loading state
   if (loading) {
