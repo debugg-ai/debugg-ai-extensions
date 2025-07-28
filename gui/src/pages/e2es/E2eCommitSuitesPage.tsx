@@ -4,7 +4,6 @@ import {
     CheckCircleIcon,
     ClockIcon,
     CodeBracketIcon,
-    ExclamationTriangleIcon,
     EyeIcon,
     PlayIcon,
     PlusIcon,
@@ -19,6 +18,7 @@ import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { fetchE2eCommitSuites } from "../../redux/thunks/e2eCommitSuitesThunks";
+import { formatUserWithPrefix } from "../../util/userDisplay";
 
 interface CreateCommitSuiteModalProps {
   isOpen: boolean;
@@ -258,7 +258,7 @@ function E2eCommitSuitesPage() {
 
     try {
       setCreateLoading(true);
-      await ideMessenger.createE2eCommitSuite(data.description, data.commitHash, data.branchName, data.filePath, data.repoName);
+      await ideMessenger.createE2eCommitSuite(data);
       await handleRefresh();
     } catch (error) {
       console.error('Error creating commit suite:', error);
@@ -281,7 +281,7 @@ function E2eCommitSuitesPage() {
   }, [ideMessenger]);
 
   const handleViewCommitSuite = useCallback((suite: E2eTestCommitSuite) => {
-    navigate(`/e2e-runs?commitSuiteId=${suite.uuid}`);
+    navigate(`/e2e-commit-suites/${suite.uuid}`);
   }, [navigate]);
 
   if (!session?.account.id) {
@@ -409,21 +409,19 @@ function E2eCommitSuitesPage() {
                 <div className="text-xs text-vsc-descriptionForeground">
                   ID: {suite.uuid.slice(0, 8)}
                 </div>
-                {suite.status && (
+                                {suite.runStatus && (
                   <div className="flex items-center">
                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                      suite.status === 'completed' 
-                        ? 'bg-green-100 text-green-800' 
-                        : suite.status === 'running'
+                      suite.runStatus === 'completed'
+                        ? 'bg-green-100 text-green-800'
+                        : suite.runStatus === 'running'
                         ? 'bg-blue-100 text-blue-800'
-                        : suite.status === 'failed'
-                        ? 'bg-red-100 text-red-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {suite.status === 'completed' && <CheckCircleIcon className="w-3 h-3 mr-1" />}
-                      {suite.status === 'running' && <ClockIcon className="w-3 h-3 mr-1" />}
-                      {suite.status === 'failed' && <ExclamationTriangleIcon className="w-3 h-3 mr-1" />}
-                      {suite.status}
+                      {suite.runStatus === 'completed' && <CheckCircleIcon className="w-3 h-3 mr-1" />}
+                      {suite.runStatus === 'running' && <ClockIcon className="w-3 h-3 mr-1" />}
+                      {suite.runStatus === 'pending' && <ClockIcon className="w-3 h-3 mr-1" />}
+                      {suite.runStatus}
                     </span>
                   </div>
                 )}
@@ -431,28 +429,24 @@ function E2eCommitSuitesPage() {
 
               {/* Suite Details - More compact layout */}
               <div className="space-y-0.5 text-xs text-vsc-descriptionForeground mb-2">
-                {suite.commit_hash && (
+                {suite.commitHash && (
                   <div className="flex items-center space-x-1">
                     <CodeBracketIcon className="w-3 h-3 flex-shrink-0" />
-                    <span className="break-words">Commit: {suite.commit_hash.slice(0, 8)}</span>
+                    <span className="break-words">Commit: {suite.commitHash.slice(0, 8)}</span>
                   </div>
                 )}
-                {suite.branch_name && (
-                  <div className="flex items-center space-x-1">
-                    <CodeBracketIcon className="w-3 h-3 flex-shrink-0" />
-                    <span className="break-words truncate">Branch: {suite.branch_name}</span>
-                  </div>
-                )}
-                {suite.created_at && (
+                {suite.timestamp && (
                   <div className="flex items-center space-x-1">
                     <CalendarIcon className="w-3 h-3 flex-shrink-0" />
-                    <span className="break-words">{new Date(suite.created_at).toLocaleDateString()}</span>
+                    <span className="break-words">{new Date(suite.timestamp).toLocaleDateString()}</span>
                   </div>
                 )}
-                {suite.created_by && (
+                {suite.createdBy && (
                   <div className="flex items-center space-x-1">
                     <UserIcon className="w-3 h-3 flex-shrink-0" />
-                    <span className="break-words truncate">By: {suite.created_by}</span>
+                    <span className="break-words truncate">
+                      {formatUserWithPrefix(suite.createdBy)}
+                    </span>
                   </div>
                 )}
               </div>

@@ -3,7 +3,6 @@ import {
     CalendarIcon,
     CheckCircleIcon,
     ClockIcon,
-    ExclamationTriangleIcon,
     EyeIcon,
     FolderOpenIcon,
     PlayIcon,
@@ -19,6 +18,7 @@ import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { fetchE2eSuites } from "../../redux/thunks/e2eSuitesThunks";
+import { formatUserWithPrefix } from "../../util/userDisplay";
 
 interface CreateSuiteModalProps {
   isOpen: boolean;
@@ -242,7 +242,7 @@ function E2eSuitesPage() {
 
     try {
       setCreateLoading(true);
-      await ideMessenger.createE2eSuite(data.description, data.filePath, data.repoName, data.branchName);
+      await ideMessenger.createE2eSuite(data);
       await handleRefresh();
     } catch (error) {
       console.error('Error creating suite:', error);
@@ -393,21 +393,16 @@ function E2eSuitesPage() {
                 <div className="text-xs text-vsc-descriptionForeground">
                   ID: {suite.uuid.slice(0, 8)}
                 </div>
-                {suite.status && (
+                                {(suite.completed !== undefined || suite.completedAt) && (
                   <div className="flex items-center">
                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                      suite.status === 'completed' 
-                        ? 'bg-green-100 text-green-800' 
-                        : suite.status === 'running'
-                        ? 'bg-blue-100 text-blue-800'
-                        : suite.status === 'failed'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
+                      suite.completed
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-blue-100 text-blue-800'
                     }`}>
-                      {suite.status === 'completed' && <CheckCircleIcon className="w-3 h-3 mr-1" />}
-                      {suite.status === 'running' && <ClockIcon className="w-3 h-3 mr-1" />}
-                      {suite.status === 'failed' && <ExclamationTriangleIcon className="w-3 h-3 mr-1" />}
-                      {suite.status}
+                      {suite.completed && <CheckCircleIcon className="w-3 h-3 mr-1" />}
+                      {!suite.completed && <ClockIcon className="w-3 h-3 mr-1" />}
+                      {suite.completed ? 'Completed' : 'In Progress'}
                     </span>
                   </div>
                 )}
@@ -415,16 +410,18 @@ function E2eSuitesPage() {
 
               {/* Suite Details - More compact layout */}
               <div className="space-y-0.5 text-xs text-vsc-descriptionForeground mb-2">
-                {suite.created_at && (
+                {suite.timestamp && (
                   <div className="flex items-center space-x-1">
                     <CalendarIcon className="w-3 h-3 flex-shrink-0" />
-                    <span className="break-words">{new Date(suite.created_at).toLocaleDateString()}</span>
+                    <span className="break-words">{new Date(suite.timestamp).toLocaleDateString()}</span>
                   </div>
                 )}
-                {suite.created_by && (
+                {suite.createdBy && (
                   <div className="flex items-center space-x-1">
                     <UserIcon className="w-3 h-3 flex-shrink-0" />
-                    <span className="break-words truncate">By: {suite.created_by}</span>
+                    <span className="break-words truncate">
+                      {formatUserWithPrefix(suite.createdBy)}
+                    </span>
                   </div>
                 )}
               </div>

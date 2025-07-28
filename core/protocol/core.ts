@@ -233,6 +233,7 @@ export type ToCoreFromIdeOrWebviewProtocol = {
     {filters: Record<string, any>, pagination: Record<string, any>, search: string}, 
     PaginatedResponse<E2eTestCommitSuite> | null
   ];
+  "e2eCommitSuites/getE2eCommitSuite": [{ uuid: string }, E2eTestCommitSuite | null];
   "e2eCommitSuites/run": [{ commitSuiteId: string }, void];
   "e2eCommitSuites/delete": [{ commitSuiteId: string }, string];
   "e2eCommitSuites/create": [

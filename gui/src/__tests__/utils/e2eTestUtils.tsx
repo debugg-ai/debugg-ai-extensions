@@ -22,6 +22,26 @@ export const createMockIdeMessenger = (overrides = {}) => ({
   request: vi.fn().mockResolvedValue({ success: true }),
   streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()), 
   llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  
+  // E2E Tests methods
+  fetchE2eTests: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] }),
+  createE2eTest: vi.fn().mockResolvedValue({ success: true }),
+  runE2eTest: vi.fn().mockResolvedValue({ success: true }),
+  deleteE2eTest: vi.fn().mockResolvedValue(undefined),
+  
+  // E2E Test Suites methods
+  fetchE2eSuites: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] }),
+  createE2eSuite: vi.fn().mockResolvedValue({ success: true }),
+  runE2eSuite: vi.fn().mockResolvedValue(undefined),
+  deleteE2eSuite: vi.fn().mockResolvedValue("deleted"),
+  
+  // E2E Commit Suites methods
+  fetchE2eCommitSuites: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] }),
+  getE2eCommitSuite: vi.fn().mockResolvedValue(null),
+  createE2eCommitSuite: vi.fn().mockResolvedValue({ success: true }),
+  runE2eCommitSuite: vi.fn().mockResolvedValue(undefined),
+  deleteE2eCommitSuite: vi.fn().mockResolvedValue("deleted"),
+  
   ide: {} as any,
   ...overrides,
 });
@@ -60,8 +80,8 @@ export const createMockAuthenticatedUser = () => ({
 export const createMockE2eTest = (overrides: Partial<E2eTest> = {}): E2eTest => ({
   id: 'test-123',
   uuid: 'test-123',
-  timeStamp: '2024-01-01T10:00:00Z',
-  lastModified: '2024-01-01T12:00:00Z',
+  timestamp: '2024-01-01T10:00:00Z',
+  lastMod: '2024-01-01T12:00:00Z',
   project: 1,
   projectName: 'Sample Project',
   name: 'Sample E2E Test',
@@ -80,7 +100,7 @@ export const createMockE2eRun = (overrides: Partial<E2eRun> = {}): E2eRun => ({
   id: 456,
   uuid: 'run-456',
   timestamp: '2024-01-01T10:30:00Z',
-  lastModified: '2024-01-01T11:00:00Z',
+  lastMod: '2024-01-01T11:00:00Z',
   key: 'test-run-key-456',
   runType: 'run',
   test: null,

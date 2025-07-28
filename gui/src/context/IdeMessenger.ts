@@ -69,6 +69,7 @@ export interface IIdeMessenger {
 
   // E2E Commit Suites convenience methods
   fetchE2eCommitSuites(filters: Record<string, any>, pagination: Record<string, any>, search: string): Promise<any>;
+  getE2eCommitSuite(uuid: string): Promise<any>;
   createE2eCommitSuite(data: { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string }): Promise<any>;
   runE2eCommitSuite(commitSuiteId: string): Promise<void>;
   deleteE2eCommitSuite(commitSuiteId: string): Promise<string>;
@@ -340,6 +341,12 @@ export class IdeMessenger implements IIdeMessenger {
   // E2E Commit Suites convenience methods
   async fetchE2eCommitSuites(filters: Record<string, any>, pagination: Record<string, any>, search: string) {
     const result = await this.request("e2eCommitSuites/fetchE2eCommitSuites", { filters, pagination, search });
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
+  async getE2eCommitSuite(uuid: string) {
+    const result = await this.request("e2eCommitSuites/getE2eCommitSuite", { uuid });
     if (result.status === "error") throw new Error(result.error);
     return result.content;
   }

@@ -1358,6 +1358,47 @@ export class Core {
       }
     });
 
+    on("e2eCommitSuites/getE2eCommitSuite", async ({data: {uuid}}) => {
+      const { config } = await this.configHandler.loadConfig();
+      if (!config) {
+        console.error("Config not loaded");
+        return null;
+      }
+
+      let retried = null;
+      while (!retried) {
+        const client = await this.debuggAIServerClientPromise;
+        while (!client.connected) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        const e2es = client.e2es;
+        if (e2es) {
+          console.log("Getting E2E commit suite", uuid);
+          try {
+            // Use the actual service method when available
+            const commitSuite = await e2es.getE2eCommitSuite?.(uuid);
+            if (commitSuite) {
+              return commitSuite;
+            }
+            
+            // Fallback to null if service method not available
+            return null;
+          } catch (err: any) {
+            console.error("Error getting E2E commit suite:", err);
+          }
+        } else {
+          console.error("E2e service not available");
+        };
+        if (retried === null) {
+          retried = false;
+        } else {
+          retried = true;
+        }
+      }
+
+      return null;
+    });
+
     on("e2eCommitSuites/run", async ({data: {commitSuiteId}}) => {
       console.log("Running E2E commit suite:", commitSuiteId);
       // TODO: Implement commit suite running logic

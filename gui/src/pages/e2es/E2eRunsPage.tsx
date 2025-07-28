@@ -1,14 +1,14 @@
 import {
-    ArrowLeftIcon,
-    ArrowPathIcon,
-    CalendarIcon,
-    CheckCircleIcon,
-    ClockIcon,
-    DocumentTextIcon,
-    ExclamationTriangleIcon,
-    ServerIcon,
-    UserIcon,
-    XCircleIcon
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  DocumentTextIcon,
+  ExclamationTriangleIcon,
+  ServerIcon,
+  UserIcon,
+  XCircleIcon
 } from "@heroicons/react/24/outline";
 import type { E2eRun, E2eRunOutcome, E2eRunStatus, E2eTest } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -19,8 +19,6 @@ import { IdeMessengerContext } from "../../context/IdeMessenger";
 const EMPTY_TEST: E2eTest = {
   id: '',
   uuid: '',
-  timeStamp: '',
-  lastModified: '',
   project: 0,
   projectName: '',
   name: '',
@@ -32,13 +30,15 @@ const EMPTY_TEST: E2eTest = {
   tunnelKey: null,
   agent: null,
   agentTaskDescription: null,
+  timestamp: '',
+  lastMod: '',
 };
 
 const EMPTY_RUN: E2eRun = {
   id: 0,
   uuid: '',
   timestamp: '',
-  lastModified: '',
+  lastMod: '',
   key: '',
   runType: 'run',
   test: EMPTY_TEST,
@@ -206,7 +206,7 @@ function E2eRunsPage() {
            id: parseInt(runId),
            uuid: runId,
            timestamp: '2024-01-01T10:30:00Z',
-           lastModified: '2024-01-01T11:00:00Z',
+           lastMod: '2024-01-01T11:00:00Z',
            key: 'test-run-key',
            runType: 'run',
            test: null,
@@ -280,8 +280,8 @@ function E2eRunsPage() {
          const mockTest: E2eTest = {
            id: testId,
            uuid: testId,
-           timeStamp: '2024-01-01T10:00:00Z',
-           lastModified: '2024-01-01T12:00:00Z',
+           timestamp: '2024-01-01T10:00:00Z',
+           lastMod: '2024-01-01T12:00:00Z',
            project: 1,
            projectName: 'Sample Project',
            name: 'Sample E2E Test',
@@ -488,7 +488,7 @@ function E2eRunsPage() {
               <div className="space-y-1 text-xs text-vsc-descriptionForeground">
                 <div className="flex items-center gap-1">
                   <CalendarIcon className="h-3 w-3" />
-                  <span>Created: {new Date(test.timeStamp || Date.now()).toLocaleString()}</span>
+                  <span>Created: {new Date(test.timestamp || Date.now()).toLocaleString()}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <CalendarIcon className="h-3 w-3" />
@@ -496,7 +496,7 @@ function E2eRunsPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <CalendarIcon className="h-3 w-3" />
-                  <span>Updated: {new Date(run.lastModified || Date.now()).toLocaleString()}</span>
+                  <span>Updated: {new Date(run.lastMod || Date.now()).toLocaleString()}</span>
                 </div>
               </div>
             </div>

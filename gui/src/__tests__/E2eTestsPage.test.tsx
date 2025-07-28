@@ -47,8 +47,28 @@ const createMockIdeMessenger = (overrides = {}) => ({
   post: vi.fn(),
   respond: vi.fn(),
   request: vi.fn().mockResolvedValue({ success: true }),
-  streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()), 
   llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
+  
+  // E2E Tests methods
+  fetchE2eTests: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] }),
+  createE2eTest: vi.fn().mockResolvedValue({ success: true }),
+  runE2eTest: vi.fn().mockResolvedValue({ success: true }),
+  deleteE2eTest: vi.fn().mockResolvedValue(undefined),
+  
+  // E2E Test Suites methods
+  fetchE2eSuites: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] }),
+  createE2eSuite: vi.fn().mockResolvedValue({ success: true }),
+  runE2eSuite: vi.fn().mockResolvedValue(undefined),
+  deleteE2eSuite: vi.fn().mockResolvedValue("deleted"),
+  
+  // E2E Commit Suites methods
+  fetchE2eCommitSuites: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] }),
+  getE2eCommitSuite: vi.fn().mockResolvedValue(null),
+  createE2eCommitSuite: vi.fn().mockResolvedValue({ success: true }),
+  runE2eCommitSuite: vi.fn().mockResolvedValue(undefined),
+  deleteE2eCommitSuite: vi.fn().mockResolvedValue("deleted"),
+  
   ide: {} as any,
   ...overrides,
 });

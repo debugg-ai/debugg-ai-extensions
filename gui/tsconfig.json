@@ -17,7 +17,12 @@
     "jsx": "react-jsx",
     "noEmitOnError": false,
     "types": ["vitest/globals"]
-    // Disabled for now since it's causing too many errors
+    // Disabled additional strict checks for now since they're causing too many errors across the codebase
+    // TODO: Gradually enable these as the codebase matures:
+    // "exactOptionalPropertyTypes": true,
+    // "noImplicitReturns": true,
+    // "noUncheckedIndexedAccess": true,
+    // "noImplicitOverride": true
   },
   "include": ["src", "../src/util/messenger.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
