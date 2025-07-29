@@ -1,14 +1,14 @@
 import {
-    ArrowPathIcon,
-    CalendarIcon,
-    CheckCircleIcon,
-    ClockIcon,
-    CodeBracketIcon,
-    ExclamationTriangleIcon,
-    EyeIcon,
-    PlayIcon,
-    PlusIcon,
-    UserIcon
+  ArrowPathIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CodeBracketIcon,
+  ExclamationTriangleIcon,
+  EyeIcon,
+  PlayIcon,
+  PlusIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 import type { E2eTestCommitSuite } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -243,8 +243,6 @@ function E2eCommitSuites() {
 
   // Fetch commit suites data
   const handleRefresh = useCallback(async () => {
-    if (!mountedRef.current) return;
-
     try {
       setRefreshing(true);
       // Dispatch Redux action to ensure state is updated

@@ -28,13 +28,31 @@ export const fetchE2eSuites = createAsyncThunk<
   }
 );
 
+// Get E2E Suite
+export const getE2eSuite = createAsyncThunk<
+  E2eTestSuite | null,
+  string,
+  ThunkApiType
+>(
+  "e2eSuites/getE2eSuite",
+  async (uuid, { extra }) => {
+    const result = await extra.ideMessenger.request("e2eSuites/getE2eSuite", { uuid });
+
+    if (result?.status === "error") {
+      throw new Error(result.error);
+    } 
+
+    return result?.content;
+  }
+);
+
 // Run E2E Suite
 export const runE2eSuite = createAsyncThunk<
   void,
   string,
   ThunkApiType
 >(
-  "e2eSuites/runE2eSuite",
+  "e2eSuites/run",
   async (suiteId, { extra }) => {
     console.log("running E2eSuite...", suiteId);
 
@@ -50,13 +68,36 @@ export const runE2eSuite = createAsyncThunk<
   }
 );
 
+// Create E2E Suite
+export const createE2eSuite = createAsyncThunk<
+  E2eTestSuite | null,
+  { description: string; filePath?: string; repoName?: string; branchName?: string },
+  ThunkApiType
+>(
+  "e2eSuites/create",
+  async ({ description, filePath, repoName, branchName }, { extra }) => {
+    const result = await extra.ideMessenger.request("e2eSuites/create", {
+      description,
+      filePath,
+      repoName,
+      branchName,
+    });
+
+    if (result?.status === "error") {
+      throw new Error(result.error);
+    }
+
+    return result.content;
+  }
+);
+
 // Delete E2E Suite
 export const deleteE2eSuite = createAsyncThunk<
   string,
   string,
   ThunkApiType
 >(
-  "e2eSuites/deleteE2eSuite",
+  "e2eSuites/delete",
   async (suiteId, { extra }) => {
     console.log("deleting E2eSuite...", suiteId);
 

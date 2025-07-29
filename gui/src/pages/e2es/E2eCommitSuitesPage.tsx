@@ -1,13 +1,13 @@
 import {
-    ArrowPathIcon,
-    CalendarIcon,
-    CheckCircleIcon,
-    ClockIcon,
-    CodeBracketIcon,
-    EyeIcon,
-    PlayIcon,
-    PlusIcon,
-    UserIcon
+  ArrowPathIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CodeBracketIcon,
+  EyeIcon,
+  PlayIcon,
+  PlusIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 import type { E2eTestCommitSuite } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -17,7 +17,7 @@ import { useAuth } from "../../context/Auth";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { fetchE2eCommitSuites } from "../../redux/thunks/e2eCommitSuitesThunks";
+import { createE2eCommitSuite, fetchE2eCommitSuites, runE2eCommitSuite } from "../../redux/thunks/e2eCommitSuitesThunks";
 import { formatUserWithPrefix } from "../../util/userDisplay";
 
 interface CreateCommitSuiteModalProps {
@@ -204,8 +204,6 @@ function E2eCommitSuitesPage() {
 
   // Fetch commit suites data
   const handleRefresh = useCallback(async () => {
-    if (!mountedRef.current) return;
-
     try {
       setRefreshing(true);
       (dispatch as any)(fetchE2eCommitSuites({
@@ -254,11 +252,11 @@ function E2eCommitSuitesPage() {
   }, []);
 
   const handleCreateCommitSuite = useCallback(async (data: { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string }) => {
-    if (!mountedRef.current || !ideMessenger) return;
+    if (!mountedRef.current) return;
 
     try {
       setCreateLoading(true);
-      await ideMessenger.createE2eCommitSuite(data);
+      await dispatch(createE2eCommitSuite(data)).unwrap();
       await handleRefresh();
     } catch (error) {
       console.error('Error creating commit suite:', error);
@@ -267,18 +265,16 @@ function E2eCommitSuitesPage() {
         setCreateLoading(false);
       }
     }
-  }, [ideMessenger, handleRefresh]);
+  }, [dispatch, handleRefresh]);
 
   const handleRunCommitSuite = useCallback(async (suite: E2eTestCommitSuite) => {
     try {
       console.log('Running commit suite:', suite.uuid);
-      if (ideMessenger) {
-        await ideMessenger.runE2eCommitSuite(suite.uuid);
-      }
+      await dispatch(runE2eCommitSuite(suite.uuid)).unwrap();
     } catch (error) {
       console.error('Error running commit suite:', error);
     }
-  }, [ideMessenger]);
+  }, [dispatch]);
 
   const handleViewCommitSuite = useCallback((suite: E2eTestCommitSuite) => {
     navigate(`/e2e-commit-suites/${suite.uuid}`);

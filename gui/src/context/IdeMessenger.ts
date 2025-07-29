@@ -3,11 +3,11 @@ import type { FromWebviewProtocol, ToWebviewProtocol } from "core/protocol";
 import { Message } from "core/protocol/messenger";
 import { MessageIde } from "core/protocol/messenger/messageIde";
 import {
-    GeneratorReturnType,
-    GeneratorYieldType,
-    WebviewProtocolGeneratorMessage,
-    WebviewSingleMessage,
-    WebviewSingleProtocolMessage
+  GeneratorReturnType,
+  GeneratorYieldType,
+  WebviewProtocolGeneratorMessage,
+  WebviewSingleMessage,
+  WebviewSingleProtocolMessage
 } from "core/protocol/util";
 import { createContext } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -295,6 +295,12 @@ export class IdeMessenger implements IIdeMessenger {
     return result.content;
   }
 
+  async getE2eTest(uuid: string) {
+    const result = await this.request("e2eTests/getE2eTest", { uuid });
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
   async createE2eTest(data: { description: string; filePath?: string; repoName?: string; branchName?: string }) {
     const result = await this.request("e2eTests/create", data);
     if (result.status === "error") throw new Error(result.error);
@@ -316,6 +322,12 @@ export class IdeMessenger implements IIdeMessenger {
   // E2E Test Suites convenience methods
   async fetchE2eSuites(filters: Record<string, any>, pagination: Record<string, any>, search: string) {
     const result = await this.request("e2eSuites/fetchE2eSuites", { filters, pagination, search });
+    if (result.status === "error") throw new Error(result.error);
+    return result.content;
+  }
+
+  async getE2eSuite(uuid: string) {
+    const result = await this.request("e2eSuites/getE2eSuite", { uuid });
     if (result.status === "error") throw new Error(result.error);
     return result.content;
   }

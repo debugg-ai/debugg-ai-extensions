@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { E2eTestSuite, PaginatedResponse } from "core/debuggAIServer/types";
-import { deleteE2eSuite, fetchE2eSuites, runE2eSuite } from "../thunks/e2eSuitesThunks";
+import { deleteE2eSuite, fetchE2eSuites, getE2eSuite, runE2eSuite } from "../thunks/e2eSuitesThunks";
 
 // Types for pagination and filters
 export interface Pagination {
@@ -11,6 +11,7 @@ export interface Pagination {
 export interface E2eSuitesState {
   items: E2eTestSuite[];
   suitesList: PaginatedResponse<E2eTestSuite> | null;
+  suiteDetail: E2eTestSuite | null;
   loading: boolean;
   error: string | null;
   currentFilters: Record<string, any>;
@@ -20,6 +21,7 @@ export interface E2eSuitesState {
 const initialState: E2eSuitesState = {
   items: [],
   suitesList: null,
+  suiteDetail: null,
   loading: false,
   error: null,
   currentFilters: {},
@@ -35,6 +37,9 @@ const e2eSuitesSlice = createSlice({
     },
     setCurrentFilters(state, action: PayloadAction<Record<string, any>>) {
       state.currentFilters = action.payload;
+    },
+    setSuiteDetail(state, action: PayloadAction<E2eTestSuite | null>) {
+      state.suiteDetail = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -52,7 +57,18 @@ const e2eSuitesSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || "Failed to fetch E2E suites";
       })
-
+      .addCase(getE2eSuite.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getE2eSuite.fulfilled, (state, action) => {
+        state.loading = false;
+        state.suiteDetail = action.payload;
+      })
+      .addCase(getE2eSuite.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to get E2E suite";
+      })
       .addCase(runE2eSuite.pending, (state) => {
         state.loading = true;
       })
@@ -82,5 +98,5 @@ const e2eSuitesSlice = createSlice({
   },
 });
 
-export const { setCurrentPagination, setCurrentFilters } = e2eSuitesSlice.actions;
+export const { setCurrentPagination, setCurrentFilters, setSuiteDetail } = e2eSuitesSlice.actions;
 export default e2eSuitesSlice.reducer; 

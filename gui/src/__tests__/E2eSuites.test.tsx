@@ -60,7 +60,13 @@ const mockSuites: E2eTestSuite[] = [
     timestamp: '2024-01-01T10:00:00Z',
     lastMod: '2024-01-01T12:00:00Z',
     key: 'auth-suite-key',
-    createdBy: 1,
+    createdBy: {
+      uuid: 'user-1-uuid',
+      email: 'user1@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      company: 'Test Company'
+    },
     host: 1,
     tests: [],
     feature: null,
@@ -86,7 +92,13 @@ const mockSuites: E2eTestSuite[] = [
     timestamp: '2024-01-01T11:00:00Z',
     lastMod: '2024-01-01T11:30:00Z',
     key: 'cart-suite-key',
-    createdBy: 2,
+    createdBy: {
+      uuid: 'user-2-uuid',
+      email: 'user2@example.com',
+      firstName: 'Another',
+      lastName: 'User',
+      company: 'Another Company'
+    },
     host: 1,
     tests: [],
     feature: null,

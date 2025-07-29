@@ -29,6 +29,25 @@ export const fetchE2eTests = createAsyncThunk<
   }
 );
 
+// Get E2E Test
+
+export const getE2eTest = createAsyncThunk<
+  E2eTest | null,
+  string,
+  ThunkApiType
+>(
+  "e2eTests/getE2eTest",
+  async (uuid, { extra }) => {
+    const result = await extra.ideMessenger.request("e2eTests/getE2eTest", { uuid });
+
+    if (result?.status === "error") {
+      throw new Error(result.error);
+    }
+
+    return result.content;
+  }
+);
+
 // Run E2E Test
 export const runE2eTest = createAsyncThunk<
   E2eTestHandler,
@@ -38,6 +57,29 @@ export const runE2eTest = createAsyncThunk<
   "e2eTests/runE2eTest",
   async ({ uuid }, { extra }) => {
     const result = await extra.ideMessenger.request("e2eTests/runE2eTest", { uuid });
+
+    if (result?.status === "error") {
+      throw new Error(result.error);
+    }
+
+    return result.content;
+  }
+);
+
+// Create E2E Test
+export const createE2eTest = createAsyncThunk<
+  E2eTest | null,
+  { description: string; filePath?: string; repoName?: string; branchName?: string },
+  ThunkApiType
+>(
+  "e2eTests/createE2eTest",
+  async ({ description, filePath, repoName, branchName }, { extra }) => {
+    const result = await extra.ideMessenger.request("e2eTests/create", {
+      description,
+      filePath,
+      repoName,
+      branchName,
+    });
 
     if (result?.status === "error") {
       throw new Error(result.error);

@@ -1,10 +1,11 @@
+import { ArrowPathIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { E2eTestsTable } from "../../components/e2es/e2e-tests-table";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { fetchE2eTests } from "../../redux/thunks/e2eTestsThunks";
+import { createE2eTest, fetchE2eTests } from "../../redux/thunks/e2eTestsThunks";
 
 interface CreateTestModalProps {
   isOpen: boolean;
@@ -152,8 +153,6 @@ function E2eTestsPage() {
 
   // Handle refresh
   const handleRefresh = useCallback(async () => {
-    if (!mountedRef.current) return;
-
     try {
       setRefreshing(true);
       // Dispatch Redux action to ensure state is updated
@@ -191,22 +190,20 @@ function E2eTestsPage() {
     try {
       setCreateLoading(true);
 
-      // Use convenience method to create test
-      if (ideMessenger) {
-        await ideMessenger.createE2eTest({
-          description: data.description,
-          filePath: data.filePath,
-          repoName: data.repoName,
-          branchName: data.branchName,
-        });
+      // Use Redux thunk to create test
+      await dispatch(createE2eTest({
+        description: data.description,
+        filePath: data.filePath,
+        repoName: data.repoName,
+        branchName: data.branchName,
+      })).unwrap();
 
-        // Refresh the list after creation by dispatching Redux action
-        (dispatch as any)(fetchE2eTests({
-          filters: currentFilters,
-          pagination: currentPagination,
-          search: ""
-        }));
-      }
+      // Refresh the list after creation
+      dispatch(fetchE2eTests({
+        filters: currentFilters,
+        pagination: currentPagination,
+        search: ""
+      }));
 
       if (mountedRef.current) {
         setIsCreateModalOpen(false);
@@ -219,7 +216,7 @@ function E2eTestsPage() {
         setCreateLoading(false);
       }
     }
-  }, [ideMessenger, dispatch, currentFilters, currentPagination]);
+  }, [dispatch, currentFilters, currentPagination]);
 
   return (
     <div className="h-full bg-vsc-editor-background text-vsc-foreground flex flex-col">
@@ -230,7 +227,7 @@ function E2eTestsPage() {
             <h2 className="text-sm font-medium text-vsc-foreground">E2E Tests</h2>
             <p className="text-xs text-vsc-descriptionForeground">Manage your individual end-to-end tests</p>
           </div>
-          {/* <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1">
             <button
               onClick={handleRefresh}
               disabled={refreshing}
@@ -246,7 +243,7 @@ function E2eTestsPage() {
               <PlusIcon className="h-4 w-4" />
               <span>Create</span>
             </button>
-          </div> */}
+          </div>
         </div>
         {refreshing && (
           <div className="text-xs text-vsc-textLink-foreground mt-1">Refreshing...</div>

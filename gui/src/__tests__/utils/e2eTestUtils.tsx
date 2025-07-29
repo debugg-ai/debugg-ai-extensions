@@ -163,7 +163,13 @@ export const createMockE2eTestSuite = (overrides: Partial<E2eTestSuite> = {}): E
   timestamp: '2024-01-01T10:00:00Z',
   lastMod: '2024-01-01T12:00:00Z',
   key: 'suite-key-123',
-  createdBy: 1,
+  createdBy: {
+    uuid: 'user-uuid',
+    email: 'test@example.com',
+    firstName: 'Test',
+    lastName: 'User',
+    company: 'Test Company'
+  },
   host: 1,
   tests: [],
   feature: null,

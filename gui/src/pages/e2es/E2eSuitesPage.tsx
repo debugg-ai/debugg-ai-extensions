@@ -1,13 +1,13 @@
 import {
-    ArrowPathIcon,
-    CalendarIcon,
-    CheckCircleIcon,
-    ClockIcon,
-    EyeIcon,
-    FolderOpenIcon,
-    PlayIcon,
-    PlusIcon,
-    UserIcon
+  ArrowPathIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  EyeIcon,
+  FolderOpenIcon,
+  PlayIcon,
+  PlusIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 import type { E2eTestSuite } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -17,7 +17,7 @@ import { useAuth } from "../../context/Auth";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { fetchE2eSuites } from "../../redux/thunks/e2eSuitesThunks";
+import { createE2eSuite, fetchE2eSuites, runE2eSuite } from "../../redux/thunks/e2eSuitesThunks";
 import { formatUserWithPrefix } from "../../util/userDisplay";
 
 interface CreateSuiteModalProps {
@@ -188,7 +188,6 @@ function E2eSuitesPage() {
 
   // Fetch suites data
   const handleRefresh = useCallback(async () => {
-    if (!mountedRef.current) return;
 
     try {
       setRefreshing(true);
@@ -238,11 +237,11 @@ function E2eSuitesPage() {
   }, []);
 
   const handleCreateSuite = useCallback(async (data: { description: string; filePath?: string; repoName?: string; branchName?: string }) => {
-    if (!mountedRef.current || !ideMessenger) return;
+    if (!mountedRef.current) return;
 
     try {
       setCreateLoading(true);
-      await ideMessenger.createE2eSuite(data);
+      await dispatch(createE2eSuite(data)).unwrap();
       await handleRefresh();
     } catch (error) {
       console.error('Error creating suite:', error);
@@ -251,21 +250,19 @@ function E2eSuitesPage() {
         setCreateLoading(false);
       }
     }
-  }, [ideMessenger, handleRefresh]);
+  }, [dispatch, handleRefresh]);
 
   const handleRunSuite = useCallback(async (suite: E2eTestSuite) => {
     try {
       console.log('Running suite:', suite.uuid);
-      if (ideMessenger) {
-        await ideMessenger.runE2eSuite(suite.uuid);
-      }
+      await dispatch(runE2eSuite(suite.uuid)).unwrap();
     } catch (error) {
       console.error('Error running suite:', error);
     }
-  }, [ideMessenger]);
+  }, [dispatch]);
 
   const handleViewSuite = useCallback((suite: E2eTestSuite) => {
-    navigate(`/e2e-runs?suiteId=${suite.uuid}`);
+    navigate(`/e2e-suites/${suite.uuid}`);
   }, [navigate]);
 
   if (!session?.account.id) {
