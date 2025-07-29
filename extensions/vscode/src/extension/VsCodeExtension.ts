@@ -17,7 +17,7 @@ import * as vscode from "vscode";
 
 import { ContinueCompletionProvider } from "../autocomplete/completionProvider";
 import {
-    monitorBatteryChanges,
+    monitorE2eTestingStatus,
     setupStatusBar,
     StatusBarStatus,
 } from "../autocomplete/statusBar";
@@ -206,7 +206,7 @@ export class VsCodeExtension {
 
     // Register inline completion provider
     setupStatusBar(
-      enabled ? StatusBarStatus.Enabled : StatusBarStatus.Disabled,
+      enabled ? StatusBarStatus.Active : StatusBarStatus.Inactive,
     );
     context.subscriptions.push(
       vscode.languages.registerInlineCompletionItemProvider(
@@ -257,7 +257,7 @@ export class VsCodeExtension {
     // Battery
     this.battery = new Battery();
     context.subscriptions.push(this.battery);
-    context.subscriptions.push(monitorBatteryChanges(this.battery));
+    context.subscriptions.push(monitorE2eTestingStatus());
 
     // FileSearch
     this.fileSearch = new FileSearch(this.ide);

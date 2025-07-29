@@ -67,7 +67,9 @@ export abstract class TestHandler {
             this.testState.testObject = await this.createTestObject();
         }
         if (!this.testState.testObject) {
-            throw new Error("Failed to create test object");
+            const errorMsg = "❌ Failed to create test object. Please check your configuration and try again.";
+            vscode.window.showErrorMessage(errorMsg);
+            throw new Error(errorMsg);
         }
         return this.testState.testObject;
     }
@@ -161,6 +163,8 @@ export abstract class TestHandler {
      * Clean up the test run.
      */
     protected async handleCompletion(state: TestState): Promise<void> {
+        const completionMsg = `✅ Test completed successfully! Status: ${state.status}`;
+        vscode.window.showInformationMessage(completionMsg);
         this.formatter?.printSummary(state);
         this.vsCodeTestRun?.end();
 
@@ -189,6 +193,7 @@ export abstract class TestHandler {
             }
         } else {
             console.log("No tests found in state");
+            vscode.window.showWarningMessage("⚠️ No test results found in the completed test state.");
         }
 
         this.vsCodeTestRun = null;
@@ -211,7 +216,9 @@ export abstract class TestHandler {
      */
     protected async handleTimeout(): Promise<void> {
         this.isRunning = false;
-        this.formatter?.printMessage(`Test timed out after ${this.timeoutMinutes} minutes`, "error");
+        const timeoutMsg = `⏰ Test timed out after ${this.timeoutMinutes} minutes. The test may be taking longer than expected or there may be an issue.`;
+        vscode.window.showErrorMessage(timeoutMsg);
+        this.formatter?.printMessage(timeoutMsg, "error");
         this.vsCodeTestRun?.end();
         this.vsCodeTestRun = null;
         this.vsCodeTestItem = null;
@@ -240,12 +247,15 @@ export abstract class TestHandler {
      */
     protected async cleanupError(reason: string): Promise<void> {
         // Default implementation - subclasses should override
-        console.error(`Test failed: ${reason}`);
+        const errorMsg = `❌ Test failed: ${reason}`;
+        console.error(errorMsg);
+        vscode.window.showErrorMessage(errorMsg);
         for (const callback of this.cleanupCallbacks) {
             try {
                 callback();
             } catch (error) {
                 console.error('Error in cleanup callback:', error);
+                vscode.window.showErrorMessage(`⚠️ Error during cleanup: ${error instanceof Error ? error.message : String(error)}`);
             }
         }
     }
@@ -289,6 +299,7 @@ export abstract class TestHandler {
     async run(): Promise<void> {
         try {
             this.isRunning = true;
+            vscode.window.showInformationMessage(`🚀 Starting test run: ${this.options.title || 'Test Process'}`);
 
             // Initialize the test handler
             await this.initialize();
@@ -296,13 +307,17 @@ export abstract class TestHandler {
             // Create the test object
             const testObject = await this.getTestObject();
             if (!testObject) {
-                throw new Error("Failed to create test object");
+                const errorMsg = "❌ Failed to create test object. Please check your configuration and try again.";
+                vscode.window.showErrorMessage(errorMsg);
+                throw new Error(errorMsg);
             }
 
             // Set up VS Code test run
+            vscode.window.showInformationMessage(`🔧 Setting up test environment...`);
             await this.setupVsCodeTester();
 
             // Set up polling interval
+            vscode.window.showInformationMessage(`⏱️ Monitoring test progress...`);
             const pollingInterval = await this.setupPollingInterval();
 
             // Set up timeout
@@ -316,7 +331,9 @@ export abstract class TestHandler {
 
         } catch (error) {
             this.isRunning = false;
-            console.error('Error in test run:', error);
+            const errorMsg = `❌ Error in test run: ${error instanceof Error ? error.message : String(error)}`;
+            console.error(errorMsg);
+            vscode.window.showErrorMessage(errorMsg);
             await this.cleanupError(error instanceof Error ? error.message : String(error));
         }
     }

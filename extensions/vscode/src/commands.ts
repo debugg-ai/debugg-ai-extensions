@@ -26,8 +26,8 @@ import readLastLines from "read-last-lines";
 import * as vscode from "vscode";
 
 import {
-  getAutocompleteStatusBarDescription,
-  getAutocompleteStatusBarTitle,
+  getE2eTestingStatusBarDescription,
+  getE2eTestingStatusBarTitle,
   getStatusBarStatus,
   getStatusBarStatusFromQuickPickItemLabel,
   quickPickStatusText,
@@ -990,9 +990,9 @@ const getCommandsMap: (
           );
         } else {
           if (enabled) {
-            const paused = getStatusBarStatus() === StatusBarStatus.Paused;
-            if (paused) {
-              setupStatusBar(StatusBarStatus.Enabled);
+            const running = getStatusBarStatus() === StatusBarStatus.Running;
+            if (running) {
+              setupStatusBar(StatusBarStatus.Active);
             } else {
               config.update(
                 "enableTabAutocomplete",
@@ -1001,7 +1001,7 @@ const getCommandsMap: (
               );
             }
           } else {
-            setupStatusBar(StatusBarStatus.Paused);
+            setupStatusBar(StatusBarStatus.Running);
             config.update(
               "enableTabAutocomplete",
               true,
@@ -1010,101 +1010,115 @@ const getCommandsMap: (
           }
         }
       },
-      "debugg-ai.openTabAutocompleteConfigMenu": async () => {
-        captureCommandTelemetry("openTabAutocompleteConfigMenu");
+      "debugg-ai.openE2eTestingMenu": async () => {
+        captureCommandTelemetry("openE2eTestingMenu");
 
-        const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
         const quickPick = vscode.window.createQuickPick();
-
-        const { config: continueConfig } = await configHandler.loadConfig();
-        const autocompleteModels =
-          continueConfig?.modelsByRole.autocomplete ?? [];
-        const selected =
-          continueConfig?.selectedModelByRole?.autocomplete?.title ?? undefined;
-
-        // Toggle between Disabled, Paused, and Enabled
-        const pauseOnBattery =
-          config.get<boolean>("pauseTabAutocompleteOnBattery") &&
-          !battery.isACConnected();
         const currentStatus = getStatusBarStatus();
-
-        let targetStatus: StatusBarStatus | undefined;
-        if (pauseOnBattery) {
-          // Cycle from Disabled -> Paused -> Enabled
-          targetStatus =
-            currentStatus === StatusBarStatus.Paused
-              ? StatusBarStatus.Enabled
-              : currentStatus === StatusBarStatus.Disabled
-                ? StatusBarStatus.Paused
-                : StatusBarStatus.Disabled;
-        } else {
-          // Toggle between Disabled and Enabled
-          targetStatus =
-            currentStatus === StatusBarStatus.Disabled
-              ? StatusBarStatus.Enabled
-              : StatusBarStatus.Disabled;
-        }
 
         quickPick.items = [
           {
-            label: "$(question) Open help center",
+            label: "$(rocket) Create New E2E Test",
+            description: "Generate a new E2E test with AI",
           },
           {
-            label: "$(comment) Open chat",
-            description: getMetaKeyLabel() + " + L",
+            label: "$(play) Run E2E Test",
+            description: "Run an existing E2E test",
           },
           {
-            label: "$(screen-full) Open full screen chat",
-            description:
-              getMetaKeyLabel() + " + K, " + getMetaKeyLabel() + " + M",
+            label: "$(tools) Generate E2E Test Suite",
+            description: "Create multiple tests for a feature",
           },
           {
-            label: quickPickStatusText(targetStatus),
-          },
-          {
-            label: "$(feedback) Give feedback",
+            label: "$(list-tree) Run E2E Test Suite",
+            description: "Execute a complete test suite",
           },
           {
             kind: vscode.QuickPickItemKind.Separator,
-            label: "Switch model",
+            label: "Test Management",
           },
-          ...autocompleteModels.map((model) => ({
-            label: getAutocompleteStatusBarTitle(selected, model),
-            description: getAutocompleteStatusBarDescription(selected, model),
-          })),
+          {
+            label: "$(file-code) Generate Tests for Working Changes",
+            description: "Create tests for uncommitted code changes",
+          },
+          {
+            label: "$(eye) Show E2E Tests",
+            description: "View all E2E tests",
+          },
+          {
+            label: "$(layers) Show E2E Test Suites",
+            description: "View all test suites",
+          },
+          {
+            label: "$(git-commit) Show Commit Test Suites",
+            description: "View commit-based test suites",
+          },
+          {
+            kind: vscode.QuickPickItemKind.Separator,
+            label: "Status & Settings",
+          },
+          {
+            label: quickPickStatusText(currentStatus),
+            description: "Toggle E2E testing status",
+          },
+          {
+            label: "$(gear) Configuration",
+            description: "Open E2E testing configuration",
+          },
+          {
+            label: "$(question) Help & Documentation",
+            description: "Get help with E2E testing",
+          },
         ];
+
         quickPick.onDidAccept(() => {
           const selectedOption = quickPick.selectedItems[0].label;
-          const targetStatus =
-            getStatusBarStatusFromQuickPickItemLabel(selectedOption);
-
-          if (targetStatus !== undefined) {
-            setupStatusBar(targetStatus);
-            config.update(
-              "enableTabAutocomplete",
-              targetStatus === StatusBarStatus.Enabled,
-              vscode.ConfigurationTarget.Global,
-            );
-          } else if (
-            autocompleteModels.some((model) => model.title === selectedOption)
-          ) {
-            if (core.configHandler.currentProfile?.profileDescription.id) {
-              core.invoke("config/updateSelectedModel", {
-                profileId:
-                  core.configHandler.currentProfile?.profileDescription.id,
-                role: "autocomplete",
-                title: selectedOption,
-              });
-            }
-          } else if (selectedOption === "$(feedback) Give feedback") {
-            vscode.commands.executeCommand("debugg-ai.giveAutocompleteFeedback");
-          } else if (selectedOption === "$(comment) Open chat") {
-            vscode.commands.executeCommand("debugg-ai.focusContinueInput");
-          } else if (selectedOption === "$(screen-full) Open full screen chat") {
-            vscode.commands.executeCommand("debugg-ai.toggleFullScreen");
-          } else if (selectedOption === "$(question) Open help center") {
-            focusGUI();
-            vscode.commands.executeCommand("debugg-ai.navigateTo", "/more", true);
+          
+          switch (selectedOption) {
+            case "$(rocket) Create New E2E Test":
+              vscode.commands.executeCommand("debugg-ai.createNewE2eTest");
+              break;
+            case "$(play) Run E2E Test":
+              vscode.commands.executeCommand("debugg-ai.runE2eTest");
+              break;
+            case "$(tools) Generate E2E Test Suite":
+              vscode.commands.executeCommand("debugg-ai.runE2eSuiteGenerator");
+              break;
+            case "$(list-tree) Run E2E Test Suite":
+              vscode.commands.executeCommand("debugg-ai.runE2eTestSuite");
+              break;
+            case "$(file-code) Generate Tests for Working Changes":
+              vscode.commands.executeCommand("debugg-ai.generateTestsForWorkingChanges");
+              break;
+            case "$(eye) Show E2E Tests":
+              vscode.commands.executeCommand("debugg-ai.showE2es");
+              break;
+            case "$(layers) Show E2E Test Suites":
+              vscode.commands.executeCommand("debugg-ai.showE2eSuites");
+              break;
+            case "$(git-commit) Show Commit Test Suites":
+              vscode.commands.executeCommand("debugg-ai.showE2eCommitSuites");
+              break;
+            case "$(gear) Configuration":
+              vscode.commands.executeCommand("debugg-ai.openConfigPage");
+              break;
+            case "$(question) Help & Documentation":
+              focusGUI();
+              vscode.commands.executeCommand("debugg-ai.navigateTo", "/more", true);
+              break;
+            default:
+              // Handle status toggle
+              const targetStatus = getStatusBarStatusFromQuickPickItemLabel(selectedOption);
+              if (targetStatus !== undefined) {
+                setupStatusBar(targetStatus);
+                const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
+                config.update(
+                  "enableE2eTesting",
+                  targetStatus === StatusBarStatus.Active,
+                  vscode.ConfigurationTarget.Global,
+                );
+              }
+              break;
           }
           quickPick.dispose();
         });
@@ -1298,7 +1312,7 @@ const getCommandsMap: (
             value: '3000',
           });
           if (!localPort) {
-            vscode.window.showWarningMessage("No local port provided.");
+            vscode.window.showWarningMessage("⚠️ No local port provided. A port number is required to run the server.");
             return;
           }
           localPortConfig = parseInt(localPort, 10);
@@ -1308,10 +1322,17 @@ const getCommandsMap: (
         const e2eTestRunner = new E2eTestRunner(ide, client);
         const testDescription = await getTestDescription();
         if (!testDescription) {
-          vscode.window.showWarningMessage("No test description provided.");
+          vscode.window.showWarningMessage("⚠️ No test description provided. Please provide a description to create the E2E test.");
           return;
         }
-        await e2eTestRunner.createNewE2eTest(testDescription, localPortConfig);
+        
+        vscode.window.showInformationMessage(`🚀 Starting E2E test creation: ${testDescription}`);
+        try {
+          await e2eTestRunner.createNewE2eTest(testDescription, localPortConfig);
+          vscode.window.showInformationMessage(`✅ E2E test created successfully: ${testDescription}`);
+        } catch (error) {
+          vscode.window.showErrorMessage(`❌ Failed to create E2E test: ${error instanceof Error ? error.message : String(error)}`);
+        }
       },
       "debugg-ai.runE2eTest": async () => {
         // Should handle listing tests and selecting one
@@ -1334,10 +1355,17 @@ const getCommandsMap: (
         );
         const testDescription = await getTestDescription();
         if (!testDescription) {
-          vscode.window.showWarningMessage("No test description provided.");
+          vscode.window.showWarningMessage("⚠️ No test description provided. Please provide a description to run the E2E test.");
           return;
         }
-        await e2eTestRunner.runE2eTest(testDescription, localPortConfig ?? 3000);
+        
+        vscode.window.showInformationMessage(`🏃 Starting E2E test run: ${testDescription}`);
+        try {
+          await e2eTestRunner.runE2eTest(testDescription, localPortConfig ?? 3000);
+          vscode.window.showInformationMessage(`✅ E2E test completed: ${testDescription}`);
+        } catch (error) {
+          vscode.window.showErrorMessage(`❌ E2E test failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
       },
       "debugg-ai.runE2eSuiteGenerator": async (description?: string) => {
         captureCommandTelemetry("debugg-ai.runE2eSuiteGenerator");
@@ -1362,7 +1390,7 @@ const getCommandsMap: (
             value: '3000',
           });
           if (!localPort) {
-            vscode.window.showWarningMessage("No local port provided.");
+            vscode.window.showWarningMessage("⚠️ No local port provided. A port number is required to run the server.");
             return;
           }
           localPortConfig = parseInt(localPort, 10);
@@ -1372,10 +1400,17 @@ const getCommandsMap: (
         const e2eSuiteGenerator = new E2eSuiteGenerator(client);
         const testDescription = await getTestDescription();
         if (!testDescription) {
-          vscode.window.showWarningMessage("No test description provided.");
+          vscode.window.showWarningMessage("⚠️ No test description provided. Please provide a description to generate the E2E test suite.");
           return;
         }
-        await e2eSuiteGenerator.runE2eSuiteGenerator(testDescription, localPortConfig);
+        
+        vscode.window.showInformationMessage(`🔧 Generating E2E test suite for: ${testDescription}`);
+        try {
+          await e2eSuiteGenerator.runE2eSuiteGenerator(testDescription, localPortConfig);
+          vscode.window.showInformationMessage(`✅ E2E test suite generated successfully for: ${testDescription}`);
+        } catch (error) {
+          vscode.window.showErrorMessage(`❌ Failed to generate E2E test suite: ${error instanceof Error ? error.message : String(error)}`);
+        }
 
       },
       "debugg-ai.runE2eTestSuite": async (uuid?: string) => {
@@ -1386,7 +1421,7 @@ const getCommandsMap: (
 
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-          vscode.window.showWarningMessage("No file open.");
+          vscode.window.showWarningMessage("⚠️ No file is currently open. Please open a file from your repository first.");
           return;
         }
         const { repoName, repoPath, branchName } = await client.getRepoInfo(editor.document.uri.fsPath);
@@ -1397,7 +1432,7 @@ const getCommandsMap: (
         if (uuid) {
           selectedSuite = await client.e2es?.getE2eTestSuite(uuid) ?? undefined;
           if (!selectedSuite) {
-            vscode.window.showWarningMessage("No E2E test suite found.");
+            vscode.window.showWarningMessage("⚠️ Selected E2E test suite not found. Please try selecting a different suite.");
             return;
           }
         } else {
@@ -1408,7 +1443,7 @@ const getCommandsMap: (
           });
           const testSuites = testSuitesPaginated?.results ?? [];
           if (!testSuites || !testSuites.length) {
-            vscode.window.showWarningMessage("No E2E test suites found.");
+            vscode.window.showWarningMessage("⚠️ No E2E test suites found. Create a test suite first using the 'Generate E2E Test Suite' command.");
             return;
           }
 
@@ -1427,7 +1462,7 @@ const getCommandsMap: (
           if (!selected) {return;}
           selectedSuite = testSuites.find((suite: E2eTestSuite) => suite.uuid === selected.uuid);
           if (!selectedSuite) {
-            vscode.window.showWarningMessage("No E2E test suite found.");
+            vscode.window.showWarningMessage("⚠️ Selected E2E test suite not found. Please try selecting a different suite.");
             return;
           }
         }
@@ -1440,14 +1475,20 @@ const getCommandsMap: (
             value: '3000',
           });
           if (!localPort) {
-            vscode.window.showWarningMessage("No local port provided.");
+            vscode.window.showWarningMessage("⚠️ No local port provided. A port number is required to run the server.");
             return;
           }
           localPortConfig = parseInt(localPort, 10);
         }
         console.log("Local port config - ", localPortConfig);
-        const e2eSuiteGenerator = new E2eSuiteGenerator(client);
-        await e2eSuiteGenerator.runE2eSuiteGenerator(selectedSuite?.description ?? "", localPortConfig, selectedSuite);
+        vscode.window.showInformationMessage(`🏃 Running E2E test suite: ${selectedSuite.name}`);
+        try {
+          const e2eSuiteGenerator = new E2eSuiteGenerator(client);
+          await e2eSuiteGenerator.runE2eSuiteGenerator(selectedSuite?.description ?? "", localPortConfig, selectedSuite);
+          vscode.window.showInformationMessage(`✅ E2E test suite completed: ${selectedSuite.name}`);
+        } catch (error) {
+          vscode.window.showErrorMessage(`❌ E2E test suite failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
 
       },
       "debugg-ai.startTunnel": async (port: number, domain: string) => {
@@ -1485,7 +1526,7 @@ const getCommandsMap: (
           commitTester.stopMonitoring();
           vscode.window.showInformationMessage("Commit testing stopped");
         } else {
-          vscode.window.showWarningMessage("Commit testing was not running");
+          vscode.window.showWarningMessage("⚠️ Commit testing was not running. Start commit testing first using the 'Start Commit Testing' command.");
         }
       },
 
@@ -1548,9 +1589,11 @@ const getCommandsMap: (
 
         try {
           if (changes.workingChanges.changes.length === 0) {
-            vscode.window.showWarningMessage("No changes to generate tests for");
+            vscode.window.showWarningMessage("⚠️ No working changes found. Make some code changes first, then run this command to generate tests.");
             return;
           }
+          
+          vscode.window.showInformationMessage("🤖 Generating tests for your working changes...");
           // Actually run the handler to process the request
           await aiE2eAgent.testHandler.run();
 
@@ -1596,9 +1639,9 @@ const getCommandsMap: (
               }
             }
             if (testObject.runStatus === "completed") {
-              vscode.window.showInformationMessage("Tests generated successfully");
+              vscode.window.showInformationMessage(`✅ Tests generated successfully! ${tests?.length || 0} test(s) created.`);
             } else {
-              vscode.window.showErrorMessage("Tests generation failed");
+              vscode.window.showErrorMessage(`❌ Test generation failed with status: ${testObject.runStatus}`);
             }
           }
         } catch (error) {

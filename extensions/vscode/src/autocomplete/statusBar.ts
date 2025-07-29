@@ -1,28 +1,28 @@
-import { ILLM } from "core";
-import { EXTENSION_NAME } from "core/control-plane/env";
 import * as vscode from "vscode";
 
-import { Battery } from "../util/battery";
 import {
   CONTINUE_WORKSPACE_KEY,
   getContinueWorkspaceConfig,
 } from "../util/workspaceConfig";
 
 export enum StatusBarStatus {
-  Disabled,
-  Enabled,
-  Paused,
+  Inactive,
+  Active,
+  Running,
+  Error,
 }
 
 export const quickPickStatusText = (status: StatusBarStatus | undefined) => {
   switch (status) {
     case undefined:
-    case StatusBarStatus.Disabled:
-      return "$(circle-slash) Disable autocomplete";
-    case StatusBarStatus.Enabled:
-      return "$(check) Enable autocomplete";
-    case StatusBarStatus.Paused:
-      return "$(debug-pause) Pause autocomplete";
+    case StatusBarStatus.Inactive:
+      return "$(circle-slash) E2E Testing Inactive";
+    case StatusBarStatus.Active:
+      return "$(check) E2E Testing Active";
+    case StatusBarStatus.Running:
+      return "$(play) E2E Test Running";
+    case StatusBarStatus.Error:
+      return "$(alert) E2E Testing Error";
   }
 };
 
@@ -30,12 +30,14 @@ export const getStatusBarStatusFromQuickPickItemLabel = (
   label: string,
 ): StatusBarStatus | undefined => {
   switch (label) {
-    case "$(circle-slash) Disable autocomplete":
-      return StatusBarStatus.Disabled;
-    case "$(check) Enable autocomplete":
-      return StatusBarStatus.Enabled;
-    case "$(debug-pause) Pause autocomplete":
-      return StatusBarStatus.Paused;
+    case "$(circle-slash) E2E Testing Inactive":
+      return StatusBarStatus.Inactive;
+    case "$(check) E2E Testing Active":
+      return StatusBarStatus.Active;
+    case "$(play) E2E Test Running":
+      return StatusBarStatus.Running;
+    case "$(alert) E2E Testing Error":
+      return StatusBarStatus.Error;
     default:
       return undefined;
   }
@@ -47,32 +49,36 @@ const statusBarItemText = (
   error?: boolean,
 ) => {
   if (error) {
-    return "$(alert) Debugg AI (FATAL ERROR)";
+    return "$(alert) DebuggAI (ERROR)";
   }
 
   switch (status) {
     case undefined:
       if (loading) {
-        return "$(loading~spin) Debugg AI";
+        return "$(loading~spin) DebuggAI";
       }
-    case StatusBarStatus.Disabled:
-      return "$(circle-slash) Debugg AI";
-    case StatusBarStatus.Enabled:
-      return "$(check) Debugg AI";
-    case StatusBarStatus.Paused:
-      return "$(debug-pause) Debugg AI";
+    case StatusBarStatus.Inactive:
+      return "$(circle-slash) DebuggAI";
+    case StatusBarStatus.Active:
+      return "$(check) DebuggAI";
+    case StatusBarStatus.Running:
+      return "$(play) DebuggAI";
+    case StatusBarStatus.Error:
+      return "$(alert) DebuggAI";
   }
 };
 
 const statusBarItemTooltip = (status: StatusBarStatus | undefined) => {
   switch (status) {
     case undefined:
-    case StatusBarStatus.Disabled:
-      return "Click to enable tab autocomplete";
-    case StatusBarStatus.Enabled:
-      return "Tab autocomplete is enabled";
-    case StatusBarStatus.Paused:
-      return "Tab autocomplete is paused";
+    case StatusBarStatus.Inactive:
+      return "Click to access E2E testing tools and options";
+    case StatusBarStatus.Active:
+      return "E2E testing tools are active - Click for options";
+    case StatusBarStatus.Running:
+      return "E2E test is currently running - Click for details";
+    case StatusBarStatus.Error:
+      return "E2E testing error occurred - Click for details";
   }
 };
 
@@ -83,7 +89,7 @@ let statusBarError: boolean = false;
 
 export function stopStatusBarLoading() {
   statusBarFalseTimeout = setTimeout(() => {
-    setupStatusBar(StatusBarStatus.Enabled, false);
+    setupStatusBar(StatusBarStatus.Active, false);
   }, 100);
 }
 
@@ -123,7 +129,7 @@ export function setupStatusBar(
 
   statusBarItem.text = statusBarItemText(status, loading, statusBarError);
   statusBarItem.tooltip = statusBarItemTooltip(status ?? statusBarStatus);
-  statusBarItem.command = "debugg-ai.openTabAutocompleteConfigMenu";
+  statusBarItem.command = "debugg-ai.openE2eTestingMenu";
 
   statusBarItem.show();
   if (status !== undefined) {
@@ -133,13 +139,13 @@ export function setupStatusBar(
   vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration(CONTINUE_WORKSPACE_KEY)) {
       const enabled = getContinueWorkspaceConfig().get<boolean>(
-        "enableTabAutocomplete",
+        "enableE2eTesting",
       );
-      if (enabled && statusBarStatus === StatusBarStatus.Paused) {
+      if (enabled && statusBarStatus === StatusBarStatus.Running) {
         return;
       }
       setupStatusBar(
-        enabled ? StatusBarStatus.Enabled : StatusBarStatus.Disabled,
+        enabled ? StatusBarStatus.Active : StatusBarStatus.Inactive,
       );
     }
   });
@@ -149,53 +155,46 @@ export function getStatusBarStatus(): StatusBarStatus | undefined {
   return statusBarStatus;
 }
 
-export function monitorBatteryChanges(battery: Battery): vscode.Disposable {
-  return battery.onChangeAC((acConnected: boolean) => {
-    const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
-    const enabled = config.get<boolean>("enableTabAutocomplete");
-    if (!!enabled) {
-      const pauseOnBattery = config.get<boolean>(
-        "pauseTabAutocompleteOnBattery",
-      );
-      setupStatusBar(
-        acConnected || !pauseOnBattery
-          ? StatusBarStatus.Enabled
-          : StatusBarStatus.Paused,
-      );
-    }
-  });
+export function monitorE2eTestingStatus(): vscode.Disposable {
+  // Monitor E2E testing status changes instead of battery
+  return vscode.Disposable.from(
+    vscode.commands.registerCommand('debugg-ai.updateE2eStatus', (status: StatusBarStatus) => {
+      setupStatusBar(status);
+    })
+  );
 }
 
-export function getAutocompleteStatusBarDescription(
-  selected: string | undefined,
-  { title, apiKey, providerName }: ILLM,
+export function getE2eTestingStatusBarDescription(
+  status: StatusBarStatus | undefined,
+  testCount?: number,
 ): string | undefined {
-  if (title !== selected) {
-    return undefined;
+  switch (status) {
+    case StatusBarStatus.Active:
+      return testCount ? `${testCount} E2E tests available` : "E2E testing ready";
+    case StatusBarStatus.Running:
+      return "E2E test in progress...";
+    case StatusBarStatus.Error:
+      return "E2E testing error - check logs";
+    case StatusBarStatus.Inactive:
+    default:
+      return "E2E testing inactive";
   }
-
-  let description = "Current autocomplete model";
-
-  // Only set for Mistral since our default config includes Codestral without
-  // an API key
-  if ((apiKey === undefined || apiKey === "") && providerName === "mistral") {
-    description += " (Missing API key)";
-  }
-
-  return description;
 }
 
-export function getAutocompleteStatusBarTitle(
-  selected: string | undefined,
-  { title }: ILLM,
+export function getE2eTestingStatusBarTitle(
+  status: StatusBarStatus | undefined,
+  testName?: string,
 ): string {
-  if (!title) {
-    return "Unnamed Model";
+  if (!testName) {
+    return "E2E Testing";
   }
 
-  if (title === selected) {
-    return `$(check) ${title}`;
+  switch (status) {
+    case StatusBarStatus.Running:
+      return `$(play) ${testName}`;
+    case StatusBarStatus.Error:
+      return `$(alert) ${testName}`;
+    default:
+      return `$(check) ${testName}`;
   }
-
-  return title;
 }
