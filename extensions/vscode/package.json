@@ -2,7 +2,7 @@
   "name": "debugg-ai",
   "icon": "media/icon.png",
   "author": "Debugg Inc",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "repository": {
     "type": "git",
     "url": "https://github.com/debugg-ai/debugg-ai-extensions"
