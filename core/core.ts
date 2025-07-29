@@ -1348,7 +1348,7 @@ export class Core {
       // Execute VS Code command to run the suite
       this.send("executeVSCodeCommand", {
         command: "debugg-ai.runE2eTestSuite",
-        args: []
+        args: [suiteId]
       });
 
       // Show user feedback

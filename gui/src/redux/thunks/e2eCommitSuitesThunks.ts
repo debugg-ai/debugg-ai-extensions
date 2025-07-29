@@ -68,7 +68,33 @@ export const runE2eCommitSuite = createAsyncThunk<
   }
 );
 
-// Create E2E Commit Suite
+// Create E2E Commit Suite - IDE handles user input
+export const createE2eCommitSuiteWithIdeInput = createAsyncThunk<
+  E2eTestCommitSuite | null,
+  void,
+  ThunkApiType
+>(
+  "e2eCommitSuites/createWithIdeInput",
+  async (_, { extra }) => {
+    console.log("requesting IDE to create E2E commit suite...");
+
+    const result = await extra.ideMessenger.request("e2eCommitSuites/create", {
+      description: "", // Empty description signals IDE to prompt for input
+      commitHash: undefined,
+      branchName: undefined,
+      filePath: undefined,
+      repoName: undefined
+    });
+
+    if (result?.status === "error") {
+      throw new Error(result.error);
+    }
+
+    return result?.content;
+  }
+);
+
+// Create E2E Commit Suite - with provided data
 export const createE2eCommitSuite = createAsyncThunk<
   E2eTestCommitSuite | null,
   { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string },

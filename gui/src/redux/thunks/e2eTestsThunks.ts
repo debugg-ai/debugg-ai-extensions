@@ -72,7 +72,7 @@ export const createE2eTest = createAsyncThunk<
   { description: string; filePath?: string; repoName?: string; branchName?: string },
   ThunkApiType
 >(
-  "e2eTests/createE2eTest",
+  "e2eTests/create",
   async ({ description, filePath, repoName, branchName }, { extra }) => {
     const result = await extra.ideMessenger.request("e2eTests/create", {
       description,

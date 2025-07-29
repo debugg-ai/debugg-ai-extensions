@@ -68,7 +68,32 @@ export const runE2eSuite = createAsyncThunk<
   }
 );
 
-// Create E2E Suite
+// Create E2E Suite - IDE handles user input
+export const createE2eSuiteWithIdeInput = createAsyncThunk<
+  E2eTestSuite | null,
+  void,
+  ThunkApiType
+>(
+  "e2eSuites/createWithIdeInput",
+  async (_, { extra }) => {
+    console.log("requesting IDE to create E2E suite...");
+
+    const result = await extra.ideMessenger.request("e2eSuites/create", {
+      description: "", // Empty description signals IDE to prompt for input
+      filePath: undefined,
+      repoName: undefined,
+      branchName: undefined
+    });
+
+    if (result?.status === "error") {
+      throw new Error(result.error);
+    }
+
+    return result?.content;
+  }
+);
+
+// Create E2E Suite - with provided data
 export const createE2eSuite = createAsyncThunk<
   E2eTestSuite | null,
   { description: string; filePath?: string; repoName?: string; branchName?: string },

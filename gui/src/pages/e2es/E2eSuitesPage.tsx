@@ -12,130 +12,17 @@ import {
 import type { E2eTestSuite } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Pagination } from "../../components/Pagination";
+import type { PaginationInfo } from "../../components/Pagination";
 import { PlatformOnboardingCard } from "../../components/OnboardingCard/platform/PlatformOnboardingCard";
 import { useAuth } from "../../context/Auth";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { createE2eSuite, fetchE2eSuites, runE2eSuite } from "../../redux/thunks/e2eSuitesThunks";
+import { setCurrentPagination } from "../../redux/slices/e2eSuitesSlice";
+import { createE2eSuiteWithIdeInput, fetchE2eSuites, runE2eSuite } from "../../redux/thunks/e2eSuitesThunks";
 import { formatUserWithPrefix } from "../../util/userDisplay";
 
-interface CreateSuiteModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: { description: string; filePath?: string; repoName?: string; branchName?: string }) => Promise<void>;
-  loading: boolean;
-}
-
-// Create Suite Modal Component
-function CreateSuiteModal({ isOpen, onClose, onSubmit, loading }: CreateSuiteModalProps) {
-  const [description, setDescription] = useState('');
-  const [filePath, setFilePath] = useState('');
-  const [repoName, setRepoName] = useState('');
-  const [branchName, setBranchName] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (description.trim()) {
-      await onSubmit({
-        description: description.trim(),
-        filePath: filePath.trim() || undefined,
-        repoName: repoName.trim() || undefined,
-        branchName: branchName.trim() || undefined,
-      });
-      // Reset form
-      setDescription('');
-      setFilePath('');
-      setRepoName('');
-      setBranchName('');
-      onClose();
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-vsc-editor-background border border-vsc-input-border rounded-sm w-full max-w-md">
-        <div className="p-4 border-b border-vsc-panel-border">
-          <h3 className="text-sm font-medium text-vsc-foreground">Create New E2E Suite</h3>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-4 space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-vsc-foreground mb-1">
-              Description *
-            </label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-2 py-1 text-xs bg-vsc-input-background border border-vsc-input-border rounded-sm text-vsc-input-foreground focus:outline-none focus:border-vsc-focusBorder"
-              placeholder="Enter suite description..."
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-vsc-foreground mb-1">
-              File Path
-            </label>
-            <input
-              type="text"
-              value={filePath}
-              onChange={(e) => setFilePath(e.target.value)}
-              className="w-full px-2 py-1 text-xs bg-vsc-input-background border border-vsc-input-border rounded-sm text-vsc-input-foreground focus:outline-none focus:border-vsc-focusBorder"
-              placeholder="Optional file path..."
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-vsc-foreground mb-1">
-              Repository Name
-            </label>
-            <input
-              type="text"
-              value={repoName}
-              onChange={(e) => setRepoName(e.target.value)}
-              className="w-full px-2 py-1 text-xs bg-vsc-input-background border border-vsc-input-border rounded-sm text-vsc-input-foreground focus:outline-none focus:border-vsc-focusBorder"
-              placeholder="Optional repo name..."
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-vsc-foreground mb-1">
-              Branch Name
-            </label>
-            <input
-              type="text"
-              value={branchName}
-              onChange={(e) => setBranchName(e.target.value)}
-              className="w-full px-2 py-1 text-xs bg-vsc-input-background border border-vsc-input-border rounded-sm text-vsc-input-foreground focus:outline-none focus:border-vsc-focusBorder"
-              placeholder="Optional branch name..."
-            />
-          </div>
-          
-          <div className="flex justify-end space-x-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1 text-xs font-medium text-vsc-button-secondaryForeground bg-vsc-button-secondaryBackground rounded-sm hover:bg-vsc-button-secondaryHoverBackground transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !description.trim()}
-              className="px-3 py-1 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors disabled:opacity-50"
-            >
-              {loading ? 'Creating...' : 'Create'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 // Loading State Component
 function LoadingState() {
@@ -173,6 +60,7 @@ function E2eSuitesPage() {
   
   // Redux state
   const suites = useAppSelector((store) => store.e2eSuites.items);
+  const suitesList = useAppSelector((store) => store.e2eSuites.suitesList);
   const loading = useAppSelector((store) => store.e2eSuites.loading);
   const error = useAppSelector((store) => store.e2eSuites.error);
   const currentFilters = useAppSelector((store) => store.e2eSuites.currentFilters);
@@ -180,8 +68,6 @@ function E2eSuitesPage() {
 
   // Local state for UI controls
   const [refreshing, setRefreshing] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [createLoading, setCreateLoading] = useState(false);
 
   // Refs for cleanup
   const mountedRef = useRef(true);
@@ -223,32 +109,16 @@ function E2eSuitesPage() {
     };
   }, []);
 
-  // Modal handlers
-  const handleOpenModal = useCallback(() => {
-    if (mountedRef.current) {
-      setIsCreateModalOpen(true);
-    }
-  }, []);
-
-  const handleCloseModal = useCallback(() => {
-    if (mountedRef.current) {
-      setIsCreateModalOpen(false);
-    }
-  }, []);
-
-  const handleCreateSuite = useCallback(async (data: { description: string; filePath?: string; repoName?: string; branchName?: string }) => {
+  // Create suite handler - delegates to IDE
+  const handleCreateSuite = useCallback(async () => {
     if (!mountedRef.current) return;
 
     try {
-      setCreateLoading(true);
-      await dispatch(createE2eSuite(data)).unwrap();
+      await dispatch(createE2eSuiteWithIdeInput()).unwrap();
+      // Refresh the list after creation
       await handleRefresh();
     } catch (error) {
       console.error('Error creating suite:', error);
-    } finally {
-      if (mountedRef.current) {
-        setCreateLoading(false);
-      }
     }
   }, [dispatch, handleRefresh]);
 
@@ -264,6 +134,17 @@ function E2eSuitesPage() {
   const handleViewSuite = useCallback((suite: E2eTestSuite) => {
     navigate(`/e2e-suites/${suite.uuid}`);
   }, [navigate]);
+
+  // Pagination handlers
+  const handlePageChange = useCallback((page: number) => {
+    const newPagination = { ...currentPagination, page };
+    dispatch(setCurrentPagination(newPagination));
+  }, [dispatch, currentPagination]);
+
+  const handlePageSizeChange = useCallback((pageSize: number) => {
+    const newPagination = { page: 1, pageSize }; // Reset to first page when changing page size
+    dispatch(setCurrentPagination(newPagination));
+  }, [dispatch]);
 
   if (!session?.account.id) {
     return (
@@ -319,7 +200,7 @@ function E2eSuitesPage() {
               <p className="text-xs text-vsc-descriptionForeground">Organized test collections</p>
             </div>
             <button
-              onClick={handleOpenModal}
+              onClick={handleCreateSuite}
               className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors"
             >
               <PlusIcon className="h-4 w-4" />
@@ -327,13 +208,7 @@ function E2eSuitesPage() {
             </button>
           </div>
         </div>
-        <EmptyState onCreateSuite={handleOpenModal} />
-        <CreateSuiteModal
-          isOpen={isCreateModalOpen}
-          onClose={handleCloseModal}
-          onSubmit={handleCreateSuite}
-          loading={createLoading}
-        />
+        <EmptyState onCreateSuite={handleCreateSuite} />
       </div>
     );
   }
@@ -357,7 +232,7 @@ function E2eSuitesPage() {
               <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
             <button
-              onClick={handleOpenModal}
+              onClick={handleCreateSuite}
               className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors"
             >
               <PlusIcon className="h-4 w-4" />
@@ -452,13 +327,24 @@ function E2eSuitesPage() {
         </div>
       </div>
 
-      {/* Create Suite Modal */}
-      <CreateSuiteModal
-        isOpen={isCreateModalOpen}
-        onClose={handleCloseModal}
-        onSubmit={handleCreateSuite}
-        loading={createLoading}
-      />
+      {/* Pagination */}
+      {suites.length > 0 && suitesList && (
+        <Pagination
+          pagination={{
+            page: currentPagination.page,
+            pageSize: currentPagination.pageSize,
+            total: suitesList.count || 0,
+            hasNext: suitesList.next !== null,
+            hasPrevious: suitesList.previous !== null,
+          }}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          compact={true}
+          showPageInfo={true}
+          showPageSizeSelector={true}
+        />
+      )}
+
     </div>
   );
 }

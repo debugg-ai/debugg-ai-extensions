@@ -12,146 +12,17 @@ import {
 import type { E2eTestCommitSuite } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Pagination } from "../../components/Pagination";
+import type { PaginationInfo } from "../../components/Pagination";
 import { PlatformOnboardingCard } from "../../components/OnboardingCard/platform/PlatformOnboardingCard";
 import { useAuth } from "../../context/Auth";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { createE2eCommitSuite, fetchE2eCommitSuites, runE2eCommitSuite } from "../../redux/thunks/e2eCommitSuitesThunks";
+import { setCurrentPagination } from "../../redux/slices/e2eCommitSuitesSlice";
+import { createE2eCommitSuiteWithIdeInput, fetchE2eCommitSuites, runE2eCommitSuite } from "../../redux/thunks/e2eCommitSuitesThunks";
 import { formatUserWithPrefix } from "../../util/userDisplay";
 
-interface CreateCommitSuiteModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string }) => Promise<void>;
-  loading: boolean;
-}
-
-// Create Commit Suite Modal Component
-function CreateCommitSuiteModal({ isOpen, onClose, onSubmit, loading }: CreateCommitSuiteModalProps) {
-  const [description, setDescription] = useState('');
-  const [commitHash, setCommitHash] = useState('');
-  const [branchName, setBranchName] = useState('');
-  const [filePath, setFilePath] = useState('');
-  const [repoName, setRepoName] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (description.trim()) {
-      await onSubmit({
-        description: description.trim(),
-        commitHash: commitHash.trim() || undefined,
-        branchName: branchName.trim() || undefined,
-        filePath: filePath.trim() || undefined,
-        repoName: repoName.trim() || undefined,
-      });
-      // Reset form
-      setDescription('');
-      setCommitHash('');
-      setBranchName('');
-      setFilePath('');
-      setRepoName('');
-      onClose();
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-vsc-editor-background border border-vsc-input-border rounded-sm w-full max-w-md">
-        <div className="p-4 border-b border-vsc-panel-border">
-          <h3 className="text-sm font-medium text-vsc-foreground">Create New E2E Commit Suite</h3>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-4 space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-vsc-foreground mb-1">
-              Description *
-            </label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-2 py-1 text-xs bg-vsc-input-background border border-vsc-input-border rounded-sm text-vsc-input-foreground focus:outline-none focus:border-vsc-focusBorder"
-              placeholder="Enter commit suite description..."
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-vsc-foreground mb-1">
-              Commit Hash
-            </label>
-            <input
-              type="text"
-              value={commitHash}
-              onChange={(e) => setCommitHash(e.target.value)}
-              className="w-full px-2 py-1 text-xs bg-vsc-input-background border border-vsc-input-border rounded-sm text-vsc-input-foreground focus:outline-none focus:border-vsc-focusBorder"
-              placeholder="Optional commit hash..."
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-vsc-foreground mb-1">
-              Branch Name
-            </label>
-            <input
-              type="text"
-              value={branchName}
-              onChange={(e) => setBranchName(e.target.value)}
-              className="w-full px-2 py-1 text-xs bg-vsc-input-background border border-vsc-input-border rounded-sm text-vsc-input-foreground focus:outline-none focus:border-vsc-focusBorder"
-              placeholder="Optional branch name..."
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-vsc-foreground mb-1">
-              File Path
-            </label>
-            <input
-              type="text"
-              value={filePath}
-              onChange={(e) => setFilePath(e.target.value)}
-              className="w-full px-2 py-1 text-xs bg-vsc-input-background border border-vsc-input-border rounded-sm text-vsc-input-foreground focus:outline-none focus:border-vsc-focusBorder"
-              placeholder="Optional file path..."
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-vsc-foreground mb-1">
-              Repository Name
-            </label>
-            <input
-              type="text"
-              value={repoName}
-              onChange={(e) => setRepoName(e.target.value)}
-              className="w-full px-2 py-1 text-xs bg-vsc-input-background border border-vsc-input-border rounded-sm text-vsc-input-foreground focus:outline-none focus:border-vsc-focusBorder"
-              placeholder="Optional repo name..."
-            />
-          </div>
-          
-          <div className="flex justify-end space-x-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1 text-xs font-medium text-vsc-button-secondaryForeground bg-vsc-button-secondaryBackground rounded-sm hover:bg-vsc-button-secondaryHoverBackground transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !description.trim()}
-              className="px-3 py-1 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors disabled:opacity-50"
-            >
-              {loading ? 'Creating...' : 'Create'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 // Loading State Component
 function LoadingState() {
@@ -189,6 +60,7 @@ function E2eCommitSuitesPage() {
   
   // Redux state
   const commitSuites = useAppSelector((store) => store.e2eCommitSuites.items);
+  const commitSuitesList = useAppSelector((store) => store.e2eCommitSuites.commitSuitesList);
   const loading = useAppSelector((store) => store.e2eCommitSuites.loading);
   const error = useAppSelector((store) => store.e2eCommitSuites.error);
   const currentFilters = useAppSelector((store) => store.e2eCommitSuites.currentFilters);
@@ -196,8 +68,6 @@ function E2eCommitSuitesPage() {
 
   // Local state for UI controls
   const [refreshing, setRefreshing] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [createLoading, setCreateLoading] = useState(false);
 
   // Refs for cleanup
   const mountedRef = useRef(true);
@@ -238,32 +108,16 @@ function E2eCommitSuitesPage() {
     };
   }, []);
 
-  // Modal handlers
-  const handleOpenModal = useCallback(() => {
-    if (mountedRef.current) {
-      setIsCreateModalOpen(true);
-    }
-  }, []);
-
-  const handleCloseModal = useCallback(() => {
-    if (mountedRef.current) {
-      setIsCreateModalOpen(false);
-    }
-  }, []);
-
-  const handleCreateCommitSuite = useCallback(async (data: { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string }) => {
+  // Create commit suite handler - delegates to IDE
+  const handleCreateCommitSuite = useCallback(async () => {
     if (!mountedRef.current) return;
 
     try {
-      setCreateLoading(true);
-      await dispatch(createE2eCommitSuite(data)).unwrap();
+      await dispatch(createE2eCommitSuiteWithIdeInput()).unwrap();
+      // Refresh the list after creation
       await handleRefresh();
     } catch (error) {
       console.error('Error creating commit suite:', error);
-    } finally {
-      if (mountedRef.current) {
-        setCreateLoading(false);
-      }
     }
   }, [dispatch, handleRefresh]);
 
@@ -279,6 +133,17 @@ function E2eCommitSuitesPage() {
   const handleViewCommitSuite = useCallback((suite: E2eTestCommitSuite) => {
     navigate(`/e2e-commit-suites/${suite.uuid}`);
   }, [navigate]);
+
+  // Pagination handlers
+  const handlePageChange = useCallback((page: number) => {
+    const newPagination = { ...currentPagination, page };
+    dispatch(setCurrentPagination(newPagination));
+  }, [dispatch, currentPagination]);
+
+  const handlePageSizeChange = useCallback((pageSize: number) => {
+    const newPagination = { page: 1, pageSize }; // Reset to first page when changing page size
+    dispatch(setCurrentPagination(newPagination));
+  }, [dispatch]);
 
   if (!session?.account.id) {
     return (
@@ -334,7 +199,7 @@ function E2eCommitSuitesPage() {
               <p className="text-xs text-vsc-descriptionForeground">Tests for commit changes</p>
             </div>
             <button
-              onClick={handleOpenModal}
+              onClick={handleCreateCommitSuite}
               className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors"
             >
               <PlusIcon className="h-4 w-4" />
@@ -342,13 +207,7 @@ function E2eCommitSuitesPage() {
             </button>
           </div>
         </div>
-        <EmptyState onCreateCommitSuite={handleOpenModal} />
-        <CreateCommitSuiteModal
-          isOpen={isCreateModalOpen}
-          onClose={handleCloseModal}
-          onSubmit={handleCreateCommitSuite}
-          loading={createLoading}
-        />
+        <EmptyState onCreateCommitSuite={handleCreateCommitSuite} />
       </div>
     );
   }
@@ -372,7 +231,7 @@ function E2eCommitSuitesPage() {
               <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
             <button
-              onClick={handleOpenModal}
+              onClick={handleCreateCommitSuite}
               className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors"
             >
               <PlusIcon className="h-4 w-4" />
@@ -476,13 +335,24 @@ function E2eCommitSuitesPage() {
         </div>
       </div>
 
-      {/* Create Commit Suite Modal */}
-      <CreateCommitSuiteModal
-        isOpen={isCreateModalOpen}
-        onClose={handleCloseModal}
-        onSubmit={handleCreateCommitSuite}
-        loading={createLoading}
-      />
+      {/* Pagination */}
+      {commitSuites.length > 0 && commitSuitesList && (
+        <Pagination
+          pagination={{
+            page: currentPagination.page,
+            pageSize: currentPagination.pageSize,
+            total: commitSuitesList.count || 0,
+            hasNext: commitSuitesList.next !== null,
+            hasPrevious: commitSuitesList.previous !== null,
+          }}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          compact={true}
+          showPageInfo={true}
+          showPageSizeSelector={true}
+        />
+      )}
+
     </div>
   );
 }
