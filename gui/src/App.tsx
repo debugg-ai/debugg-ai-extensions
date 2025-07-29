@@ -9,6 +9,7 @@ import ConfigErrorPage from "./pages/config-error";
 import E2es from "./pages/e2es";
 import E2eCommitSuiteDetailPage from "./pages/e2es/E2eCommitSuiteDetailPage";
 import E2eCommitSuitesPage from "./pages/e2es/E2eCommitSuitesPage";
+import E2eSuiteDetailPage from "./pages/e2es/E2eSuiteDetailPage";
 import E2eSuitesPage from "./pages/e2es/E2eSuitesPage";
 import ErrorPage from "./pages/error";
 import Chat from "./pages/gui";
@@ -39,6 +40,10 @@ const router = createMemoryRouter([
       {
         path: ROUTES.E2E_SUITES,
         element: <E2eSuitesPage />,
+      },
+      {
+        path: "/e2e-suites/:suiteId",
+        element: <E2eSuiteDetailPage />,
       },
       {
         path: ROUTES.E2E_COMMIT_SUITES,

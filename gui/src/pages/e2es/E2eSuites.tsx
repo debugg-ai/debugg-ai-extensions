@@ -1,14 +1,14 @@
 import {
-    ArrowPathIcon,
-    CalendarIcon,
-    CheckCircleIcon,
-    ClockIcon,
-    ExclamationTriangleIcon,
-    EyeIcon,
-    FolderOpenIcon,
-    PlayIcon,
-    PlusIcon,
-    UserIcon
+  ArrowPathIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+  EyeIcon,
+  FolderOpenIcon,
+  PlayIcon,
+  PlusIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 import type { E2eTestSuite } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -158,7 +158,6 @@ function E2eSuites() {
 
   // Fetch suites data
   const handleRefresh = useCallback(async () => {
-    if (!mountedRef.current) return;
 
     try {
       setRefreshing(true);

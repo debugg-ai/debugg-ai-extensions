@@ -261,7 +261,7 @@ export interface E2eTestSuite {
     description?: string | null;
     project: number; // typically an ID
     host?: number | null;
-    createdBy?: number | null;
+    createdBy?: PublicUserInfo | null;
     completed?: boolean;
     completedAt?: string | null;
     tests?: E2eTest[];

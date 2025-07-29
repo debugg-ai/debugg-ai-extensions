@@ -4,10 +4,10 @@ import {
   CalendarIcon,
   CheckCircleIcon,
   ClockIcon,
-  CodeBracketIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
   EyeIcon,
+  FolderOpenIcon,
   PlayIcon,
   UserIcon,
   XCircleIcon
@@ -15,37 +15,40 @@ import {
 import type { E2eTest } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import E2eCommitSuiteErrorBoundary from "../../components/ErrorBoundary/E2eCommitSuiteErrorBoundary";
 import { PlatformOnboardingCard } from "../../components/OnboardingCard/platform/PlatformOnboardingCard";
 import { useAuth } from "../../context/Auth";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { getE2eCommitSuite, runE2eCommitSuite } from "../../redux/thunks/e2eCommitSuitesThunks";
-import { e2eCommitSuiteLogger, performanceMonitor } from "../../util/logging";
+import { getE2eSuite, runE2eSuite } from "../../redux/thunks/e2eSuitesThunks";
 import { formatUserWithPrefix } from "../../util/userDisplay";
 
-// Status badge component for commit suites
+// Status badge component for suites
 interface StatusBadgeProps {
-  status: string;
+  completed?: boolean;
+  completedAt?: string | null;
 }
 
-function StatusBadge({ status }: StatusBadgeProps) {
-  const statusConfig = {
-    running: { icon: ClockIcon, bgColor: 'bg-blue-100', textColor: 'text-blue-800', label: 'Running' },
-    pending: { icon: ClockIcon, bgColor: 'bg-gray-100', textColor: 'text-gray-800', label: 'Pending' },
-    completed: { icon: CheckCircleIcon, bgColor: 'bg-green-100', textColor: 'text-green-800', label: 'Completed' },
-    cancelled: { icon: XCircleIcon, bgColor: 'bg-gray-100', textColor: 'text-gray-800', label: 'Cancelled' },
-    failed: { icon: ExclamationTriangleIcon, bgColor: 'bg-red-100', textColor: 'text-red-800', label: 'Failed' },
-  };
+function StatusBadge({ completed, completedAt }: StatusBadgeProps) {
+  if (completed === undefined && !completedAt) {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+        <ClockIcon className="h-3 w-3" />
+        Unknown
+      </span>
+    );
+  }
 
-  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-  const { icon: Icon, bgColor, textColor, label } = config;
-
+  const isCompleted = completed || !!completedAt;
+  
   return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${bgColor} ${textColor}`}>
-      <Icon className="h-3 w-3" />
-      {label}
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${
+      isCompleted
+        ? 'bg-green-100 text-green-800'
+        : 'bg-blue-100 text-blue-800'
+    }`}>
+      {isCompleted ? <CheckCircleIcon className="h-3 w-3" /> : <ClockIcon className="h-3 w-3" />}
+      {isCompleted ? 'Completed' : 'In Progress'}
     </span>
   );
 }
@@ -95,7 +98,7 @@ function LoadingState() {
     <div className="flex items-center justify-center py-8">
       <div className="flex items-center gap-2">
         <div className="animate-spin rounded-full h-4 w-4 border-2 border-vsc-button-background border-t-transparent" role="progressbar"></div>
-        <span className="text-xs text-vsc-descriptionForeground">Loading commit suite details...</span>
+        <span className="text-xs text-vsc-descriptionForeground">Loading suite details...</span>
       </div>
     </div>
   );
@@ -107,7 +110,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
     <div className="text-center py-8">
       <ExclamationTriangleIcon className="h-8 w-8 text-vsc-errorForeground mx-auto mb-2" />
       <h3 className="text-sm font-medium text-vsc-foreground mb-1">Error Loading</h3>
-      <p className="text-xs text-vsc-descriptionForeground mb-3">Failed to load commit suite details</p>
+      <p className="text-xs text-vsc-descriptionForeground mb-3">Failed to load suite details</p>
       <button
         onClick={onRetry}
         className="px-3 py-1.5 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors"
@@ -122,120 +125,83 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 function NotFoundState() {
   return (
     <div className="text-center py-8">
-      <DocumentTextIcon className="h-8 w-8 text-vsc-descriptionForeground mx-auto mb-2" />
-      <h3 className="text-sm font-medium text-vsc-foreground mb-1">Commit Suite Not Found</h3>
-      <p className="text-xs text-vsc-descriptionForeground">The requested commit suite could not be found</p>
+      <FolderOpenIcon className="h-8 w-8 text-vsc-descriptionForeground mx-auto mb-2" />
+      <h3 className="text-sm font-medium text-vsc-foreground mb-1">Suite Not Found</h3>
+      <p className="text-xs text-vsc-descriptionForeground">The requested suite could not be found</p>
     </div>
   );
 }
 
-function E2eCommitSuiteDetailPage() {
+function E2eSuiteDetailPage() {
   useNavigationListener();
   const { session } = useAuth();
   const navigate = useNavigate();
   const { suiteId } = useParams<{ suiteId: string }>();
   const [searchParams] = useSearchParams();
-  const commitSuiteId = suiteId || searchParams.get('commitSuiteId');
+  const suiteUuid = suiteId || searchParams.get('suiteId');
   const ideMessenger = useContext(IdeMessengerContext);
   const dispatch = useAppDispatch();
   
-  // Production-ready logging helper
-  const log = useCallback((message: string, data?: any) => {
-    e2eCommitSuiteLogger.debug(message, { data });
-  }, []);
-
   // State
   const {
-    commitSuiteDetail: commitSuite,
+    suiteDetail: suite,
     loading,
     error,
-  } = useAppSelector((state) => state.e2eCommitSuites);
+  } = useAppSelector((state) => state.e2eSuites);
 
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'tests'>('overview');
 
-  // Log initial state
-  useEffect(() => {
-    log('Component initialized', {
-      commitSuiteId,
-      hasIdeMessenger: !!ideMessenger,
-      hasSession: !!session?.account.id,
-      initialStates: { loading, error, commitSuite: !!commitSuite }
-    });
-  }, [commitSuiteId, ideMessenger, session, loading, error, commitSuite, log]);
-
   // Refs for cleanup
-  const abortControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
 
-  // Fetch commit suite data when component mounts or commitSuiteId changes
+  // Fetch suite data when component mounts or suiteUuid changes
   useEffect(() => {
-    log('useEffect triggered', { commitSuiteId, hasIdeMessenger: !!ideMessenger });
-    
-    if (!commitSuiteId) {
-      log('No commitSuiteId provided');
-      return;
-    }
-
-    if (!ideMessenger) {
-      log('No ideMessenger available, waiting...');
-      return;
-    }
-
-    log('Starting API fetch', { commitSuiteId });
-    performanceMonitor.start('fetchCommitSuite');
+    if (!suiteUuid || !ideMessenger) return;
 
     // Dispatch the thunk - Redux will handle loading states
-    dispatch(getE2eCommitSuite(commitSuiteId));
-  }, [commitSuiteId, ideMessenger, dispatch, log]);
+    dispatch(getE2eSuite(suiteUuid));
+  }, [suiteUuid, ideMessenger, dispatch]);
 
   // Simple refresh function
-  const fetchCommitSuite = useCallback(() => {
-    if (!commitSuiteId || !ideMessenger) return;
-    log('Refreshing commit suite data', { commitSuiteId });
-    dispatch(getE2eCommitSuite(commitSuiteId));
-  }, [commitSuiteId, ideMessenger, dispatch, log]);
+  const fetchSuite = useCallback(() => {
+    if (!suiteUuid || !ideMessenger) return;
+    dispatch(getE2eSuite(suiteUuid));
+  }, [suiteUuid, ideMessenger, dispatch]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      log("Component unmounting, cleaning up...");
       mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
     };
-  }, [log]);
+  }, []);
 
   // Handle refresh
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchCommitSuite();
+    fetchSuite();
     // Reset refreshing state after a short delay
     setTimeout(() => setRefreshing(false), 1000);
-  }, [fetchCommitSuite]);
+  }, [fetchSuite]);
 
   // Handle back navigation
   const handleBack = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    navigate('/e2e-commit-suites');
+    navigate('/e2e-suites');
   }, [navigate]);
 
-  // Handle run commit suite
-  const handleRunCommitSuite = useCallback(async () => {
-    if (!commitSuite) return;
+  // Handle run suite
+  const handleRunSuite = useCallback(async () => {
+    if (!suite) return;
     
     try {
-      log('Running commit suite', { uuid: commitSuite.uuid });
-      await dispatch(runE2eCommitSuite(commitSuite.uuid)).unwrap();
+      console.log('Running suite:', suite.uuid);
+      await dispatch(runE2eSuite(suite.uuid)).unwrap();
       // Refresh the data after running
-      fetchCommitSuite();
+      fetchSuite();
     } catch (error) {
-      console.error('Error running commit suite:', error);
+      console.error('Error running suite:', error);
     }
-  }, [commitSuite, dispatch, fetchCommitSuite, log]);
+  }, [suite, dispatch, fetchSuite]);
 
   // Handle view individual test
   const handleViewTest = useCallback((test: E2eTest) => {
@@ -250,8 +216,8 @@ function E2eCommitSuiteDetailPage() {
       <div className="h-full bg-vsc-editor-background text-vsc-foreground">
         <div className="p-3">
           <div className="mb-3">
-            <h1 className="text-sm font-medium text-vsc-foreground mb-1">Commit Suite Details</h1>
-            <p className="text-xs text-vsc-descriptionForeground">View commit suite information</p>
+            <h1 className="text-sm font-medium text-vsc-foreground mb-1">Suite Details</h1>
+            <p className="text-xs text-vsc-descriptionForeground">View suite information</p>
           </div>
           
           <div className="bg-vsc-input-background border border-vsc-input-border rounded-sm p-3">
@@ -263,18 +229,9 @@ function E2eCommitSuiteDetailPage() {
   }
 
   // Show empty state if loading, error, or no data
-  const shouldShowLoading = loading || error || !commitSuite;
-  
-  log('Render decision', { 
-    loading, 
-    hasError: !!error, 
-    hasCommitSuite: !!commitSuite,
-    shouldShowLoading,
-    errorMessage: error
-  });
+  const shouldShowLoading = loading || error || !suite;
 
   if (shouldShowLoading) {
-    log('Rendering loading/error state', { loading, error: error, hasCommitSuite: !!commitSuite });
     return (
       <div className="h-full bg-vsc-editor-background text-vsc-foreground">
         <div className="p-3 border-b border-vsc-panel-border">
@@ -286,20 +243,15 @@ function E2eCommitSuiteDetailPage() {
             >
               <ArrowLeftIcon className="h-3 w-3" />
             </button>
-            <h1 className="text-sm font-medium text-vsc-foreground">Commit Suite Details</h1>
+            <h1 className="text-sm font-medium text-vsc-foreground">Suite Details</h1>
           </div>
         </div>
         {loading && <LoadingState />}
-        {error && <ErrorState onRetry={fetchCommitSuite} />}
-        {!loading && !error && !commitSuite && <NotFoundState />}
+        {error && <ErrorState onRetry={fetchSuite} />}
+        {!loading && !error && !suite && <NotFoundState />}
       </div>
     );
   }
-
-  log('Rendering main content', { 
-    commitSuiteUuid: commitSuite?.uuid,
-    testsCount: commitSuite?.tests?.length
-  });
 
   return (
     <div className="h-full bg-vsc-editor-background text-vsc-foreground flex flex-col">
@@ -310,19 +262,19 @@ function E2eCommitSuiteDetailPage() {
             <button
               onClick={handleBack}
               className="p-1 text-vsc-tab-inactiveForeground hover:text-vsc-tab-activeForeground hover:bg-vsc-list-hoverBackground rounded-sm transition-colors"
-              title="Back to Commit Suites"
+              title="Back to E2E Suites"
             >
               <ArrowLeftIcon className="h-4 w-4" />
             </button>
             <div className="min-w-0 flex-1">
               <h1 className="text-sm font-medium text-vsc-foreground leading-tight break-words">
-                {commitSuite.description}
+                {suite.name || suite.description || 'Unnamed Suite'}
               </h1>
               <div className="flex items-center space-x-2 mt-1">
                 <span className="text-xs text-vsc-descriptionForeground">
-                  ID: {commitSuite.uuid.slice(0, 8)}
+                  ID: {suite.uuid.slice(0, 8)}
                 </span>
-                <StatusBadge status={commitSuite.runStatus} />
+                <StatusBadge completed={suite.completed} completedAt={suite.completedAt} />
               </div>
             </div>
           </div>
@@ -336,9 +288,9 @@ function E2eCommitSuiteDetailPage() {
               <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
             <button
-              onClick={handleRunCommitSuite}
+              onClick={handleRunSuite}
               className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors"
-              title="Run commit suite"
+              title="Run suite"
             >
               <PlayIcon className="h-3 w-3" />
               <span>Run</span>
@@ -372,7 +324,7 @@ function E2eCommitSuiteDetailPage() {
             onClick={() => setActiveTab('tests')}
           >
             <ClockIcon className="h-4 w-4" />
-            <span className="font-medium">Tests ({commitSuite.tests?.length || 0})</span>
+            <span className="font-medium">Tests ({suite.tests?.length || 0})</span>
           </button>
         </div>
       </div>
@@ -381,34 +333,30 @@ function E2eCommitSuiteDetailPage() {
       <div className="flex-1 overflow-auto p-2">
         {activeTab === 'overview' && (
           <div className="space-y-2">
-            {/* Commit Info */}
+            {/* Suite Info */}
             <div className="bg-vsc-list-inactiveSelectionBackground border border-vsc-panel-border rounded-sm p-2">
-              <h3 className="text-xs font-medium text-vsc-foreground mb-2">Commit Information</h3>
+              <h3 className="text-xs font-medium text-vsc-foreground mb-2">Suite Information</h3>
               <div className="space-y-1 text-xs text-vsc-descriptionForeground">
-                {commitSuite.commitHash && (
+                {suite.name && (
                   <div className="flex items-center space-x-1">
-                    <CodeBracketIcon className="w-3 h-3 flex-shrink-0" />
-                    <span className="font-mono break-words">
-                      {commitSuite.commitHashShort} ({commitSuite.commitHash})
-                    </span>
+                    <DocumentTextIcon className="w-3 h-3 flex-shrink-0" />
+                    <span className="break-words">Name: {suite.name}</span>
                   </div>
                 )}
-                <div className="flex items-center space-x-1">
-                  <DocumentTextIcon className="w-3 h-3 flex-shrink-0" />
-                  <span>Project: {commitSuite.projectName}</span>
-                </div>
+                {suite.description && (
+                  <div className="flex items-center space-x-1">
+                    <DocumentTextIcon className="w-3 h-3 flex-shrink-0" />
+                    <span className="break-words">Description: {suite.description}</span>
+                  </div>
+                )}
+                {suite.key && (
+                  <div className="flex items-center space-x-1">
+                    <DocumentTextIcon className="w-3 h-3 flex-shrink-0" />
+                    <span className="font-mono break-words">Key: {suite.key}</span>
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Changes Summary */}
-            {commitSuite.summarizedChanges && (
-              <div className="bg-vsc-list-inactiveSelectionBackground border border-vsc-panel-border rounded-sm p-2">
-                <h3 className="text-xs font-medium text-vsc-foreground mb-2">Changes Summary</h3>
-                <div className="text-xs text-vsc-descriptionForeground leading-relaxed break-words">
-                  {commitSuite.summarizedChanges}
-                </div>
-              </div>
-            )}
 
             {/* Test Summary */}
             <div className="bg-vsc-list-inactiveSelectionBackground border border-vsc-panel-border rounded-sm p-2">
@@ -416,24 +364,24 @@ function E2eCommitSuiteDetailPage() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <span className="text-vsc-descriptionForeground">Total Tests:</span>
-                  <span className="ml-1 font-medium text-vsc-foreground">{commitSuite.tests.length}</span>
+                  <span className="ml-1 font-medium text-vsc-foreground">{suite.tests?.length || 0}</span>
                 </div>
                 <div>
                   <span className="text-vsc-descriptionForeground">Passed:</span>
                   <span className="ml-1 font-medium text-green-600">
-                    {commitSuite.tests?.filter(t => t?.curRun?.status === 'completed' && t?.curRun?.outcome === 'pass').length || 0}
+                    {suite.tests?.filter(t => t?.curRun?.status === 'completed' && t?.curRun?.outcome === 'pass').length || 0}
                   </span>
                 </div>
                 <div>
                   <span className="text-vsc-descriptionForeground">Running:</span>
                   <span className="ml-1 font-medium text-blue-600">
-                    {commitSuite.tests?.filter(t => t?.curRun?.status === 'running').length || 0}
+                    {suite.tests?.filter(t => t?.curRun?.status === 'running').length || 0}
                   </span>
                 </div>
                 <div>
                   <span className="text-vsc-descriptionForeground">Failed:</span>
                   <span className="ml-1 font-medium text-red-600">
-                    {commitSuite.tests?.filter(t => t?.curRun?.status === 'completed' && t?.curRun?.outcome === 'fail').length || 0}
+                    {suite.tests?.filter(t => t?.curRun?.status === 'completed' && t?.curRun?.outcome === 'fail').length || 0}
                   </span>
                 </div>
               </div>
@@ -445,28 +393,73 @@ function E2eCommitSuiteDetailPage() {
               <div className="space-y-1 text-xs text-vsc-descriptionForeground">
                 <div className="flex items-center space-x-1">
                   <CalendarIcon className="h-3 w-3 flex-shrink-0" />
-                  <span>Created: {new Date(commitSuite.timestamp).toLocaleString()}</span>
+                  <span>Created: {new Date(suite.timestamp).toLocaleString()}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <CalendarIcon className="h-3 w-3 flex-shrink-0" />
-                  <span>Updated: {new Date(commitSuite.lastMod).toLocaleString()}</span>
+                  <span>Updated: {new Date(suite.lastMod).toLocaleString()}</span>
                 </div>
-                {commitSuite.createdBy && (
+                {suite.completedAt && (
+                  <div className="flex items-center space-x-1">
+                    <CheckCircleIcon className="h-3 w-3 flex-shrink-0" />
+                    <span>Completed: {new Date(suite.completedAt).toLocaleString()}</span>
+                  </div>
+                )}
+                {suite.createdBy && (
                   <div className="flex items-center space-x-1">
                     <UserIcon className="h-3 w-3 flex-shrink-0" />
                     <span>
-                      {formatUserWithPrefix(commitSuite.createdBy)}
+                      Created by: {formatUserWithPrefix(suite.createdBy)}
                     </span>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Feature & Environment Info */}
+            {(suite.feature || suite.testType || suite.userRole || suite.deviceType || suite.region) && (
+              <div className="bg-vsc-list-inactiveSelectionBackground border border-vsc-panel-border rounded-sm p-2">
+                <h3 className="text-xs font-medium text-vsc-foreground mb-2">Test Configuration</h3>
+                <div className="space-y-1 text-xs text-vsc-descriptionForeground">
+                  {suite.feature && (
+                    <div>
+                      <span className="text-vsc-foreground">Feature:</span>
+                      <span className="ml-1">{suite.feature.name}</span>
+                    </div>
+                  )}
+                  {suite.testType && (
+                    <div>
+                      <span className="text-vsc-foreground">Test Type:</span>
+                      <span className="ml-1">{suite.testType.name}</span>
+                    </div>
+                  )}
+                  {suite.userRole && (
+                    <div>
+                      <span className="text-vsc-foreground">User Role:</span>
+                      <span className="ml-1">{suite.userRole.name}</span>
+                    </div>
+                  )}
+                  {suite.deviceType && (
+                    <div>
+                      <span className="text-vsc-foreground">Device Type:</span>
+                      <span className="ml-1">{suite.deviceType.name}</span>
+                    </div>
+                  )}
+                  {suite.region && (
+                    <div>
+                      <span className="text-vsc-foreground">Region:</span>
+                      <span className="ml-1">{suite.region.name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'tests' && (
           <div className="space-y-2">
-            {(commitSuite.tests || []).map((test) => (
+            {(suite.tests || []).map((test) => (
               <div
                 key={test.uuid}
                 className="bg-vsc-list-inactiveSelectionBackground border border-vsc-panel-border rounded-sm p-2 hover:bg-vsc-list-hoverBackground transition-colors"
@@ -506,9 +499,9 @@ function E2eCommitSuiteDetailPage() {
               </div>
             ))}
             
-            {(!commitSuite.tests || commitSuite.tests.length === 0) && (
+            {(!suite.tests || suite.tests.length === 0) && (
               <div className="text-center py-4 text-xs text-vsc-descriptionForeground">
-                No tests found in this commit suite
+                No tests found in this suite
               </div>
             )}
           </div>
@@ -518,13 +511,4 @@ function E2eCommitSuiteDetailPage() {
   );
 }
 
-// Wrap with error boundary for better error handling
-function E2eCommitSuiteDetailPageWithBoundary() {
-  return (
-    <E2eCommitSuiteErrorBoundary>
-      <E2eCommitSuiteDetailPage />
-    </E2eCommitSuiteErrorBoundary>
-  );
-}
-
-export default E2eCommitSuiteDetailPageWithBoundary; 
+export default E2eSuiteDetailPage;

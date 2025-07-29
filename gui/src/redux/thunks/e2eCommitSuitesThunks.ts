@@ -28,13 +28,31 @@ export const fetchE2eCommitSuites = createAsyncThunk<
   }
 );
 
+// Get E2E Commit Suite
+export const getE2eCommitSuite = createAsyncThunk<
+  E2eTestCommitSuite | null,
+  string,
+  ThunkApiType
+>(
+  "e2eCommitSuites/getE2eCommitSuite",
+  async (uuid, { extra }) => {
+    const result = await extra.ideMessenger.request("e2eCommitSuites/getE2eCommitSuite", { uuid });
+
+    if (result?.status === "error") {
+      throw new Error(result.error);
+    } 
+
+    return result?.content;
+  }
+);
+
 // Run E2E Commit Suite
 export const runE2eCommitSuite = createAsyncThunk<
   void,
   string,
   ThunkApiType
 >(
-  "e2eCommitSuites/runE2eCommitSuite",
+  "e2eCommitSuites/run",
   async (commitSuiteId, { extra }) => {
     console.log("running E2eCommitSuite...", commitSuiteId);
 
@@ -50,13 +68,63 @@ export const runE2eCommitSuite = createAsyncThunk<
   }
 );
 
+// Create E2E Commit Suite - IDE handles user input
+export const createE2eCommitSuiteWithIdeInput = createAsyncThunk<
+  E2eTestCommitSuite | null,
+  void,
+  ThunkApiType
+>(
+  "e2eCommitSuites/createWithIdeInput",
+  async (_, { extra }) => {
+    console.log("requesting IDE to create E2E commit suite...");
+
+    const result = await extra.ideMessenger.request("e2eCommitSuites/create", {
+      description: "", // Empty description signals IDE to prompt for input
+      commitHash: undefined,
+      branchName: undefined,
+      filePath: undefined,
+      repoName: undefined
+    });
+
+    if (result?.status === "error") {
+      throw new Error(result.error);
+    }
+
+    return result?.content;
+  }
+);
+
+// Create E2E Commit Suite - with provided data
+export const createE2eCommitSuite = createAsyncThunk<
+  E2eTestCommitSuite | null,
+  { description: string; commitHash?: string; branchName?: string; filePath?: string; repoName?: string },
+  ThunkApiType
+>(
+  "e2eCommitSuites/create",
+  async ({ description, commitHash, branchName, filePath, repoName }, { extra }) => {
+    const result = await extra.ideMessenger.request("e2eCommitSuites/create", {
+      description,
+      commitHash,
+      branchName,
+      filePath,
+      repoName,
+    });
+
+    if (result?.status === "error") {
+      throw new Error(result.error);
+    }
+
+    return result.content;
+  }
+);
+
 // Delete E2E Commit Suite
 export const deleteE2eCommitSuite = createAsyncThunk<
   string,
   string,
   ThunkApiType
 >(
-  "e2eCommitSuites/deleteE2eCommitSuite",
+  "e2eCommitSuites/delete",
   async (commitSuiteId, { extra }) => {
     console.log("deleting E2eCommitSuite...", commitSuiteId);
 

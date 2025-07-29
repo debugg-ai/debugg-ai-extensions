@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { E2eTestCommitSuite, PaginatedResponse } from "core/debuggAIServer/types";
-import { deleteE2eCommitSuite, fetchE2eCommitSuites, runE2eCommitSuite } from "../thunks/e2eCommitSuitesThunks";
+import { deleteE2eCommitSuite, fetchE2eCommitSuites, getE2eCommitSuite, runE2eCommitSuite } from "../thunks/e2eCommitSuitesThunks";
 
 // Types for pagination and filters
 export interface Pagination {
@@ -11,6 +11,7 @@ export interface Pagination {
 export interface E2eCommitSuitesState {
   items: E2eTestCommitSuite[];
   commitSuitesList: PaginatedResponse<E2eTestCommitSuite> | null;
+  commitSuiteDetail: E2eTestCommitSuite | null;
   loading: boolean;
   error: string | null;
   currentFilters: Record<string, any>;
@@ -20,6 +21,7 @@ export interface E2eCommitSuitesState {
 const initialState: E2eCommitSuitesState = {
   items: [],
   commitSuitesList: null,
+  commitSuiteDetail: null,
   loading: false,
   error: null,
   currentFilters: {},
@@ -35,6 +37,15 @@ const e2eCommitSuitesSlice = createSlice({
     },
     setCurrentFilters(state, action: PayloadAction<Record<string, any>>) {
       state.currentFilters = action.payload;
+    },
+    setCommitSuiteDetail(state, action: PayloadAction<E2eTestCommitSuite | null>) {
+      state.commitSuiteDetail = action.payload;
+    },
+    setLoading(state, action: PayloadAction<boolean>) {
+      state.loading = action.payload;
+    },
+    setError(state, action: PayloadAction<string | null>) {
+      state.error = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -52,7 +63,18 @@ const e2eCommitSuitesSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || "Failed to fetch E2E commit suites";
       })
-
+      .addCase(getE2eCommitSuite.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getE2eCommitSuite.fulfilled, (state, action) => {
+        state.loading = false;
+        state.commitSuiteDetail = action.payload;
+      })
+      .addCase(getE2eCommitSuite.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to get E2E commit suite";
+      })
       .addCase(runE2eCommitSuite.pending, (state) => {
         state.loading = true;
       })
@@ -82,5 +104,5 @@ const e2eCommitSuitesSlice = createSlice({
   },
 });
 
-export const { setCurrentPagination, setCurrentFilters } = e2eCommitSuitesSlice.actions;
+export const { setCurrentPagination, setCurrentFilters, setCommitSuiteDetail, setLoading, setError } = e2eCommitSuitesSlice.actions;
 export default e2eCommitSuitesSlice.reducer; 

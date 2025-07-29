@@ -2,10 +2,10 @@
 import * as os from "node:os";
 
 import {
-    ContextMenuConfig,
-    ILLM,
-    ModelInstaller,
-    RangeInFileWithContents,
+  ContextMenuConfig,
+  ILLM,
+  ModelInstaller,
+  RangeInFileWithContents,
 } from "core";
 import { CompletionProvider } from "core/autocomplete/CompletionProvider";
 import { ConfigHandler } from "core/config/ConfigHandler";
@@ -26,13 +26,13 @@ import readLastLines from "read-last-lines";
 import * as vscode from "vscode";
 
 import {
-    getAutocompleteStatusBarDescription,
-    getAutocompleteStatusBarTitle,
-    getStatusBarStatus,
-    getStatusBarStatusFromQuickPickItemLabel,
-    quickPickStatusText,
-    setupStatusBar,
-    StatusBarStatus,
+  getAutocompleteStatusBarDescription,
+  getAutocompleteStatusBarTitle,
+  getStatusBarStatus,
+  getStatusBarStatusFromQuickPickItemLabel,
+  quickPickStatusText,
+  setupStatusBar,
+  StatusBarStatus,
 } from "./autocomplete/statusBar";
 import { SuggestionCodeLensProvider } from "./debug/codeLens/suggestionsLensProvider";
 import { pullErrorsAndHighlight } from "./debug/pullErrors";
@@ -1378,7 +1378,7 @@ const getCommandsMap: (
         await e2eSuiteGenerator.runE2eSuiteGenerator(testDescription, localPortConfig);
 
       },
-      "debugg-ai.runE2eTestSuite": async () => {
+      "debugg-ai.runE2eTestSuite": async (uuid?: string) => {
         captureCommandTelemetry("debugg-ai.runE2eTestSuite");
         vscode.window.setStatusBarMessage("Fetching E2E test suites...", 2500);
 
@@ -1393,31 +1393,44 @@ const getCommandsMap: (
         if (!repoName || !repoPath || !branchName) {
           console.debug("No repo name, path, or branch name found for file");
         }
-        const testSuitesPaginated = await client.e2es?.listE2eTestSuites({
-          repoName,
-          repoPath,
-          branchName,
-        });
-        const testSuites = testSuitesPaginated?.results ?? [];
-        if (!testSuites || !testSuites.length) {
-          vscode.window.showWarningMessage("No E2E test suites found.");
-          return;
-        }
-
-        // Show dropdown
-        const selected = await vscode.window.showQuickPick(
-          testSuites.map((suite: E2eTestSuite) => ({
-            label: suite.name,
-            uuid: suite.uuid,
-            description: suite.description || undefined,
-            detail: `ID: ${suite.uuid}`,
-          })),
-          {
-            placeHolder: "Select an E2E test suite to view details or run",
+        let selectedSuite: E2eTestSuite | undefined = undefined;
+        if (uuid) {
+          selectedSuite = await client.e2es?.getE2eTestSuite(uuid) ?? undefined;
+          if (!selectedSuite) {
+            vscode.window.showWarningMessage("No E2E test suite found.");
+            return;
           }
-        );
-        if (!selected) {return;}
-        const selectedSuite = testSuites.find((suite: E2eTestSuite) => suite.uuid === selected.uuid);
+        } else {
+          const testSuitesPaginated = await client.e2es?.listE2eTestSuites({
+            repoName,
+            repoPath,
+            branchName,
+          });
+          const testSuites = testSuitesPaginated?.results ?? [];
+          if (!testSuites || !testSuites.length) {
+            vscode.window.showWarningMessage("No E2E test suites found.");
+            return;
+          }
+
+          // Show dropdown
+          const selected = await vscode.window.showQuickPick(
+            testSuites.map((suite: E2eTestSuite) => ({
+              label: suite.name,
+              uuid: suite.uuid,
+              description: suite.description || undefined,
+              detail: `ID: ${suite.uuid}`,
+            })),
+            {
+              placeHolder: "Select an E2E test suite to view details or run",
+            }
+          );
+          if (!selected) {return;}
+          selectedSuite = testSuites.find((suite: E2eTestSuite) => suite.uuid === selected.uuid);
+          if (!selectedSuite) {
+            vscode.window.showWarningMessage("No E2E test suite found.");
+            return;
+          }
+        }
 
         const { config } = await configHandler.loadConfig();
         let localPortConfig = config?.debuggAiServerPort;

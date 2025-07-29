@@ -90,7 +90,7 @@ export class Core {
   constructor(
     private readonly messenger: IMessenger<ToCoreProtocol, FromCoreProtocol>,
     private readonly ide: IDE,
-    private readonly onWrite: (text: string) => Promise<void> = async () => {},
+    private readonly onWrite: (text: string) => Promise<void> = async () => { },
   ) {
     // Ensure .continue directory is created
     migrateV1DevDataFiles();
@@ -222,7 +222,7 @@ export class Core {
       this.configHandler,
       ide,
       getLlm,
-      (e) => {},
+      (e) => { },
       (..._) => Promise.resolve([]),
     );
 
@@ -1070,7 +1070,7 @@ export class Core {
       }
     });
 
-    
+
     on("tools/call", async ({ data: { toolCall, selectedModelTitle } }) => {
       const { config } = await this.configHandler.loadConfig();
       if (!config) {
@@ -1109,7 +1109,7 @@ export class Core {
     });
 
     // E2E Tests Handlers
-    on("e2eTests/fetchE2eTests", async ({data: {filters, pagination, search}}) => {
+    on("e2eTests/fetchE2eTests", async ({ data: { filters, pagination, search } }) => {
       const { config } = await this.configHandler.loadConfig();
       if (!config) {
         console.error("Config not loaded");
@@ -1158,8 +1158,43 @@ export class Core {
         results: [],
       }
     });
+    // E2E Tests Handlers
+    on("e2eTests/getE2eTest", async ({ data: { uuid } }) => {
+      const { config } = await this.configHandler.loadConfig();
+      if (!config) {
+        console.error("Config not loaded");
+        return null;
+      };
 
-    on("e2eTests/runE2eTest", async ({data: {uuid}}) => {
+      let retried = null;
+      while (!retried) {
+        const client = await this.debuggAIServerClientPromise;
+        while (!client.connected) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        const e2es = client.e2es;
+        if (e2es) {
+          console.log("Getting E2E test", uuid);
+          try {
+            const test = await e2es.getE2eTest(uuid);
+            return test;
+          } catch (err: any) {
+            console.error("Error getting E2E test:", err);
+          }
+        } else {
+          console.error("E2e service not available");
+        };
+        if (retried === null) {
+          retried = false;
+        } else {
+          retried = true;
+        }
+      }
+
+      return null;
+    });
+
+    on("e2eTests/runE2eTest", async ({ data: { uuid } }) => {
       const { config } = await this.configHandler.loadConfig();
       let localPortConfig = config?.debuggAiServerPort;
       const client = await this.debuggAIServerClientPromise;
@@ -1176,36 +1211,36 @@ export class Core {
       if (!test) throw new Error("Failed to run E2E test");
       console.log("Running E2E test...", test);
       return e2eTestRunner;
-      
+
     });
 
-    on("e2eTests/deleteE2eTest", async ({data: {uuid}}) => {
+    on("e2eTests/deleteE2eTest", async ({ data: { uuid } }) => {
       const client = await this.debuggAIServerClientPromise;
       const e2es = client.e2es;
       if (!e2es) throw new Error("E2e service not available");
       await e2es.deleteE2eTest(uuid);
     });
 
-    on("e2eTests/create", async ({data: {description, filePath, repoName, branchName}}): Promise<null> => {
+    on("e2eTests/create", async ({ data: { description, filePath, repoName, branchName } }): Promise<null> => {
       console.log("Initiating E2E test creation via VS Code command", {
         description, filePath, repoName, branchName
       });
-      
+
       // Execute VS Code command with the description parameter
       this.send("executeVSCodeCommand", {
         command: "debugg-ai.createNewE2eTest",
         args: [description]
       });
-      
+
       // Show user feedback
       await this.ide.showToast("info", `Creating E2E test: ${description}`, 3000);
-      
+
       // Return null since the actual test creation is handled by the VS Code command
       return null;
     });
 
     // E2E Test Suites Handlers
-    on("e2eSuites/fetchE2eSuites", async ({data: {filters, pagination, search}}) => {
+    on("e2eSuites/fetchE2eSuites", async ({ data: { filters, pagination, search } }) => {
       const { config } = await this.configHandler.loadConfig();
       if (!config) {
         console.error("Config not loaded");
@@ -1231,14 +1266,14 @@ export class Core {
             search,
           }
           console.log("Listing E2E test suites", params);
-                     try {
-             // Use the actual service method if available
-             const suites = await e2es.listE2eTestSuites?.(params);
-             if (suites) {
-               return suites;
-             }
-             
-             const mockSuites = {
+          try {
+            // Use the actual service method if available
+            const suites = await e2es.listE2eTestSuites?.(params);
+            if (suites) {
+              return suites;
+            }
+
+            const mockSuites = {
               count: 0,
               next: null,
               previous: null,
@@ -1266,38 +1301,88 @@ export class Core {
       }
     });
 
-    on("e2eSuites/run", async ({data: {suiteId}}) => {
+    on("e2eSuites/getE2eSuite", async ({ data: { uuid } }) => {
+      const { config } = await this.configHandler.loadConfig();
+      if (!config) {
+        console.error("Config not loaded");
+        return null;
+      }
+
+      let retried = null;
+      while (!retried) {
+        const client = await this.debuggAIServerClientPromise;
+        while (!client.connected) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        const e2es = client.e2es;
+        if (e2es) {
+          console.log("Getting E2E test suite", uuid);
+          try {
+            // Use the actual service method when available
+            const suite = await e2es.getE2eTestSuite?.(uuid);
+            if (suite) {
+              return suite;
+            }
+
+            // Fallback to null if service method not available
+            return null;
+          } catch (err: any) {
+            console.error("Error getting E2E test suite:", err);
+          }
+        } else {
+          console.error("E2e service not available");
+        };
+        if (retried === null) {
+          retried = false;
+        } else {
+          retried = true;
+        }
+      }
+
+      return null;
+    });
+
+    on("e2eSuites/run", async ({ data: { suiteId } }) => {
       console.log("Running E2E test suite:", suiteId);
-      // TODO: Implement suite running logic
+
+      // Execute VS Code command to run the suite
+      this.send("executeVSCodeCommand", {
+        command: "debugg-ai.runE2eTestSuite",
+        args: [suiteId]
+      });
+
+      // Show user feedback
+      await this.ide.showToast("info", `Running E2E test suite: ${suiteId}`, 3000);
+
       return;
     });
 
-    on("e2eSuites/delete", async ({data: {suiteId}}) => {
+    on("e2eSuites/delete", async ({ data: { suiteId } }) => {
       console.log("Deleting E2E test suite:", suiteId);
       // TODO: Implement suite deletion logic
       return suiteId;
     });
 
-    on("e2eSuites/create", async ({data: {description, filePath, repoName, branchName}}): Promise<null> => {
+    on("e2eSuites/create", async ({ data: { description, filePath, repoName, branchName } }): Promise<null> => {
       console.log("Initiating E2E test suite creation via VS Code command", {
         description, filePath, repoName, branchName
       });
-      
+
       // Execute VS Code command with the description parameter
       this.send("executeVSCodeCommand", {
         command: "debugg-ai.runE2eSuiteGenerator",
         args: [description]
       });
-      
+
       // Show user feedback
       await this.ide.showToast("info", `Creating E2E test suite: ${description}`, 3000);
-      
+
       // Return null since the actual suite creation is handled by the VS Code command
       return null;
     });
 
     // E2E Commit Suites Handlers
-    on("e2eCommitSuites/fetchE2eCommitSuites", async ({data: {filters, pagination, search}}) => {
+    on("e2eCommitSuites/fetchE2eCommitSuites", async ({ data: { filters, pagination, search } }) => {
       const { config } = await this.configHandler.loadConfig();
       if (!config) {
         console.error("Config not loaded");
@@ -1323,20 +1408,20 @@ export class Core {
             search,
           }
           console.log("Listing E2E commit suites", params);
-                     try {
-             // Use the actual service method
-             const commitSuites = await e2es.listE2eCommitSuites?.(params);
-             if (commitSuites) {
-               return commitSuites;
-             }
-             
-             // Fallback to empty data if service method not available
-             return {
-               count: 0,
-               next: null,
-               previous: null,
-               results: [],
-             };
+          try {
+            // Use the actual service method
+            const commitSuites = await e2es.listE2eCommitSuites?.(params);
+            if (commitSuites) {
+              return commitSuites;
+            }
+
+            // Fallback to empty data if service method not available
+            return {
+              count: 0,
+              next: null,
+              previous: null,
+              results: [],
+            };
           } catch (err: any) {
             console.error("Error listing E2E commit suites:", err);
           }
@@ -1358,7 +1443,7 @@ export class Core {
       }
     });
 
-    on("e2eCommitSuites/getE2eCommitSuite", async ({data: {uuid}}) => {
+    on("e2eCommitSuites/getE2eCommitSuite", async ({ data: { uuid } }) => {
       const { config } = await this.configHandler.loadConfig();
       if (!config) {
         console.error("Config not loaded");
@@ -1380,7 +1465,7 @@ export class Core {
             if (commitSuite) {
               return commitSuite;
             }
-            
+
             // Fallback to null if service method not available
             return null;
           } catch (err: any) {
@@ -1399,32 +1484,41 @@ export class Core {
       return null;
     });
 
-    on("e2eCommitSuites/run", async ({data: {commitSuiteId}}) => {
+    on("e2eCommitSuites/run", async ({ data: { commitSuiteId } }) => {
       console.log("Running E2E commit suite:", commitSuiteId);
-      // TODO: Implement commit suite running logic
+
+      // Execute VS Code command to run the commit suite
+      this.send("executeVSCodeCommand", {
+        command: "debugg-ai.generateTestsForWorkingChanges",
+        args: []
+      });
+
+      // Show user feedback
+      await this.ide.showToast("info", `Running E2E commit suite: ${commitSuiteId}`, 3000);
+
       return;
     });
 
-    on("e2eCommitSuites/delete", async ({data: {commitSuiteId}}) => {
+    on("e2eCommitSuites/delete", async ({ data: { commitSuiteId } }) => {
       console.log("Deleting E2E commit suite:", commitSuiteId);
       // TODO: Implement commit suite deletion logic
       return commitSuiteId;
     });
 
-    on("e2eCommitSuites/create", async ({data: {description, commitHash, branchName, filePath, repoName}}): Promise<null> => {
+    on("e2eCommitSuites/create", async ({ data: { description, commitHash, branchName, filePath, repoName } }): Promise<null> => {
       console.log("Initiating E2E commit suite creation via VS Code command", {
         description, commitHash, branchName, filePath, repoName
       });
-      
+
       // Execute VS Code command for generating tests for working changes
       this.send("executeVSCodeCommand", {
         command: "debugg-ai.generateTestsForWorkingChanges",
         args: []
       });
-      
+
       // Show user feedback
       await this.ide.showToast("info", `Creating E2E commit suite: ${description}`, 3000);
-      
+
       // Return null since the actual commit suite creation is handled by the VS Code command
       return null;
     });

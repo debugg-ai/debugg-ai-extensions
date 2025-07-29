@@ -7,26 +7,26 @@ import { SharedConfigSchema } from "../config/sharedConfig";
 import { GlobalContextModelSelections } from "../util/GlobalContext";
 
 import type {
-    BrowserSerializedDebuggAiConfig,
-    ChatMessage,
-    ContextItem,
-    ContextItemWithId,
-    ContextProviderWithParams,
-    ContextSubmenuItem,
-    DiffLine,
-    DocsIndexingDetails,
-    ExperimentalModelRoles,
-    FileSymbolMap,
-    IdeSettings,
-    LLMFullCompletionOptions,
-    ModelDescription,
-    PromptLog,
-    RangeInFile,
-    SerializedDebuggAiConfig,
-    Session,
-    SessionMetadata,
-    SiteIndexingConfig,
-    ToolCall,
+  BrowserSerializedDebuggAiConfig,
+  ChatMessage,
+  ContextItem,
+  ContextItemWithId,
+  ContextProviderWithParams,
+  ContextSubmenuItem,
+  DiffLine,
+  DocsIndexingDetails,
+  ExperimentalModelRoles,
+  FileSymbolMap,
+  IdeSettings,
+  LLMFullCompletionOptions,
+  ModelDescription,
+  PromptLog,
+  RangeInFile,
+  SerializedDebuggAiConfig,
+  Session,
+  SessionMetadata,
+  SiteIndexingConfig,
+  ToolCall,
 } from "../";
 import { E2eTest, E2eTestCommitSuite, E2eTestSuite, PaginatedResponse } from "../debuggAIServer/types";
 import E2eTestHandler from "../e2es/e2eTestHandler";
@@ -209,6 +209,7 @@ export type ToCoreFromIdeOrWebviewProtocol = {
     {filters: Record<string, any>, pagination: Record<string, any>, search: string}, 
     PaginatedResponse<E2eTest> | null
   ];
+  "e2eTests/getE2eTest": [{ uuid: string }, E2eTest | null];
   "e2eTests/runE2eTest": [{ uuid: string }, E2eTestHandler];
   "e2eTests/deleteE2eTest": [{ uuid: string }, void];
   "e2eTests/create": [
@@ -227,7 +228,7 @@ export type ToCoreFromIdeOrWebviewProtocol = {
     { description: string; filePath?: string; repoName?: string; branchName?: string }, 
     E2eTestSuite | null
   ];
-  
+  "e2eSuites/getE2eSuite": [{ uuid: string }, E2eTestSuite | null];
   // E2E Commit Suites
   "e2eCommitSuites/fetchE2eCommitSuites": [
     {filters: Record<string, any>, pagination: Record<string, any>, search: string}, 

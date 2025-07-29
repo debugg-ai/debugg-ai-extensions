@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { E2eTest, PaginatedResponse } from "core/debuggAIServer/types";
 import E2eTestHandler from "core/e2es/e2eTestHandler";
-import { deleteE2eTest, fetchE2eTests, runE2eTest } from "../thunks/e2eTestsThunks";
+import { deleteE2eTest, fetchE2eTests, getE2eTest, runE2eTest } from "../thunks/e2eTestsThunks";
 
 // Types for pagination and filters
 export interface Pagination {
@@ -12,6 +12,7 @@ export interface Pagination {
 export interface E2eTestsState {
   items: E2eTest[];
   testsList: PaginatedResponse<E2eTest> | null;
+  testDetail: E2eTest | null;
   loading: boolean;
   error: string | null;
   currentFilters: Record<string, any>;
@@ -22,6 +23,7 @@ export interface E2eTestsState {
 const initialState: E2eTestsState = {
   items: [],
   testsList: null,
+  testDetail: null,
   loading: false,
   error: null,
   currentFilters: {},
@@ -39,6 +41,9 @@ const e2eTestsSlice = createSlice({
     setCurrentFilters(state, action: PayloadAction<Record<string, any>>) {
       state.currentFilters = action.payload;
     },
+    setTestDetail(state, action: PayloadAction<E2eTest | null>) {
+      state.testDetail = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -55,7 +60,12 @@ const e2eTestsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || "Failed to fetch E2E tests";
       })
-
+      .addCase(getE2eTest.fulfilled, (state, action) => {
+        state.testDetail = action.payload;
+      })
+      .addCase(getE2eTest.rejected, (state, action) => {
+        state.error = action.error.message || "Failed to get E2E test";
+      })
       .addCase(runE2eTest.pending, (state) => {
         state.loading = true;
       })
@@ -86,5 +96,5 @@ const e2eTestsSlice = createSlice({
   },
 });
 
-export const { setCurrentPagination, setCurrentFilters } = e2eTestsSlice.actions;
+export const { setCurrentPagination, setCurrentFilters, setTestDetail } = e2eTestsSlice.actions;
 export default e2eTestsSlice.reducer;
