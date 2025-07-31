@@ -3,6 +3,7 @@
 import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import { E2eRun, E2eTest, E2eTestCommitSuite, E2eTestSuite } from "core/debuggAIServer/types";
 import { IDE } from "core/index";
+import * as http from 'http';
 import * as vscode from 'vscode';
 
 import E2eRemoteTestHandler from "./e2eRemoteTestHandler";
@@ -42,9 +43,10 @@ export class AiE2eAgent {
     private client: DebuggAIServerClient;
     private agentOptions: AiE2eAgentOptions;
     private objectCallbacks: E2eObjectCallbacks;
-    public testHandler: E2eRemoteTestHandler;
+    public testHandler: E2eRemoteTestHandler | null;
     public testObjectType: TestObjectType;
     public ide: IDE;
+    private serviceActive: boolean = false;
 
     constructor(client: DebuggAIServerClient, ide: IDE, options: AiE2eAgentOptions) {
         this.client = client;
@@ -56,7 +58,59 @@ export class AiE2eAgent {
             pollObject: this.getClientPollFunction(this.testObjectType, options.testRunType),
             parseStatusFromObject: this.parseStatusFromObject(this.testObjectType)
         };
+        this.testHandler = null; // Will be set up after service check
+    }
+
+    /**
+     * Check if the local service is active on the specified port
+     */
+    private async checkServiceActive(port: number): Promise<boolean> {
+        return new Promise((resolve) => {
+            const request = http.request({
+                hostname: 'localhost',
+                port: port,
+                method: 'GET',
+                timeout: 5000, // 5 second timeout
+            }, (response) => {
+                // If we get any response, the service is active
+                resolve(true);
+            });
+
+            request.on('error', (error) => {
+                // Service is not active or not responding
+                console.log(`Service check on port ${port} failed:`, error.message);
+                resolve(false);
+            });
+
+            request.on('timeout', () => {
+                console.log(`Service check on port ${port} timed out`);
+                request.destroy();
+                resolve(false);
+            });
+
+            request.end();
+        });
+    }
+
+    /**
+     * Initialize the agent by checking service status and setting up test handler
+     */
+    async initialize(): Promise<boolean> {
+        // Check if the local service is active
+        console.log(`🔍 Checking if service is active on port ${this.agentOptions.localServerPort}...`);
+        this.serviceActive = await this.checkServiceActive(this.agentOptions.localServerPort);
+        
+        if (!this.serviceActive) {
+            const errorMessage = `❌ Service is not active on port ${this.agentOptions.localServerPort}. Please start your application server before running E2E tests.`;
+            console.error(errorMessage);
+            throw new Error(errorMessage);
+        }
+
+        console.log(`✅ Service is active on port ${this.agentOptions.localServerPort}`);
+        
+        // Now set up the test handler since service is active
         this.testHandler = this.setupTestHandler();
+        return true;
     }
 
     /**
@@ -75,6 +129,38 @@ export class AiE2eAgent {
             this.setupRepositoryInfo()
         );
         return handler;
+    }
+
+    /**
+     * Run the E2E test after ensuring service is active
+     */
+    async run(): Promise<void> {
+        if (!this.serviceActive) {
+            const initialized = await this.initialize();
+            if (!initialized) {
+                return; // Service check failed, don't proceed
+            }
+        }
+
+        if (!this.testHandler) {
+            throw new Error('Test handler not initialized. Please call initialize() first.');
+        }
+
+        await this.testHandler.run();
+    }
+
+    /**
+     * Check if the agent is ready to run tests
+     */
+    isReady(): boolean {
+        return this.serviceActive && this.testHandler !== null;
+    }
+
+    /**
+     * Check if test is currently running
+     */
+    isTestRunning(): boolean {
+        return this.testHandler?.isTestRunning() ?? false;
     }
 
     private getClientCreateFunction(testObjectType: TestObjectType, testRunType: TestRunType): (description?: string, params?: Record<string, any>) => Promise<TestObject> {
@@ -302,15 +388,28 @@ export class AiE2eAgent {
     }
 
     private parseUpdateForE2eTest(prevState: TestState, updatedObj: TestObject): TestState {
-        if (!isE2eRun(updatedObj.object)) {
-            console.warn("Expected E2eRun but received different type in parseUpdateForE2eTest");
-            return {
-                ...prevState,
-                testObject: updatedObj,
-                status: "error" as Status
-            };
+        // Handle both E2eTest and E2eRun objects
+        let updatedRun: E2eRun | null = null;
+        
+        if (isE2eRun(updatedObj.object)) {
+            // Direct E2eRun object
+            updatedRun = updatedObj.object;
+        } else if (isE2eTest(updatedObj.object)) {
+            // E2eTest object - extract the current run
+            updatedRun = updatedObj.object.curRun || null;
+            if (!updatedRun) {
+                console.log("E2eTest received but no current run available yet");
+                return {
+                    ...prevState,
+                    testObject: updatedObj,
+                    status: "pending" as Status
+                };
+            }
+        } else {
+            const errorMsg = `Expected E2eRun or E2eTest but received different type in parseUpdateForE2eTest. Received object with keys: ${Object.keys(updatedObj.object || {}).join(', ')}`;
+            console.error(errorMsg);
+            throw new Error(errorMsg);
         }
-        const updatedRun = updatedObj.object;
 
         console.log(`📡 Polled E2E run status: ${updatedRun.status}`);
 
@@ -383,12 +482,9 @@ export class AiE2eAgent {
 
     private parseUpdateForE2eTestSuite(prevState: TestState, updatedObj: TestObject): TestState {
         if (!isE2eTestSuite(updatedObj.object)) {
-            console.warn("Expected E2eTestSuite but received different type in parseUpdateForE2eTestSuite");
-            return {
-                ...prevState,
-                testObject: updatedObj,
-                status: "error" as Status
-            };
+            const errorMsg = `Expected E2eTestSuite but received different type in parseUpdateForE2eTestSuite. Received object with keys: ${Object.keys(updatedObj.object || {}).join(', ')}`;
+            console.error(errorMsg);
+            throw new Error(errorMsg);
         }
         const updatedSuite = updatedObj.object;
 
@@ -422,12 +518,9 @@ export class AiE2eAgent {
 
     private parseUpdateForE2eCommitSuite(prevState: TestState, updatedObj: TestObject): TestState {
         if (!isE2eTestCommitSuite(updatedObj.object)) {
-            console.warn("Expected E2eTestCommitSuite but received different type in parseUpdateForE2eCommitSuite");
-            return {
-                ...prevState,
-                testObject: updatedObj,
-                status: "error" as Status
-            };
+            const errorMsg = `Expected E2eTestCommitSuite but received different type in parseUpdateForE2eCommitSuite. Received object with keys: ${Object.keys(updatedObj.object || {}).join(', ')}`;
+            console.error(errorMsg);
+            throw new Error(errorMsg);
         }
         const updatedCommitSuite = updatedObj.object;
         console.log(`📡 Polled E2E commit suite: ${updatedCommitSuite.uuid}`);

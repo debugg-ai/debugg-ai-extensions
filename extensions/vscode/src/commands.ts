@@ -1332,10 +1332,25 @@ const getCommandsMap: (
           
           // Create and run the AiE2eAgent
           const aiE2eAgent = new AiE2eAgent(client, ide, agentOptions);
-          await aiE2eAgent.testHandler.run();
+          await aiE2eAgent.run();
           vscode.window.showInformationMessage(`✅ E2E test created successfully: ${testDescription}`);
         } catch (error) {
-          vscode.window.showErrorMessage(`❌ Failed to create E2E test: ${error instanceof Error ? error.message : String(error)}`);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          let helpfulMessage = `❌ Failed to create E2E test: ${errorMessage}`;
+          
+          // Provide helpful context for common errors
+          if (errorMessage.includes('Service is not active')) {
+            helpfulMessage += "\n\n💡 Make sure your application server is running on the specified port before creating E2E tests.";
+          } else if (errorMessage.includes('Expected E2eRun or E2eTest')) {
+            helpfulMessage += "\n\n💡 There was an issue with the test object format. This may be due to a server API change or network issue.";
+          } else if (errorMessage.includes('authorization') || errorMessage.includes('Bearer')) {
+            helpfulMessage += "\n\n💡 Authentication issue detected. Please check your DebuggAI server connection and API credentials.";
+          } else if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
+            helpfulMessage += "\n\n💡 Network timeout occurred. Check your internet connection and server availability.";
+          }
+          
+          vscode.window.showErrorMessage(helpfulMessage);
+          console.error('[createNewE2eTest] Full error details:', error);
         }
       },
       "debugg-ai.runE2eTest": async () => {
@@ -1371,10 +1386,25 @@ const getCommandsMap: (
           
           // Create and run the AiE2eAgent
           const aiE2eAgent = new AiE2eAgent(client, ide, agentOptions);
-          await aiE2eAgent.testHandler.run();
+          await aiE2eAgent.run();
           vscode.window.showInformationMessage(`✅ E2E test completed: ${testDescription}`);
         } catch (error) {
-          vscode.window.showErrorMessage(`❌ E2E test failed: ${error instanceof Error ? error.message : String(error)}`);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          let helpfulMessage = `❌ E2E test failed: ${errorMessage}`;
+          
+          // Provide helpful context for common errors
+          if (errorMessage.includes('Service is not active')) {
+            helpfulMessage += "\n\n💡 Make sure your application server is running on the specified port before running E2E tests.";
+          } else if (errorMessage.includes('authorization') || errorMessage.includes('Bearer')) {
+            helpfulMessage += "\n\n💡 Authentication issue detected. Please check your DebuggAI server connection and API credentials.";
+          } else if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
+            helpfulMessage += "\n\n💡 Network timeout occurred. Check your internet connection and server availability.";
+          } else if (errorMessage.includes('Test entered error state')) {
+            helpfulMessage += "\n\n💡 The test encountered an error during execution. Check the test logs for more details.";
+          }
+          
+          vscode.window.showErrorMessage(helpfulMessage);
+          console.error('[runE2eTest] Full error details:', error);
         }
       },
       "debugg-ai.runE2eSuiteGenerator": async (description?: string) => {
@@ -1428,10 +1458,21 @@ const getCommandsMap: (
           
           // Create and run the AiE2eAgent
           const aiE2eAgent = new AiE2eAgent(client, ide, agentOptions);
-          await aiE2eAgent.testHandler.run();
+          await aiE2eAgent.run();
           vscode.window.showInformationMessage(`✅ E2E test suite generated successfully for: ${testDescription}`);
         } catch (error) {
-          vscode.window.showErrorMessage(`❌ Failed to generate E2E test suite: ${error instanceof Error ? error.message : String(error)}`);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          let helpfulMessage = `❌ Failed to generate E2E test suite: ${errorMessage}`;
+          
+          // Provide helpful context for common errors
+          if (errorMessage.includes('Service is not active')) {
+            helpfulMessage += "\n\n💡 Make sure your application server is running on the specified port before generating test suites.";
+          } else if (errorMessage.includes('authorization') || errorMessage.includes('Bearer')) {
+            helpfulMessage += "\n\n💡 Authentication issue detected. Please check your DebuggAI server connection and API credentials.";
+          }
+          
+          vscode.window.showErrorMessage(helpfulMessage);
+          console.error('[runE2eSuiteGenerator] Full error details:', error);
         }
 
       },
@@ -1518,7 +1559,7 @@ const getCommandsMap: (
           
           // Create and run the AiE2eAgent
           const aiE2eAgent = new AiE2eAgent(client, ide, agentOptions);
-          await aiE2eAgent.testHandler.run();
+          await aiE2eAgent.run();
           vscode.window.showInformationMessage(`✅ E2E test suite completed: ${selectedSuite.name}`);
         } catch (error) {
           vscode.window.showErrorMessage(`❌ E2E test suite failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -1614,9 +1655,9 @@ const getCommandsMap: (
           
           vscode.window.setStatusBarMessage("🤖 Generating tests for your working changes...", 3000);
           // Actually run the handler to process the request
-          await aiE2eAgent.testHandler.run();
+          await aiE2eAgent.run();
 
-          while (aiE2eAgent.testHandler.isTestRunning()) {
+          while (aiE2eAgent.isTestRunning()) {
             await new Promise(resolve => setTimeout(resolve, 2000));
           }
         } catch (error) {
@@ -1628,6 +1669,9 @@ const getCommandsMap: (
 
         try {
           // TODO: handle the final state and results if needed
+          if (!aiE2eAgent.testHandler) {
+            throw new Error('Test handler not initialized');
+          }
           const testState = aiE2eAgent.testHandler.getTestState();
           const testObjectS = await aiE2eAgent.testHandler.getTestObject();
           if (testObjectS) {
@@ -1647,8 +1691,10 @@ const getCommandsMap: (
 
                 try {
                   const testScriptContent = await fetch(testScriptUrl).then(res => res.text());
-                  const testScriptName = test.testScript.split('/').pop() ?? `${testObject.uuid}`;
-                  await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: testScriptName, content: testScriptContent });
+                  const testScriptName = testScriptUrl.split('/').pop() ?? `${testObject.uuid}`;
+                  if (aiE2eAgent.testHandler) {
+                    await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: testScriptName, content: testScriptContent, testName: test.name });
+                  }
                 } catch (error) {
                   console.error('[Commands.generateTestsForWorkingChanges] Error downloading test script:', error);
                   vscode.window.showErrorMessage(

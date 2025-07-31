@@ -31,7 +31,7 @@ export abstract class TestHandler {
         this.ide = ide;
         this.client = client;
         this.timeoutMinutes = options.timeoutMinutes || 30;
-        this.pollingInterval = options.pollingInterval || 2500;
+        this.pollingInterval = options.pollingInterval || 3500;
         this.options = options;
 
         // Initialize state
@@ -68,7 +68,7 @@ export abstract class TestHandler {
         }
         if (!this.testState.testObject) {
             const errorMsg = "❌ Failed to create test object. Please check your configuration and try again.";
-            vscode.window.showErrorMessage(errorMsg);
+            // vscode.window.showErrorMessage(errorMsg);
             throw new Error(errorMsg);
         }
         return this.testState.testObject;
@@ -128,13 +128,31 @@ export abstract class TestHandler {
                 return;
             }
 
-            const currentState = await this.pollForUpdates();
-            if (currentState?.completed) {
-                await this.handleProgress(currentState);
-                await this.handleCompletion(currentState);
+            try {
+                const currentState = await this.pollForUpdates();
+                if (currentState?.completed) {
+                    await this.handleProgress(currentState);
+                    await this.handleCompletion(currentState);
+                    clearInterval(interval);
+                } else {
+                    await this.handleProgress(currentState);
+                }
+            } catch (error) {
+                console.error('Error during polling interval:', error);
                 clearInterval(interval);
-            } else {
-                await this.handleProgress(currentState);
+                
+                // Ensure VS Code test run gets properly terminated
+                if (this.vsCodeTestRun) {
+                    this.vsCodeTestRun.errored(
+                        this.vsCodeTestItem!,
+                        [new vscode.TestMessage(`Polling error: ${error instanceof Error ? error.message : String(error)}`)]
+                    );
+                    this.vsCodeTestRun.end();
+                    this.vsCodeTestRun = null;
+                    this.vsCodeTestItem = null;
+                }
+                
+                await this.cleanupError(error instanceof Error ? error.message : String(error));
             }
         }, this.pollingInterval);
         return interval;
@@ -166,8 +184,8 @@ export abstract class TestHandler {
         const completionMsg = `✅ Test completed successfully! Status: ${state.status}`;
         vscode.window.showInformationMessage(completionMsg);
         this.formatter?.printSummary(state);
-        this.vsCodeTestRun?.end();
 
+        let grade: 'pass' | 'fail' | 'error' = 'pass';
 
         if (state.tests && state.tests.length > 0) {
             for (const test of state.tests) {
@@ -175,7 +193,12 @@ export abstract class TestHandler {
                 const testRun = test.object?.curRun;
                 const testName = testRun?.test?.name ?? "";
                 const testUuid = testRun?.uuid ?? "";
-                
+                if (test.outcome === 'fail') {
+                    grade = 'fail';
+                }
+                if (test.outcome === 'error') {
+                    grade = 'error';
+                }
                 // Download GIF recording if available
                 if (testRun?.runGif) {
                     fetchAndOpenGif(this.ide, testRun.runGif, testName, testUuid);
@@ -196,6 +219,14 @@ export abstract class TestHandler {
             vscode.window.showWarningMessage("⚠️ No test results found in the completed test state.");
         }
 
+        if (grade === 'fail') {
+            this.vsCodeTestRun?.failed(this.vsCodeTestItem!, [new vscode.TestMessage("Test failed")]);
+        } else if (grade === 'error') {
+            this.vsCodeTestRun?.errored(this.vsCodeTestItem!, [new vscode.TestMessage("Test errored")]);
+        } else {
+            this.vsCodeTestRun?.passed(this.vsCodeTestItem!, this.formatter?.calculateTotalExecutionMs(this.testState) || 0);
+        }
+        this.vsCodeTestRun?.end();
         this.vsCodeTestRun = null;
         this.vsCodeTestItem = null;
         this.formatter = null;
@@ -219,7 +250,13 @@ export abstract class TestHandler {
         const timeoutMsg = `⏰ Test timed out after ${this.timeoutMinutes} minutes. The test may be taking longer than expected or there may be an issue.`;
         vscode.window.showErrorMessage(timeoutMsg);
         this.formatter?.printMessage(timeoutMsg, "error");
-        this.vsCodeTestRun?.end();
+        
+        // Ensure VS Code test run gets properly terminated with timeout error
+        if (this.vsCodeTestRun && this.vsCodeTestItem) {
+            this.vsCodeTestRun.errored(this.vsCodeTestItem, [new vscode.TestMessage(timeoutMsg)]);
+            this.vsCodeTestRun.end();
+        }
+        
         this.vsCodeTestRun = null;
         this.vsCodeTestItem = null;
         this.formatter = null;
@@ -246,10 +283,24 @@ export abstract class TestHandler {
      * Subclasses should override this to implement their error cleanup logic.
      */
     protected async cleanupError(reason: string): Promise<void> {
+        this.isRunning = false;
+        
+        // Ensure VS Code test run gets properly terminated if it still exists
+        if (this.vsCodeTestRun && this.vsCodeTestItem) {
+            this.vsCodeTestRun.errored(this.vsCodeTestItem, [new vscode.TestMessage(`Test failed: ${reason}`)]);
+            this.vsCodeTestRun.end();
+            this.vsCodeTestRun = null;
+            this.vsCodeTestItem = null;
+        }
+        
         // Default implementation - subclasses should override
         const errorMsg = `❌ Test failed: ${reason}`;
         console.error(errorMsg);
         vscode.window.showErrorMessage(errorMsg);
+        
+        // Clear formatter
+        this.formatter = null;
+        
         for (const callback of this.cleanupCallbacks) {
             try {
                 callback();

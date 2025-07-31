@@ -166,15 +166,15 @@ export class TerminalFormatter {
             `   ${chalk.gray('⏭️ Skipped:')}   ${chalk.bold(skipped.toString().padStart(3))} / ${total}`,
             '',
             `${chalk.cyan('📈 Pass Rate:')} ${this.formatPassRate(passRate)}`,
-            `${chalk.dim('⏱️ Status:')} ${this.getStatusIcon(state.status)} ${chalk.bold(state.status.toUpperCase())}`
+            // `${chalk.dim('⏱️ Status:')} ${this.getStatusIcon(state.status)} ${chalk.bold(state.status.toUpperCase())}`
         ];
         
         // Add test-specific insights
-        if (testType === 'commit-suite') {
-            summary.push('', chalk.magenta('🔄 Commit-based test suite - validating code changes'));
-        } else if (testType === 'test-suite') {
-            summary.push('', chalk.blue('📦 Test suite - comprehensive feature validation'));
-        }
+        // if (testType === 'commit-suite') {
+        //     summary.push('', chalk.magenta('🔄 Commit-based test suite - validating code changes'));
+        // } else if (testType === 'test-suite') {
+        //     summary.push('', chalk.blue('📦 Test suite - comprehensive feature validation'));
+        // }
         
         return summary.join("\r\n");
     }
@@ -472,7 +472,7 @@ export class TerminalFormatter {
         // Show progress as completed+failed/total (active progress) not just completed/total
         const progress = completed + failed; // Progress = steps that have finished (either success or failure)
         
-        return `${chalk.dim('Steps:')} ${summary} ${chalk.dim(`(${progress}/${total})`)}`;
+        return `${chalk.dim('Steps:')} ${summary}`;
     }
 
     /**
@@ -751,7 +751,7 @@ export class TerminalFormatter {
                 t.description?.includes('commit') || 
                 t.title?.includes('commit') ||
                 (t.object && typeof t.object.testScript === 'string' && t.object.testScript.includes('commit'))
-            );
+            ) || state.testObject?.object?.description?.includes('commit');
             
             if (hasCommitTests) {
                 return 'commit-suite';
@@ -884,16 +884,21 @@ export class TerminalFormatter {
         const lines = [
             chalk.cyan.bold('⏱️ Performance:'),
             chalk.dim(`   Execution time: ${this.calculateExecutionTime(state)}`),
-            chalk.dim(`   Resource usage: Optimal`)
         ];
         
         return lines.join("\r\n");
     }
     
+    public calculateTotalExecutionMs(state: TestState): number {
+        let now = new Date();
+        let start = new Date(state.testObject?.object?.timestamp || 0);
+        return now.getTime() - start.getTime();
+    }
+
     /**
      * Calculate estimated execution time
      */
-    private calculateExecutionTime(state: TestState): string {
+    public calculateExecutionTime(state: TestState): string {
         // Simple estimation based on test complexity
         const baseTime = 30; // seconds
         let multiplier = 1;
@@ -926,10 +931,10 @@ export class TerminalFormatter {
         lines.push(chalk.cyan.bold(`${typeIcon} Final Status:`));
         
         if (state.status === 'completed') {
-            lines.push(chalk.green(`   ${statusIcon} ${this.getTestTypeDisplayName(testType)} completed successfully!`));
+            // lines.push(chalk.green(`   ${statusIcon} ${this.getTestTypeDisplayName(testType)} completed successfully!`));
             
             if (testType === 'commit-suite') {
-                lines.push(chalk.dim('   → Your code changes have been validated'));
+                lines.push(chalk.dim('   → Your code change tests completed'));
             } else if (testType === 'test-suite') {
                 lines.push(chalk.dim('   → All test scenarios completed'));
             } else {

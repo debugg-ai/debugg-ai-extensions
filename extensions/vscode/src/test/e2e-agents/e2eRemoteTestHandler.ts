@@ -88,43 +88,67 @@ export class E2esTestHandler extends RemoteTestHandler {
      * Poll for updates on the test object.
      */
     protected async pollForUpdates(): Promise<TestState> {
-        const obj = await this.getTestObject();
-        if (!obj) {
+        try {
+            const obj = await this.getTestObject();
+            if (!obj) {
+                const errorMsg = "❌ Test object is null or undefined during polling. Cannot continue.";
+                console.error(errorMsg);
+                throw new Error(errorMsg);
+            }
+
+            const polledUpdate = await this.e2eObjectCallbacks.pollObject(obj.uuid);
+            if (!polledUpdate) {
+                const errorMsg = "❌ Failed to poll for test updates. Server may be unreachable.";
+                console.error(errorMsg);
+                throw new Error(errorMsg);
+            }
+            console.log(`📡 Polled E2E test object successfully`);
+            this.setTestObject(polledUpdate);
+            console.log(`📡 Updated test object successfully`);
+
+            console.log(`📡 Polled udpate: ${polledUpdate}`);
+            // Calculate / derive the new state...
+            // we need: status, current step, parsed text update
+
+            console.log(`📡 Parsing status from object: ${this.testState}`);
+            const testState = this.e2eObjectCallbacks.parseStatusFromObject(this.testState, polledUpdate);
+
+            if (!testState) {
+                console.log(`📡 No new step found. Returning current state.`);
+                return this.testState;
+            }
+            console.log(`📡 New state created from poll. Updating state.`);
+
+            this.testState = testState;
+            
+            // Check for error status and handle it
+            if (this.testState.status === "error") {
+                const errorMsg = `❌ Test entered error state. Terminating test run.`;
+                console.error(errorMsg);
+                await this.cleanupError("Test entered error state");
+                throw new Error(errorMsg);
+            }
+
+            if (this.testState.status === "completed" || this.testState.status === "failed") {
+                console.log(`📡 E2E test completed. Handling completion.`);
+                this.handleCompletion(this.testState);
+            }
             return this.testState;
+        } catch (error) {
+            const errorMsg = `❌ Error during polling: ${error instanceof Error ? error.message : String(error)}`;
+            console.error(errorMsg);
+            
+            // Mark test as failed and stop polling
+            this.testState = {
+                ...this.testState,
+                status: "error",
+                completed: true
+            };
+            
+            // Ensure cleanup occurs
+            await this.cleanupError(error instanceof Error ? error.message : String(error));
+            throw error;
         }
-
-        const polledUpdate = await this.e2eObjectCallbacks.pollObject(obj.uuid);
-        if (!polledUpdate) {
-            return this.testState;
-        }
-        console.log(`📡 Polled E2E test object successfully`);
-        this.setTestObject(polledUpdate);
-        console.log(`📡 Updated test object successfully`);
-
-        console.log(`📡 Polled udpate: ${polledUpdate}`);
-        // Calculate / derive the new state...
-        // we need: status, current step, parsed text update
-
-        console.log(`📡 Parsing status from object: ${this.testState}`);
-        const testState = this.e2eObjectCallbacks.parseStatusFromObject(this.testState, polledUpdate);
-
-        if (!testState) {
-            console.log(`📡 No new step found. Returning current state.`);
-            return this.testState;
-        }
-        console.log(`📡 New state created from poll. Updating state.`);
-
-        this.testState = testState;
-        // Update the state for listeners
-        // this.testState.steps = this.testState.handlePollUpdate(this.testState.steps, step);
-        // this.testState.stepNumber = this.testState.steps.length;
-        // this.testState.status = step.status;
-
-        if (this.testState.status === "completed" || this.testState.status === "failed") {
-            console.log(`📡 E2E test completed. Handling completion.`);
-            this.handleCompletion(this.testState);
-        }
-        return this.testState;
     }
 
     /**
@@ -170,7 +194,7 @@ export class E2esTestHandler extends RemoteTestHandler {
                 await fs.promises.mkdir(fullPath, { recursive: true });
             }
         } catch (error) {
-            console.error('[CommitTester] Error creating test output directory:', error);
+            console.error('[E2eTestHandler] Error creating test output directory:', error);
         }
     }
 
@@ -178,7 +202,7 @@ export class E2esTestHandler extends RemoteTestHandler {
     /**
      * Save a test file to the test output directory
      */
-    public async saveTestFile(workspaceDirs: string[], testFile: { name: string, content: string }): Promise<string | null> {
+    public async saveTestFile(workspaceDirs: string[], testFile: { name: string, content: string, testName?: string }): Promise<string | null> {
         try {
             console.log("Saving test file - ", testFile.name);
             console.log("Workspace dirs - ", workspaceDirs);
@@ -190,8 +214,14 @@ export class E2esTestHandler extends RemoteTestHandler {
             console.log("Decoded string url - ", decodedWrkDir);
 
             await this.ensureTestOutputDir([decodedWrkDir]);
-            await this.ensureTestOutputDir([path.join(decodedWrkDir, this.testOutputDir)]);
-            const filePath = path.join(decodedWrkDir, this.testOutputDir, testFile.name);
+
+            let filePath = "";
+            if (testFile.testName) {
+                filePath = path.join(decodedWrkDir, this.testOutputDir, testFile.testName, testFile.name);
+                await fs.promises.mkdir(path.join(decodedWrkDir, this.testOutputDir, testFile.testName), { recursive: true });
+            } else {
+                filePath = path.join(decodedWrkDir, this.testOutputDir, testFile.name);
+            }
 
             // Ensure the file has a proper extension
             if (!path.extname(testFile.name)) {
@@ -200,11 +230,11 @@ export class E2esTestHandler extends RemoteTestHandler {
 
             await fs.promises.writeFile(filePath, testFile.content, 'utf8');
 
-            console.log(`[CommitTester] Saved test file: ${testFile.name} to ${filePath}`);
+            console.log(`[E2eTestHandler] Saved test file: ${testFile.name} to ${filePath}`);
             return filePath;
 
         } catch (error) {
-            console.error('[CommitTester] Error saving test file:', error);
+            console.error('[E2eTestHandler] Error saving test file:', error);
             return null;
         }
     }
