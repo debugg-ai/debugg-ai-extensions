@@ -74,7 +74,7 @@ export const createE2eSuiteWithIdeInput = createAsyncThunk<
   void,
   ThunkApiType
 >(
-  "e2eSuites/createWithIdeInput",
+  "e2eSuites/create",
   async (_, { extra }) => {
     console.log("requesting IDE to create E2E suite...");
 

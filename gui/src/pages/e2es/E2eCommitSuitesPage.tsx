@@ -12,9 +12,8 @@ import {
 import type { E2eTestCommitSuite } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pagination } from "../../components/Pagination";
-import type { PaginationInfo } from "../../components/Pagination";
 import { PlatformOnboardingCard } from "../../components/OnboardingCard/platform/PlatformOnboardingCard";
+import { Pagination } from "../../components/Pagination";
 import { useAuth } from "../../context/Auth";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
@@ -76,17 +75,14 @@ function E2eCommitSuitesPage() {
   const handleRefresh = useCallback(async () => {
     try {
       setRefreshing(true);
-      (dispatch as any)(fetchE2eCommitSuites({
+      await (dispatch as any)(fetchE2eCommitSuites({
         filters: currentFilters,
         pagination: currentPagination,
         search: ""
-      }));
+      })).unwrap();
+      setRefreshing(false);
     } catch (error) {
       console.error('Error refreshing commit suites:', error);
-    } finally {
-      if (mountedRef.current) {
-        setRefreshing(false);
-      }
     }
   }, [dispatch, currentFilters, currentPagination]);
 
@@ -110,8 +106,6 @@ function E2eCommitSuitesPage() {
 
   // Create commit suite handler - delegates to IDE
   const handleCreateCommitSuite = useCallback(async () => {
-    if (!mountedRef.current) return;
-
     try {
       await dispatch(createE2eCommitSuiteWithIdeInput()).unwrap();
       // Refresh the list after creation

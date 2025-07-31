@@ -18,6 +18,7 @@ async function dynamicImportAndActivate(context: vscode.ExtensionContext) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  console.log('Extension activate called, NODE_ENV:', process.env.NODE_ENV);
   return dynamicImportAndActivate(context).catch((e) => {
     console.log("Error activating extension: ", e);
     Telemetry.capture(

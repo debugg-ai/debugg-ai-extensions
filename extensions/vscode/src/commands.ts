@@ -15,8 +15,6 @@ import { Core } from "core/core";
 import { LOCAL_DEV_DATA_VERSION } from "core/data/log";
 import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
 import { E2eTestCommitSuite, E2eTestSuite, Issue } from 'core/debuggAIServer/types';
-import { E2eTestHandler } from "core/e2es/e2eTestHandler";
-import { NgrokTunnelClient } from "core/e2es/ngrok-service";
 import { walkDirAsync } from "core/indexing/walkDir";
 import { isModelInstaller } from "core/llm";
 import { startLocalOllama } from "core/util/ollamaHelper";
@@ -26,13 +24,11 @@ import readLastLines from "read-last-lines";
 import * as vscode from "vscode";
 
 import {
-  getE2eTestingStatusBarDescription,
-  getE2eTestingStatusBarTitle,
   getStatusBarStatus,
   getStatusBarStatusFromQuickPickItemLabel,
   quickPickStatusText,
   setupStatusBar,
-  StatusBarStatus,
+  StatusBarStatus
 } from "./autocomplete/statusBar";
 import { SuggestionCodeLensProvider } from "./debug/codeLens/suggestionsLensProvider";
 import { pullErrorsAndHighlight } from "./debug/pullErrors";
@@ -44,12 +40,8 @@ import EditDecorationManager from "./quickEdit/EditDecorationManager";
 import { QuickEdit, QuickEditShowParams } from "./quickEdit/QuickEditQuickPick";
 import { CommitTester } from "./test/code-gen/commitTester";
 import { AiE2eAgent, AiE2eAgentOptions } from "./test/e2e-agents/aiE2eAgent";
-import E2eTestRunner from "./test/e2e-agents/e2eRunner";
-import E2eSuiteGenerator from "./test/e2e-agents/e2eSuiteGen";
-import { start } from "./tunnels/ngrok";
 import { post } from "./util/axiosNaming";
 import { Battery } from "./util/battery";
-import { getMetaKeyLabel } from "./util/util";
 import { VsCodeIde } from "./VsCodeIde";
 
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
@@ -1296,8 +1288,8 @@ const getCommandsMap: (
         captureCommandTelemetry("debugg-ai.createNewE2eTest");
         const getTestDescription = async () => {
           // If description is provided as parameter, use it; otherwise prompt user
-          if (description) {
-            return description;
+          if (description && description.trim() !== '') {
+            return description.trim();
           }
           const testDescription = await vscode.window.showInputBox({
             prompt: 'Provide a description for the new E2E test',
@@ -1319,7 +1311,6 @@ const getCommandsMap: (
         }
         console.log("Local port config - ", localPortConfig);
         const client = await debuggAIServerClientPromise;
-        const e2eTestRunner = new E2eTestRunner(ide, client);
         const testDescription = await getTestDescription();
         if (!testDescription) {
           vscode.window.showWarningMessage("⚠️ No test description provided. Please provide a description to create the E2E test.");
@@ -1328,14 +1319,26 @@ const getCommandsMap: (
         
         vscode.window.showInformationMessage(`🚀 Starting E2E test creation: ${testDescription}`);
         try {
-          await e2eTestRunner.createNewE2eTest(testDescription, localPortConfig);
+          // Configure AiE2eAgent with E2E test creation settings
+          const agentOptions: AiE2eAgentOptions = {
+            testObjectType: "e2e-test",
+            testRunType: "run",
+            remote: true,
+            localServerPort: localPortConfig,
+            testParams: {
+              description: testDescription
+            }
+          };
+          
+          // Create and run the AiE2eAgent
+          const aiE2eAgent = new AiE2eAgent(client, ide, agentOptions);
+          await aiE2eAgent.testHandler.run();
           vscode.window.showInformationMessage(`✅ E2E test created successfully: ${testDescription}`);
         } catch (error) {
           vscode.window.showErrorMessage(`❌ Failed to create E2E test: ${error instanceof Error ? error.message : String(error)}`);
         }
       },
       "debugg-ai.runE2eTest": async () => {
-        // Should handle listing tests and selecting one
         captureCommandTelemetry("debugg-ai.runE2eTest");
         const { config } = await configHandler.loadConfig();
         let localPortConfig = config?.debuggAiServerPort;
@@ -1347,12 +1350,6 @@ const getCommandsMap: (
         };
         console.log("Local port config - ", localPortConfig);
         const client = await debuggAIServerClientPromise;
-        const e2eTestRunner = new E2eTestHandler(
-          client,
-          ide,
-          configHandler,
-          new NgrokTunnelClient()
-        );
         const testDescription = await getTestDescription();
         if (!testDescription) {
           vscode.window.showWarningMessage("⚠️ No test description provided. Please provide a description to run the E2E test.");
@@ -1361,7 +1358,20 @@ const getCommandsMap: (
         
         vscode.window.showInformationMessage(`🏃 Starting E2E test run: ${testDescription}`);
         try {
-          await e2eTestRunner.runE2eTest(testDescription, localPortConfig ?? 3000);
+          // Configure AiE2eAgent with E2E test run settings
+          const agentOptions: AiE2eAgentOptions = {
+            testObjectType: "e2e-test",
+            testRunType: "run",
+            remote: true,
+            localServerPort: localPortConfig ?? 3000,
+            testParams: {
+              description: testDescription
+            }
+          };
+          
+          // Create and run the AiE2eAgent
+          const aiE2eAgent = new AiE2eAgent(client, ide, agentOptions);
+          await aiE2eAgent.testHandler.run();
           vscode.window.showInformationMessage(`✅ E2E test completed: ${testDescription}`);
         } catch (error) {
           vscode.window.showErrorMessage(`❌ E2E test failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -1397,7 +1407,6 @@ const getCommandsMap: (
         }
         console.log("Local port config - ", localPortConfig);
         const client = await debuggAIServerClientPromise;
-        const e2eSuiteGenerator = new E2eSuiteGenerator(client);
         const testDescription = await getTestDescription();
         if (!testDescription) {
           vscode.window.showWarningMessage("⚠️ No test description provided. Please provide a description to generate the E2E test suite.");
@@ -1406,7 +1415,20 @@ const getCommandsMap: (
         
         vscode.window.showInformationMessage(`🔧 Generating E2E test suite for: ${testDescription}`);
         try {
-          await e2eSuiteGenerator.runE2eSuiteGenerator(testDescription, localPortConfig);
+          // Configure AiE2eAgent with E2E test suite generation settings
+          const agentOptions: AiE2eAgentOptions = {
+            testObjectType: "test-suite",
+            testRunType: "generate",
+            remote: true,
+            localServerPort: localPortConfig,
+            testParams: {
+              description: testDescription
+            }
+          };
+          
+          // Create and run the AiE2eAgent
+          const aiE2eAgent = new AiE2eAgent(client, ide, agentOptions);
+          await aiE2eAgent.testHandler.run();
           vscode.window.showInformationMessage(`✅ E2E test suite generated successfully for: ${testDescription}`);
         } catch (error) {
           vscode.window.showErrorMessage(`❌ Failed to generate E2E test suite: ${error instanceof Error ? error.message : String(error)}`);
@@ -1483,27 +1505,24 @@ const getCommandsMap: (
         console.log("Local port config - ", localPortConfig);
         vscode.window.showInformationMessage(`🏃 Running E2E test suite: ${selectedSuite.name}`);
         try {
-          const e2eSuiteGenerator = new E2eSuiteGenerator(client);
-          await e2eSuiteGenerator.runE2eSuiteGenerator(selectedSuite?.description ?? "", localPortConfig, selectedSuite);
+          // Configure AiE2eAgent with E2E test suite run settings
+          const agentOptions: AiE2eAgentOptions = {
+            testObjectType: "test-suite",
+            testRunType: "run",
+            remote: true,
+            localServerPort: localPortConfig,
+            testParams: {
+              existingSuite: selectedSuite
+            }
+          };
+          
+          // Create and run the AiE2eAgent
+          const aiE2eAgent = new AiE2eAgent(client, ide, agentOptions);
+          await aiE2eAgent.testHandler.run();
           vscode.window.showInformationMessage(`✅ E2E test suite completed: ${selectedSuite.name}`);
         } catch (error) {
           vscode.window.showErrorMessage(`❌ E2E test suite failed: ${error instanceof Error ? error.message : String(error)}`);
         }
-
-      },
-      "debugg-ai.startTunnel": async (port: number, domain: string) => {
-        captureCommandTelemetry("debugg-ai.startTunnel");
-
-        const client = await debuggAIServerClientPromise;
-        const e2eTestRunner = new E2eTestRunner(ide, client);
-        // Start the tunnel
-        await start({
-          addr: port,
-          hostname: domain,
-          onLogEvent: (data: any) => {
-            console.log(`${port} | ${domain} | ngrok log: ${data}`);
-          },
-        });
 
       },
 
@@ -1569,7 +1588,7 @@ const getCommandsMap: (
           commitTester = new CommitTester(client, ide, configHandler, extensionContext);
         }
 
-        vscode.window.setStatusBarMessage("Generating tests for working changes...", 4000);
+        vscode.window.setStatusBarMessage("Generating E2E tests for working changes...", 3000);
 
         const changes = await commitTester.generateTestsForWorkingChanges();
 
@@ -1593,7 +1612,7 @@ const getCommandsMap: (
             return;
           }
           
-          vscode.window.showInformationMessage("🤖 Generating tests for your working changes...");
+          vscode.window.setStatusBarMessage("🤖 Generating tests for your working changes...", 3000);
           // Actually run the handler to process the request
           await aiE2eAgent.testHandler.run();
 
@@ -1632,9 +1651,9 @@ const getCommandsMap: (
                   await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: testScriptName, content: testScriptContent });
                 } catch (error) {
                   console.error('[Commands.generateTestsForWorkingChanges] Error downloading test script:', error);
-                  // vscode.window.showErrorMessage(
-                  //   `Error downloading test script: ${error instanceof Error ? error.message : String(error)}`
-                  // );
+                  vscode.window.showErrorMessage(
+                    `Error downloading test script: ${error instanceof Error ? error.message : String(error)}`
+                  );
                 }
               }
             }
@@ -1645,9 +1664,9 @@ const getCommandsMap: (
             }
           }
         } catch (error) {
-          console.error('[Commands.generateTestsForWorkingChanges] Error downloading test scripts:', error);
+          console.error('[Commands.generateTestsForWorkingChanges] Error running test for working changes:', error);
           vscode.window.showErrorMessage(
-            `Error handling tests: ${error instanceof Error ? error.message : String(error)}`
+            `Error running test for working changes: ${error instanceof Error ? error.message : String(error)}`
           );
         }
       }

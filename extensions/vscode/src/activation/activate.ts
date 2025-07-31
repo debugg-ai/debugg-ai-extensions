@@ -39,10 +39,13 @@ export async function activateExtension(context: vscode.ExtensionContext) {
 
   // 'export' public api-surface
   // or entire extension for testing
-  return process.env.NODE_ENV === "test"
+  const exports = process.env.NODE_ENV === "test"
     ? {
         ...continuePublicApi,
         extension: vscodeExtension,
       }
     : continuePublicApi;
+  
+  console.log('Extension activation complete, NODE_ENV:', process.env.NODE_ENV, 'exports:', Object.keys(exports));
+  return exports;
 }

@@ -1,8 +1,8 @@
 import { CompletionProvider } from "core/autocomplete/CompletionProvider";
 import { processSingleLineCompletion } from "core/autocomplete/util/processSingleLineCompletion";
 import {
-    type AutocompleteInput,
-    type AutocompleteOutcome,
+  type AutocompleteInput,
+  type AutocompleteOutcome,
 } from "core/autocomplete/util/types";
 import { ConfigHandler } from "core/config/ConfigHandler";
 import * as URI from "uri-js";
@@ -17,10 +17,10 @@ import { getDefinitionsFromLsp } from "./lsp";
 import { RecentlyEditedTracker } from "./recentlyEdited";
 import { RecentlyVisitedRangesService } from "./RecentlyVisitedRangesService";
 import {
-    StatusBarStatus,
-    getStatusBarStatus,
-    setupStatusBar,
-    stopStatusBarLoading,
+  StatusBarStatus,
+  getStatusBarStatus,
+  setupStatusBar,
+  stopStatusBarLoading,
 } from "./statusBar";
 
 import type { IDE } from "core";
@@ -96,7 +96,7 @@ export class ContinueCompletionProvider
     //@ts-ignore
   ): ProviderResult<InlineCompletionItem[] | InlineCompletionList> {
     const enableTabAutocomplete =
-      getStatusBarStatus() === StatusBarStatus.Enabled;
+      getStatusBarStatus() === StatusBarStatus.Active || getStatusBarStatus() === StatusBarStatus.Running;
     if (token.isCancellationRequested || !enableTabAutocomplete) {
       return null;
     }

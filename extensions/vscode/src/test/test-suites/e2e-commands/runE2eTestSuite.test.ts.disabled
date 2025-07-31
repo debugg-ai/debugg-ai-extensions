@@ -1,0 +1,582 @@
+/**
+ * Unit tests for debugg-ai.runE2eTestSuite command
+ * Tests both current functionality and migration compatibility
+ */
+
+import { describe, test, beforeEach, afterEach, expect, jest } from '@jest/globals';
+import * as vscode from 'vscode';
+import { 
+  setupE2eCommandTests, 
+  cleanupE2eCommandTests, 
+  TestCommandExecutor,
+  E2eCommandAssertions,
+  TestDataFactory,
+  MockAiE2eAgent,
+  MockE2eTestSuite
+} from './testUtils';
+
+// Mock the AiE2eAgent class
+jest.mock('../../../test/e2e-agents/aiE2eAgent', () => ({
+  AiE2eAgent: jest.fn().mockImplementation(() => new MockAiE2eAgent())
+}));
+
+describe('runE2eTestSuite Command Tests', () => {
+  let executor: TestCommandExecutor;
+  let mockAiE2eAgent: MockAiE2eAgent;
+  let mockTestSuites: MockE2eTestSuite[];
+
+  beforeEach(() => {
+    executor = setupE2eCommandTests();
+    mockAiE2eAgent = new MockAiE2eAgent();
+    
+    // Create mock test suites
+    mockTestSuites = [
+      TestDataFactory.createMockE2eTestSuite({
+        uuid: 'suite-1',
+        name: 'Login Tests',
+        description: 'Tests for user authentication'
+      }),
+      TestDataFactory.createMockE2eTestSuite({
+        uuid: 'suite-2',
+        name: 'Dashboard Tests', 
+        description: 'Tests for dashboard functionality'
+      })
+    ];
+
+    // Setup client responses
+    executor.client.e2es.listE2eTestSuites = jest.fn().mockResolvedValue({
+      results: mockTestSuites,
+      totalCount: mockTestSuites.length
+    });
+
+    executor.client.e2es.getE2eTestSuite = jest.fn().mockImplementation(async (uuid: string) => {
+      return mockTestSuites.find(suite => suite.uuid === uuid) || null;
+    });
+
+    executor.client.getRepoInfo = jest.fn().mockResolvedValue({
+      repoName: 'test-repo',
+      repoPath: '/test/repo',
+      branchName: 'main'
+    });
+
+    // Mock the command implementation
+    const runE2eTestSuiteCommand = async (uuid?: string) => {
+      executor.window.setStatusBarMessage("Fetching E2E test suites...", 2500);
+
+      // Mock active text editor
+      const editor = executor.window.activeTextEditor;
+      if (!editor) {
+        executor.window.showWarningMessage("⚠️ No file is currently open. Please open a file from your repository first.");
+        return;
+      }
+
+      const { repoName, repoPath, branchName } = await executor.client.getRepoInfo(editor.document.uri.fsPath);
+      if (!repoName || !repoPath || !branchName) {
+        console.debug("No repo name, path, or branch name found for file");
+      }
+
+      let selectedSuite: MockE2eTestSuite | undefined = undefined;
+      
+      if (uuid) {
+        selectedSuite = await executor.client.e2es.getE2eTestSuite(uuid) ?? undefined;
+        if (!selectedSuite) {
+          executor.window.showWarningMessage("⚠️ Selected E2E test suite not found. Please try selecting a different suite.");
+          return;
+        }
+      } else {
+        const testSuitesPaginated = await executor.client.e2es.listE2eTestSuites({
+          repoName,
+          repoPath,
+          branchName,
+        });
+        const testSuites = testSuitesPaginated?.results ?? [];
+        
+        if (!testSuites || !testSuites.length) {
+          executor.window.showWarningMessage("⚠️ No E2E test suites found. Create a test suite first using the 'Generate E2E Test Suite' command.");
+          return;
+        }
+
+        // Show dropdown
+        const selected = await executor.window.showQuickPick(
+          testSuites.map((suite: MockE2eTestSuite) => ({
+            label: suite.name,
+            uuid: suite.uuid,
+            description: suite.description || undefined,
+            detail: `ID: ${suite.uuid}`,
+          })),
+          {
+            placeHolder: "Select an E2E test suite to view details or run",
+          }
+        );
+        
+        if (!selected) { return; }
+        
+        selectedSuite = testSuites.find((suite: MockE2eTestSuite) => suite.uuid === selected.uuid);
+        if (!selectedSuite) {
+          executor.window.showWarningMessage("⚠️ Selected E2E test suite not found. Please try selecting a different suite.");
+          return;
+        }
+      }
+
+      const { config } = await executor.configHandler.loadConfig();
+      let localPortConfig = config?.debuggAiServerPort;
+      
+      if (!localPortConfig) {
+        const localPort = await executor.window.showInputBox({
+          prompt: 'Provide the port number for the local server',
+          value: '3000',
+        });
+        if (!localPort) {
+          executor.window.showWarningMessage("⚠️ No local port provided. A port number is required to run the server.");
+          return;
+        }
+        localPortConfig = parseInt(localPort, 10);
+      }
+
+      executor.window.showInformationMessage(`🏃 Running E2E test suite: ${selectedSuite.name}`);
+      
+      try {
+        await mockAiE2eAgent.runE2eSuiteGenerator(selectedSuite?.description ?? "", localPortConfig, selectedSuite);
+        executor.window.showInformationMessage(`✅ E2E test suite completed: ${selectedSuite.name}`);
+      } catch (error) {
+        executor.window.showErrorMessage(`❌ E2E test suite failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+
+    executor.registerCommand('debugg-ai.runE2eTestSuite', runE2eTestSuiteCommand);
+  });
+
+  afterEach(() => {
+    cleanupE2eCommandTests();
+  });
+
+  describe('Happy Path Tests', () => {
+    test('should run E2E test suite with provided UUID', async () => {
+      // Arrange
+      const targetSuite = mockTestSuites[0];
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+
+      // Assert
+      expect(executor.client.e2es.getE2eTestSuite).toHaveBeenCalledWith(targetSuite.uuid);
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).toHaveBeenCalledWith(
+        targetSuite.description, 
+        3000, 
+        targetSuite
+      );
+      E2eCommandAssertions.assertInformationMessage(executor.window, `🏃 Running E2E test suite: ${targetSuite.name}`);
+      E2eCommandAssertions.assertInformationMessage(executor.window, `✅ E2E test suite completed: ${targetSuite.name}`);
+    });
+
+    test('should show suite selection when no UUID provided', async () => {
+      // Arrange
+      const selectedSuite = mockTestSuites[1];
+      executor.window.setQuickPickResponse('Select an E2E test suite to view details or run', {
+        label: selectedSuite.name,
+        uuid: selectedSuite.uuid,
+        description: selectedSuite.description,
+        detail: `ID: ${selectedSuite.uuid}`
+      });
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite');
+
+      // Assert
+      expect(executor.client.e2es.listE2eTestSuites).toHaveBeenCalledWith({
+        repoName: 'test-repo',
+        repoPath: '/test/repo',
+        branchName: 'main'
+      });
+      expect(executor.window.showQuickPick).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            label: selectedSuite.name,
+            uuid: selectedSuite.uuid
+          })
+        ]),
+        expect.objectContaining({
+          placeHolder: "Select an E2E test suite to view details or run"
+        })
+      );
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).toHaveBeenCalledWith(
+        selectedSuite.description,
+        3000,
+        selectedSuite
+      );
+    });
+
+    test('should prompt for port when not configured', async () => {
+      // Arrange
+      const targetSuite = mockTestSuites[0];
+      const customPort = '5000';
+      executor.window.setInputBoxResponse('Provide the port number for the local server', customPort);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+
+      // Assert
+      E2eCommandAssertions.assertInputBoxCalled(executor.window, 'Provide the port number for the local server');
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).toHaveBeenCalledWith(
+        targetSuite.description,
+        5000,
+        targetSuite
+      );
+    });
+  });
+
+  describe('Error Handling Tests', () => {
+    test('should show warning when no active text editor', async () => {
+      // Arrange
+      // Mock no active editor
+      Object.defineProperty(executor.window, 'activeTextEditor', {
+        get: () => undefined,
+        configurable: true
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite');
+
+      // Assert
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'No file is currently open');
+      expect(executor.client.e2es.listE2eTestSuites).not.toHaveBeenCalled();
+    });
+
+    test('should show warning when suite with UUID not found', async () => {
+      // Arrange
+      const nonExistentUuid = 'non-existent-uuid';
+      executor.client.e2es.getE2eTestSuite = jest.fn().mockResolvedValue(null);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', nonExistentUuid);
+
+      // Assert
+      expect(executor.client.e2es.getE2eTestSuite).toHaveBeenCalledWith(nonExistentUuid);
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'Selected E2E test suite not found');
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).not.toHaveBeenCalled();
+    });
+
+    test('should show warning when no test suites found', async () => {
+      // Arrange
+      executor.client.e2es.listE2eTestSuites = jest.fn().mockResolvedValue({
+        results: [],
+        totalCount: 0
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite');
+
+      // Assert
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'No E2E test suites found');
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).not.toHaveBeenCalled();
+    });
+
+    test('should handle user cancelling suite selection', async () => {
+      // Arrange
+      executor.window.setQuickPickResponse('Select an E2E test suite to view details or run', undefined);
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite');
+
+      // Assert
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).not.toHaveBeenCalled();
+    });
+
+    test('should show warning when no port provided and not configured', async () => {
+      // Arrange
+      const targetSuite = mockTestSuites[0]; 
+      executor.window.setInputBoxResponse('Provide the port number for the local server', '');
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+
+      // Assert
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'No local port provided');
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).not.toHaveBeenCalled();
+    });
+
+    test('should handle suite generator errors gracefully', async () => {
+      // Arrange
+      const targetSuite = mockTestSuites[0];
+      const errorMessage = 'Suite execution failed';
+      mockAiE2eAgent.runE2eSuiteGenerator = jest.fn().mockRejectedValue(new Error(errorMessage));
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, `E2E test suite failed: ${errorMessage}`);
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).toHaveBeenCalledWith(
+        targetSuite.description,
+        3000,
+        targetSuite
+      );
+    });
+
+    test('should handle string errors', async () => {
+      // Arrange
+      const targetSuite = mockTestSuites[0];
+      const errorMessage = 'String error message';
+      mockAiE2eAgent.runE2eSuiteGenerator = jest.fn().mockRejectedValue(errorMessage);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, `E2E test suite failed: ${errorMessage}`);
+    });
+  });
+
+  describe('Status Bar Messages', () => {
+    test('should show status bar message when fetching suites', async () => {
+      // Arrange
+      const targetSuite = mockTestSuites[0];
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+
+      // Assert
+      expect(executor.window.setStatusBarMessage).toHaveBeenCalledWith("Fetching E2E test suites...", 2500);
+    });
+  });
+
+  describe('Repository Integration Tests', () => {
+    test('should get repository info from active editor', async () => {
+      // Arrange
+      const targetSuite = mockTestSuites[0];
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+
+      // Assert
+      expect(executor.client.getRepoInfo).toHaveBeenCalledWith('/mock/workspace/test.ts');
+    });
+
+    test('should handle missing repository info gracefully', async () => {
+      // Arrange
+      const targetSuite = mockTestSuites[0];
+      executor.client.getRepoInfo = jest.fn().mockResolvedValue({
+        repoName: null,
+        repoPath: null,
+        branchName: null
+      });
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+
+      // Assert
+      // Should continue execution even with missing repo info
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).toHaveBeenCalled();
+    });
+
+    test('should list suites with repository filter', async () => {
+      // Arrange
+      executor.window.setQuickPickResponse('Select an E2E test suite to view details or run', {
+        label: mockTestSuites[0].name,
+        uuid: mockTestSuites[0].uuid
+      });
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite');
+
+      // Assert
+      expect(executor.client.e2es.listE2eTestSuites).toHaveBeenCalledWith({
+        repoName: 'test-repo',
+        repoPath: '/test/repo',
+        branchName: 'main'
+      });
+    });
+  });
+
+  describe('Quick Pick UI Tests', () => {
+    test('should format suite options correctly for quick pick', async () => {
+      // Arrange
+      executor.window.setQuickPickResponse('Select an E2E test suite to view details or run', {
+        label: mockTestSuites[0].name,
+        uuid: mockTestSuites[0].uuid
+      });
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite');
+
+      // Assert
+      expect(executor.window.showQuickPick).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            label: mockTestSuites[0].name,
+            uuid: mockTestSuites[0].uuid,
+            description: mockTestSuites[0].description,
+            detail: `ID: ${mockTestSuites[0].uuid}`
+          }),
+          expect.objectContaining({
+            label: mockTestSuites[1].name,
+            uuid: mockTestSuites[1].uuid,
+            description: mockTestSuites[1].description,
+            detail: `ID: ${mockTestSuites[1].uuid}`
+          })
+        ]),
+        expect.objectContaining({
+          placeHolder: "Select an E2E test suite to view details or run"
+        })
+      );
+    });
+
+    test('should handle suite with no description', async () => {
+      // Arrange
+      const suiteWithoutDescription = TestDataFactory.createMockE2eTestSuite({
+        uuid: 'no-desc-suite',
+        name: 'No Description Suite',
+        description: ''
+      });
+      executor.client.e2es.listE2eTestSuites = jest.fn().mockResolvedValue({
+        results: [suiteWithoutDescription],
+        totalCount: 1
+      });
+      executor.window.setQuickPickResponse('Select an E2E test suite to view details or run', {
+        label: suiteWithoutDescription.name,
+        uuid: suiteWithoutDescription.uuid
+      });
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite');
+
+      // Assert
+      expect(executor.window.showQuickPick).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            label: suiteWithoutDescription.name,
+            uuid: suiteWithoutDescription.uuid,
+            description: undefined,
+            detail: `ID: ${suiteWithoutDescription.uuid}`
+          })
+        ]),
+        expect.anything()
+      );
+    });
+  });
+
+  describe('Edge Cases', () => {
+    test('should handle selected suite not found after selection', async () => {
+      // Arrange - Mock scenario where suite is selected but then not found in results
+      const nonExistentSuite = { label: 'Ghost Suite', uuid: 'ghost-uuid' };
+      executor.window.setQuickPickResponse('Select an E2E test suite to view details or run', nonExistentSuite);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite');
+
+      // Assert
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'Selected E2E test suite not found');
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).not.toHaveBeenCalled();
+    });
+
+    test('should handle invalid port input', async () => {
+      // Arrange
+      const targetSuite = mockTestSuites[0];
+      const invalidPort = 'invalid-port';
+      executor.window.setInputBoxResponse('Provide the port number for the local server', invalidPort);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+
+      // Assert
+      // parseInt('invalid-port', 10) returns NaN
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).toHaveBeenCalledWith(
+        targetSuite.description,
+        NaN,
+        targetSuite
+      );
+    });
+
+    test('should handle suite with empty description gracefully', async () => {
+      // Arrange
+      const targetSuite = TestDataFactory.createMockE2eTestSuite({
+        uuid: 'empty-desc-suite',
+        name: 'Empty Description Suite',
+        description: ''
+      });
+      executor.client.e2es.getE2eTestSuite = jest.fn().mockResolvedValue(targetSuite);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+
+      // Assert
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).toHaveBeenCalledWith(
+        '',
+        3000,
+        targetSuite
+      );
+    });
+  });
+
+  describe('Async Behavior Tests', () => {
+    test('should handle slow suite execution', async () => {
+      // Arrange
+      const targetSuite = mockTestSuites[0];
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      
+      // Make the suite generator take some time
+      mockAiE2eAgent.runE2eSuiteGenerator = jest.fn().mockImplementation(async (desc, port, suite) => {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return { uuid: suite.uuid, description: desc, status: 'completed' };
+      });
+
+      // Act
+      const startTime = Date.now();
+      await executor.executeCommand('debugg-ai.runE2eTestSuite', targetSuite.uuid);
+      const endTime = Date.now();
+
+      // Assert
+      expect(endTime - startTime).toBeGreaterThanOrEqual(200);
+      expect(mockAiE2eAgent.runE2eSuiteGenerator).toHaveBeenCalledWith(
+        targetSuite.description,
+        3000,
+        targetSuite
+      );
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ E2E test suite completed');
+    });
+  });
+});

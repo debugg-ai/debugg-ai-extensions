@@ -8,6 +8,23 @@ import * as vscode from 'vscode';
 import E2eRemoteTestHandler from "./e2eRemoteTestHandler";
 import { E2eObjectCallbacks, RepositoryInfo, Status, Step, TerminalTest, TestHandlerOptions, TestObject, TestState, handlePollUpdateFn } from "./types";
 
+// Type guard functions for safe casting
+function isE2eTest(obj: any): obj is E2eTest {
+    return obj && typeof obj === 'object' && 'uuid' in obj && 'name' in obj && 'testScript' in obj;
+}
+
+function isE2eTestSuite(obj: any): obj is E2eTestSuite {
+    return obj && typeof obj === 'object' && 'uuid' in obj && 'name' in obj && typeof obj.completed === 'boolean';
+}
+
+function isE2eTestCommitSuite(obj: any): obj is E2eTestCommitSuite {
+    return obj && typeof obj === 'object' && 'uuid' in obj && 'runStatus' in obj && 'tests' in obj && Array.isArray(obj.tests);
+}
+
+function isE2eRun(obj: any): obj is E2eRun {
+    return obj && typeof obj === 'object' && 'uuid' in obj && 'status' in obj && 'outcome' in obj;
+}
+
 
 export type TestObjectType = "e2e-test" | "test-suite" | "commit-suite";
 export type TestRunType = "run" | "generate";  // run = run a test, generate = generate new tests
@@ -69,28 +86,59 @@ export class AiE2eAgent {
         switch (testObjectType) {
             case "e2e-test":
                 func = client?.createE2eTest;
+                break;
             case "test-suite":
                 func = client?.createE2eTestSuite;
+                break;
             case "commit-suite":
                 func = client?.createE2eCommitSuite;
+                break;
+            default:
+                throw new Error(`Unknown test object type: ${testObjectType}`);
         }
         return async (description?: string, params?: Record<string, any>) => {
-            const result = await func?.(description ?? "", params);
-            if (!result) {
-                throw new Error("Failed to create object");
+            try {
+                if (!func) {
+                    throw new Error(`No create function available for test object type: ${testObjectType}`);
+                }
+                const result = await func(description ?? "", params);
+                if (!result) {
+                    throw new Error(`Failed to create ${testObjectType}: No result returned from server`);
+                }
+                if (!result.uuid) {
+                    throw new Error(`Failed to create ${testObjectType}: Missing UUID in response`);
+                }
+            
+                let status = "running";
+                switch (testObjectType) {
+                    case "commit-suite":
+                        if (isE2eTestCommitSuite(result)) {
+                            status = result.runStatus;
+                        } else {
+                            console.warn("Expected E2eTestCommitSuite but received different type");
+                            status = "error";
+                        }
+                        break;
+                    case "e2e-test":
+                    case "test-suite":
+                        // For these types, default to "running" status on creation
+                        status = "running";
+                        break;
+                    default:
+                        status = "running";
+                        break;
+                }
+                
+                return {
+                    uuid: result.uuid,
+                    description: result.description || (result as any).name || "",
+                    status: status as Status,
+                    object: result
+                };
+            } catch (error) {
+                console.error(`Error creating ${testObjectType}:`, error);
+                throw error;
             }
-            let status = "running";
-            switch (testObjectType) {
-                case "commit-suite":
-                    status = (result as unknown as E2eTestCommitSuite).runStatus;
-                    break;
-            }
-            return {
-                uuid: result.uuid,
-                description: result.description,
-                status: result.runStatus,
-                object: result
-            };
         };
     }
 
@@ -103,32 +151,74 @@ export class AiE2eAgent {
         switch (testObjectType) {
             case "e2e-test":
                 func = client?.getE2eTest;
+                break;
             case "test-suite":
                 func = client?.getE2eTestSuite;
+                break;
             case "commit-suite":
                 func = client?.getE2eCommitSuite;
+                break;
+            default:
+                throw new Error(`Unknown test object type: ${testObjectType}`);
         }
         return async (uuid: string, params?: Record<string, any>) => {
-            const result = await func?.(uuid, params);
-            if (!result) {
-                throw new Error("Failed to poll object");
-            }
-            let status = "success";
+            try {
+                if (!func) {
+                    throw new Error(`No poll function available for test object type: ${testObjectType}`);
+                }
+                if (!uuid) {
+                    throw new Error(`UUID is required to poll ${testObjectType}`);
+                }
+                
+                const result = await func(uuid, params);
+                if (!result) {
+                    throw new Error(`Failed to poll ${testObjectType} with UUID ${uuid}: No result returned from server`);
+                }
+                if (!result.uuid) {
+                    throw new Error(`Failed to poll ${testObjectType}: Missing UUID in response`);
+                }
+                
+                let status = "running";
             switch (testObjectType) {
                 case "e2e-test":
-                    status = (result as unknown as E2eTest).curRun?.status ?? "running";
+                    if (isE2eTest(result)) {
+                        status = result.curRun?.status ?? "running";
+                    } else {
+                        console.warn("Expected E2eTest but received different type");
+                        status = "error";
+                    }
+                    break;
                 case "test-suite":
-                    status = (result as unknown as E2eTestSuite).completed ? "completed" : "running";
+                    if (isE2eTestSuite(result)) {
+                        status = result.completed ? "completed" : "running";
+                    } else {
+                        console.warn("Expected E2eTestSuite but received different type");
+                        status = "error";
+                    }
+                    break;
                 case "commit-suite":
-                    status = (result as unknown as E2eTestCommitSuite).runStatus;
+                    if (isE2eTestCommitSuite(result)) {
+                        status = result.runStatus;
+                    } else {
+                        console.warn("Expected E2eTestCommitSuite but received different type");
+                        status = "error";
+                    }
+                    break;
+                default:
+                    status = "running";
+                    break;
             }
-            console.log(`📡 Polled E2E object status: ${status}`);
-            return {
-                uuid: result.uuid,
-                description: result.description,
-                status: status as Status,
-                object: result
-            };
+                console.log(`📡 Polled E2E object status: ${status}`);
+                return {
+                    uuid: result.uuid,
+                    description: result.description || (result as any).name || "",
+                    status: status as Status,
+                    object: result
+                };
+            } catch (error) {
+                console.error(`Error polling ${testObjectType} with UUID ${uuid}:`, error);
+                throw error;
+            }
         };
     }
 
@@ -136,55 +226,91 @@ export class AiE2eAgent {
      * Set up repository information.
      */
     private async setupRepositoryInfo(): Promise<RepositoryInfo> {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            throw new Error("No file open.");
-        }
+        try {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                throw new Error("No file open. Please open a file in the editor to run E2E tests.");
+            }
 
-        if (!this.agentOptions.repositoryInfo) {
-            this.agentOptions.repositoryInfo = {
-                repoName: "",
-                repoPath: "",
-                branchName: "",
-                filePath: ""
-            };
-        }
-        const filePath = editor.document.uri.fsPath;
+            if (!this.agentOptions.repositoryInfo) {
+                this.agentOptions.repositoryInfo = {
+                    repoName: "",
+                    repoPath: "",
+                    branchName: "",
+                    filePath: ""
+                };
+            }
+            
+            const filePath = editor.document.uri.fsPath;
+            if (!filePath) {
+                throw new Error("Unable to determine file path from active editor.");
+            }
 
-        const { repoName, repoPath, branchName } = await this.client.getRepoInfo(filePath);
-        if (!repoName || !repoPath || !branchName) {
-            throw new Error("File not found or not associated with a repo.");
-        }
+            const { repoName, repoPath, branchName } = await this.client.getRepoInfo(filePath);
+            if (!repoName || !repoPath || !branchName) {
+                throw new Error(`File "${filePath}" is not associated with a Git repository or repository information could not be retrieved.`);
+            }
 
-        this.agentOptions.repositoryInfo.repoName = repoName;
-        this.agentOptions.repositoryInfo.repoPath = repoPath;
-        this.agentOptions.repositoryInfo.branchName = branchName;
-        this.agentOptions.repositoryInfo.filePath = filePath;
-        return this.agentOptions.repositoryInfo;
+            this.agentOptions.repositoryInfo.repoName = repoName;
+            this.agentOptions.repositoryInfo.repoPath = repoPath;
+            this.agentOptions.repositoryInfo.branchName = branchName;
+            this.agentOptions.repositoryInfo.filePath = filePath;
+            
+            console.log(`📁 Repository info: ${repoName} (${branchName}) at ${repoPath}`);
+            return this.agentOptions.repositoryInfo;
+        } catch (error) {
+            console.error("Error setting up repository information:", error);
+            throw error;
+        }
     }
 
     private parseStatusFromObject(testObjectType: TestObjectType): (prevState: TestState, updatedObj: TestObject) => TestState {
         console.log(`📡 Parsing status from object: ${testObjectType}`);
         const parseFunction = (prevState: TestState, updatedObj: TestObject) => {
-            switch (testObjectType) {
-                case "e2e-test":
-                    return this.parseUpdateForE2eTest(prevState, updatedObj);
-                case "test-suite":
-                    return this.parseUpdateForE2eTestSuite(prevState, updatedObj);
-                case "commit-suite":
-                    return this.parseUpdateForE2eCommitSuite(prevState, updatedObj);
+            try {
+                if (!updatedObj) {
+                    console.warn("Received null or undefined test object");
+                    return {
+                        ...prevState,
+                        status: "error" as Status
+                    };
+                }
+                
+                switch (testObjectType) {
+                    case "e2e-test":
+                        return this.parseUpdateForE2eTest(prevState, updatedObj);
+                    case "test-suite":
+                        return this.parseUpdateForE2eTestSuite(prevState, updatedObj);
+                    case "commit-suite":
+                        return this.parseUpdateForE2eCommitSuite(prevState, updatedObj);
+                    default:
+                        console.error(`Unknown test object type in parsing: ${testObjectType}`);
+                        return {
+                            ...prevState,
+                            status: "error" as Status
+                        };
+                }
+            } catch (error) {
+                console.error(`Error parsing status for ${testObjectType}:`, error);
+                return {
+                    ...prevState,
+                    status: "error" as Status
+                };
             }
         };
         return parseFunction;
     }
 
     private parseUpdateForE2eTest(prevState: TestState, updatedObj: TestObject): TestState {
-        const updatedRun = updatedObj.object as E2eRun;
-        if (!updatedRun) {return {
-            ...prevState,
-            testObject: updatedObj,
-            status: "pending"
-        };}
+        if (!isE2eRun(updatedObj.object)) {
+            console.warn("Expected E2eRun but received different type in parseUpdateForE2eTest");
+            return {
+                ...prevState,
+                testObject: updatedObj,
+                status: "error" as Status
+            };
+        }
+        const updatedRun = updatedObj.object;
 
         console.log(`📡 Polled E2E run status: ${updatedRun.status}`);
 
@@ -256,12 +382,15 @@ export class AiE2eAgent {
     }
 
     private parseUpdateForE2eTestSuite(prevState: TestState, updatedObj: TestObject): TestState {
-        const updatedSuite = updatedObj.object as E2eTestSuite;
-        if (!updatedSuite) {return {
-            ...prevState,
-            testObject: updatedObj,
-            status: "pending"
-        };}
+        if (!isE2eTestSuite(updatedObj.object)) {
+            console.warn("Expected E2eTestSuite but received different type in parseUpdateForE2eTestSuite");
+            return {
+                ...prevState,
+                testObject: updatedObj,
+                status: "error" as Status
+            };
+        }
+        const updatedSuite = updatedObj.object;
 
         console.log(`📡 Polled E2E suite status: ${updatedSuite.completed}`);
         const status = updatedSuite.completed ? "completed" : "running";
@@ -269,7 +398,7 @@ export class AiE2eAgent {
         // Create a step for the suite status
         const currentStep: Step = {
             label: "E2E Test Suite",
-            status: status,
+            status: status as Status,
             details: `Suite ${updatedSuite.completed ? "completed" : "running"}`,
             currentState: {
                 evaluationPreviousGoal: "",
@@ -285,35 +414,46 @@ export class AiE2eAgent {
         return {
             ...prevState,
             testObject: updatedObj,
-            status: status,
+            status: status as Status,
             completed: updatedSuite.completed || false,
             steps: updatedSteps
         };
     }
 
     private parseUpdateForE2eCommitSuite(prevState: TestState, updatedObj: TestObject): TestState {
-        const updatedCommitSuite = updatedObj.object as E2eTestCommitSuite;
-        console.log(`📡 Polled E2E commit suite: ${updatedCommitSuite}`);
-        if (!updatedCommitSuite) {return {
-            ...prevState,
-        };}
+        if (!isE2eTestCommitSuite(updatedObj.object)) {
+            console.warn("Expected E2eTestCommitSuite but received different type in parseUpdateForE2eCommitSuite");
+            return {
+                ...prevState,
+                testObject: updatedObj,
+                status: "error" as Status
+            };
+        }
+        const updatedCommitSuite = updatedObj.object;
+        console.log(`📡 Polled E2E commit suite: ${updatedCommitSuite.uuid}`);
         
         console.log(`📡 Polled E2E commit suite status: ${updatedCommitSuite.runStatus}`);
 
         // Convert E2eTest objects to TerminalTest objects
-        const tests: TerminalTest[] = updatedCommitSuite.tests.map(test => ({
+        const tests: TerminalTest[] = (updatedCommitSuite.tests || []).map(test => ({
             uuid: test.uuid,
-            description: test.description || test.name,
-            title: test.name,
+            description: test.description || test.name || "",
+            title: test.name || "",
             status: test.curRun?.status || 'pending',
             outcome: test.curRun?.outcome || 'pending',
             object: test,
             steps: test.curRun?.conversations?.[0]?.messages?.map(message => ({
                 label: message.jsonContent?.currentState?.memory ?? "",
-                status: message.jsonContent?.currentState?.evaluationPreviousGoal ? message.jsonContent.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() : "pending",
+                status: message.jsonContent?.currentState?.evaluationPreviousGoal ? 
+                    message.jsonContent.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() as Status : 
+                    "pending",
                 details: message.jsonContent?.currentState?.memory,
-                currentState: message.jsonContent?.currentState,
-                action: message.jsonContent?.action
+                currentState: message.jsonContent?.currentState || {
+                    evaluationPreviousGoal: "",
+                    memory: "",
+                    nextGoal: ""
+                },
+                action: message.jsonContent?.action || []
             })) ?? [], // Initialize empty steps array for each test
             handlePollUpdate: handlePollUpdateFn
         }));
@@ -328,7 +468,7 @@ export class AiE2eAgent {
             testResults: null, // No results yet for commit suites
             stepNumber: prevState.stepNumber,
             completed: completed,
-            status: status,
+            status: status as Status,
             tests: tests,
             steps: prevState.steps, // Keep existing steps
             handlePollUpdate: prevState.handlePollUpdate
