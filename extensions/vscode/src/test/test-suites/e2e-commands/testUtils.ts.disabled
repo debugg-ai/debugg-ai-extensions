@@ -1,0 +1,496 @@
+/**
+ * Test utilities and mocks for E2E command testing
+ * Provides comprehensive mocking for VS Code APIs, DebuggAI client, and E2E components
+ */
+
+import * as vscode from 'vscode';
+import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
+import { E2eTest, E2eTestSuite, E2eTestCommitSuite } from 'core/debuggAIServer/types';
+import { IDE } from 'core/index';
+import { ConfigHandler } from '../../../config/handler';
+import { CommitTester } from '../../../test/commit/commitTester';
+// Old E2E classes removed - now using AiE2eAgent
+import { AiE2eAgent } from '../../../test/e2e-agents/aiE2eAgent';
+import { NgrokTunnelClient } from '../../../tunnels/ngrokClient';
+
+export interface MockE2eTest extends E2eTest {
+  uuid: string;
+  description: string;
+  status: string;
+  runStatus: string;
+  testScript?: string;
+}
+
+export interface MockE2eTestSuite extends E2eTestSuite {
+  uuid: string;
+  name: string;
+  description: string;
+  status: string;
+  runStatus: string;
+  tests?: MockE2eTest[];
+}
+
+export interface MockE2eTestCommitSuite extends E2eTestCommitSuite {
+  uuid: string;
+  description: string;
+  runStatus: string;
+  tests?: MockE2eTest[];
+}
+
+/**
+ * Mock VS Code APIs
+ */
+export class MockVSCodeWindow {
+  private inputBoxResponses: Map<string, string> = new Map();
+  private quickPickResponses: Map<string, any> = new Map();
+
+  showInputBox = jest.fn().mockImplementation(async (options: vscode.InputBoxOptions) => {
+    const key = options.prompt || 'default';
+    return this.inputBoxResponses.get(key) || options.value || '';
+  });
+
+  showQuickPick = jest.fn().mockImplementation(async (items: any[], options?: vscode.QuickPickOptions) => {
+    const key = options?.placeHolder || 'default';
+    return this.quickPickResponses.get(key) || (Array.isArray(items) ? items[0] : undefined);
+  });
+
+  showInformationMessage = jest.fn().mockResolvedValue(undefined);
+  showWarningMessage = jest.fn().mockResolvedValue(undefined);
+  showErrorMessage = jest.fn().mockResolvedValue(undefined);
+  setStatusBarMessage = jest.fn().mockReturnValue({ dispose: jest.fn() });
+
+  get activeTextEditor() {
+    return {
+      document: {
+        uri: {
+          fsPath: '/mock/workspace/test.ts'
+        }
+      }
+    };
+  }
+
+  // Helper methods for tests
+  setInputBoxResponse(prompt: string, response: string) {
+    this.inputBoxResponses.set(prompt, response);
+  }
+
+  setQuickPickResponse(placeholder: string, response: any) {
+    this.quickPickResponses.set(placeholder, response);
+  }
+
+  clearResponses() {
+    this.inputBoxResponses.clear();
+    this.quickPickResponses.clear();
+  }
+}
+
+/**
+ * Mock DebuggAI Server Client
+ */
+export class MockDebuggAIServerClient {
+  e2es = {
+    createE2eTest: jest.fn().mockImplementation(async (description: string, params?: any): Promise<MockE2eTest> => ({
+      uuid: `test-${Date.now()}`,
+      description,
+      status: 'running',
+      runStatus: 'running',
+      testScript: 'https://mock-server.com/test-script.js',
+      ...params
+    })),
+
+    createE2eTestSuite: jest.fn().mockImplementation(async (description: string, params?: any): Promise<MockE2eTestSuite> => ({
+      uuid: `suite-${Date.now()}`,
+      name: description,
+      description,
+      status: 'running',
+      runStatus: 'running',
+      tests: [],
+      ...params
+    })),
+
+    createE2eCommitSuite: jest.fn().mockImplementation(async (description: string, params?: any): Promise<MockE2eTestCommitSuite> => ({
+      uuid: `commit-suite-${Date.now()}`,
+      description,
+      runStatus: 'running',
+      tests: [],
+      ...params
+    })),
+
+    getE2eTest: jest.fn().mockImplementation(async (uuid: string): Promise<MockE2eTest | null> => ({
+      uuid,
+      description: 'Mock E2E Test',
+      status: 'completed',
+      runStatus: 'completed',
+      testScript: 'https://mock-server.com/test-script.js'
+    })),
+
+    getE2eTestSuite: jest.fn().mockImplementation(async (uuid: string): Promise<MockE2eTestSuite | null> => ({
+      uuid,
+      name: 'Mock Test Suite',
+      description: 'Mock Test Suite Description',
+      status: 'completed',
+      runStatus: 'completed',
+      tests: []
+    })),
+
+    listE2eTestSuites: jest.fn().mockImplementation(async (params?: any) => ({
+      results: [
+        {
+          uuid: 'suite-1',
+          name: 'Login Tests',
+          description: 'Tests for user authentication',
+          status: 'completed',
+          runStatus: 'completed'
+        },
+        {
+          uuid: 'suite-2',
+          name: 'Dashboard Tests',
+          description: 'Tests for dashboard functionality',
+          status: 'completed',
+          runStatus: 'completed'
+        }
+      ],
+      totalCount: 2
+    }))
+  };
+
+  getRepoInfo = jest.fn().mockImplementation(async (filePath: string) => ({
+    repoName: 'mock-repo',
+    repoPath: '/mock/workspace',
+    branchName: 'main'
+  }));
+
+  issues = {
+    getRecentIssues: jest.fn().mockResolvedValue([])
+  };
+}
+
+/**
+ * Mock IDE
+ */
+export class MockIDE implements Partial<IDE> {
+  getWorkspaceDirs = jest.fn().mockResolvedValue(['/mock/workspace']);
+  getOpenFiles = jest.fn().mockResolvedValue([]);
+  readFile = jest.fn().mockResolvedValue('// Mock file content');
+  writeFile = jest.fn().mockResolvedValue();
+}
+
+/**
+ * Mock Config Handler
+ */
+export class MockConfigHandler {
+  loadConfig = jest.fn().mockResolvedValue({
+    config: {
+      debuggAiServerPort: 3000
+    }
+  });
+}
+
+/**
+ * Mock E2E Components (Old Architecture - deprecated, kept for backward compatibility)
+ */
+export class MockE2eTestRunner {
+  createNewE2eTest = jest.fn().mockImplementation(async (description: string, port: number) => {
+    // Simulate test creation using new architecture internally
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return {
+      uuid: `test-${Date.now()}`,
+      description,
+      status: 'completed'
+    };
+  });
+}
+
+export class MockE2eSuiteGenerator {
+  runE2eSuiteGenerator = jest.fn().mockImplementation(async (description: string, port: number, suite?: any) => {
+    // Simulate suite generation using new architecture internally
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return {
+      uuid: suite?.uuid || `suite-${Date.now()}`,
+      description,
+      status: 'completed'
+    };
+  });
+}
+
+export class MockE2eTestHandler {
+  runE2eTest = jest.fn().mockImplementation(async (description: string, port: number) => {
+    // Simulate test execution using new architecture internally
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return {
+      uuid: `run-${Date.now()}`,
+      description,
+      status: 'completed'
+    };
+  });
+}
+
+/**
+ * Mock New Architecture Components
+ */
+export class MockAiE2eAgent {
+  testHandler = {
+    run: jest.fn().mockImplementation(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }),
+    isTestRunning: jest.fn().mockReturnValue(false),
+    getTestState: jest.fn().mockReturnValue({
+      status: 'completed',
+      progress: 100,
+      currentStep: 'finished'
+    }),
+    getTestObject: jest.fn().mockResolvedValue({
+      object: {
+        uuid: `commit-suite-${Date.now()}`,
+        description: 'Generated tests for working changes',
+        runStatus: 'completed',
+        tests: [
+          {
+            uuid: `test-${Date.now()}`,
+            description: 'Login test',
+            testScript: 'https://mock-server.com/login-test.js',
+            status: 'completed'
+          }
+        ]
+      }
+    }),
+    saveTestFile: jest.fn().mockImplementation(async (workspaceDirs: string[], testFile: { name: string; content: string }) => {
+      // Simulate saving test file
+      await new Promise(resolve => setTimeout(resolve, 50));
+    })
+  };
+
+  // Additional methods for compatibility with test cases that might need them
+  createNewE2eTest = jest.fn().mockImplementation(async (description: string, port: number) => {
+    // Delegate to testHandler for new architecture
+    await this.testHandler.run();
+    return {
+      uuid: `test-${Date.now()}`,
+      description,
+      status: 'completed'
+    };
+  });
+
+  runE2eSuiteGenerator = jest.fn().mockImplementation(async (description: string, port: number, suite?: any) => {
+    // Delegate to testHandler for new architecture
+    await this.testHandler.run();
+    return {
+      uuid: suite?.uuid || `suite-${Date.now()}`,
+      description,
+      status: 'completed'
+    };
+  });
+
+  runE2eTest = jest.fn().mockImplementation(async (description: string, port: number) => {
+    // Delegate to testHandler for new architecture
+    await this.testHandler.run();
+    return {
+      uuid: `run-${Date.now()}`,
+      description,
+      status: 'completed'
+    };
+  });
+}
+
+/**
+ * Mock Ngrok Client
+ */
+export class MockNgrokTunnelClient {
+  start = jest.fn().mockResolvedValue('https://mock-tunnel.ngrok.io');
+  stop = jest.fn().mockResolvedValue();
+}
+
+/**
+ * Mock Commit Tester
+ */
+export class MockCommitTester {
+  generateTestsForWorkingChanges = jest.fn().mockImplementation(async () => ({
+    workingChanges: {
+      changes: [
+        {
+          type: 'modified',
+          path: '/mock/workspace/src/login.ts',
+          content: '// Modified login logic'
+        }
+      ]
+    },
+    branchInfo: {
+      branch: 'main',
+      commitHash: 'abc123'
+    }
+  }));
+}
+
+/**
+ * Test Command Executor
+ * Simulates VS Code command execution for testing
+ */
+export class TestCommandExecutor {
+  private commands: Map<string, Function> = new Map();
+  private mockWindow: MockVSCodeWindow;
+  private mockClient: MockDebuggAIServerClient;
+  private mockIDE: MockIDE;
+  private mockConfigHandler: MockConfigHandler;
+
+  constructor() {
+    this.mockWindow = new MockVSCodeWindow();
+    this.mockClient = new MockDebuggAIServerClient();
+    this.mockIDE = new MockIDE();
+    this.mockConfigHandler = new MockConfigHandler();
+  }
+
+  registerCommand(commandId: string, handler: Function) {
+    this.commands.set(commandId, handler);
+  }
+
+  async executeCommand(commandId: string, ...args: any[]) {
+    const handler = this.commands.get(commandId);
+    if (!handler) {
+      throw new Error(`Command ${commandId} not found`);
+    }
+    return await handler(...args);
+  }
+
+  // Getters for mocks
+  get window() { return this.mockWindow; }
+  get client() { return this.mockClient; }
+  get ide() { return this.mockIDE; }
+  get configHandler() { return this.mockConfigHandler; }
+}
+
+/**
+ * Test Assertion Helpers
+ */
+export class E2eCommandAssertions {
+  static assertCommandSuccess(result: any) {
+    expect(result).toBeDefined();
+    // Command completed without throwing
+  }
+
+  static assertInputBoxCalled(mockWindow: MockVSCodeWindow, expectedPrompt: string) {
+    expect(mockWindow.showInputBox).toHaveBeenCalledWith(
+      expect.objectContaining({ prompt: expectedPrompt })
+    );
+  }
+
+  static assertInformationMessage(mockWindow: MockVSCodeWindow, expectedMessage: string) {
+    expect(mockWindow.showInformationMessage).toHaveBeenCalledWith(
+      expect.stringContaining(expectedMessage)
+    );
+  }
+
+  static assertErrorMessage(mockWindow: MockVSCodeWindow, expectedMessage: string) {
+    expect(mockWindow.showErrorMessage).toHaveBeenCalledWith(
+      expect.stringContaining(expectedMessage)
+    );
+  }
+
+  static assertWarningMessage(mockWindow: MockVSCodeWindow, expectedMessage: string) {
+    expect(mockWindow.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining(expectedMessage)
+    );
+  }
+
+  static assertClientMethodCalled(client: MockDebuggAIServerClient, method: string, times: number = 1) {
+    const clientMethod = method.split('.').reduce((obj, key) => obj[key], client as any);
+    expect(clientMethod).toHaveBeenCalledTimes(times);
+  }
+}
+
+/**
+ * Test Data Factories
+ */
+export class TestDataFactory {
+  static createMockE2eTest(overrides: Partial<MockE2eTest> = {}): MockE2eTest {
+    return {
+      uuid: `test-${Date.now()}`,
+      description: 'Mock E2E Test',
+      status: 'completed',
+      runStatus: 'completed',
+      testScript: 'https://mock-server.com/test-script.js',
+      ...overrides
+    };
+  }
+
+  static createMockE2eTestSuite(overrides: Partial<MockE2eTestSuite> = {}): MockE2eTestSuite {
+    return {
+      uuid: `suite-${Date.now()}`,
+      name: 'Mock Test Suite',
+      description: 'Mock Test Suite Description',
+      status: 'completed',
+      runStatus: 'completed',
+      tests: [],
+      ...overrides
+    };
+  }
+
+  static createMockE2eCommitSuite(overrides: Partial<MockE2eTestCommitSuite> = {}): MockE2eCommitSuite {
+    return {
+      uuid: `commit-suite-${Date.now()}`,
+      description: 'Mock Commit Suite',
+      runStatus: 'completed',
+      tests: [],
+      ...overrides
+    };
+  }
+
+  static createWorkingChanges() {
+    return {
+      workingChanges: {
+        changes: [
+          {
+            type: 'modified',
+            path: '/mock/workspace/src/components/Login.tsx',
+            content: '// Modified login component'
+          },
+          {
+            type: 'added',
+            path: '/mock/workspace/src/utils/auth.ts',
+            content: '// New auth utility'
+          }
+        ]
+      },
+      branchInfo: {
+        branch: 'feature/new-auth',
+        commitHash: 'abc123def456'
+      }
+    };
+  }
+}
+
+/**
+ * Setup function for tests
+ */
+export function setupE2eCommandTests() {
+  const executor = new TestCommandExecutor();
+  
+  // Mock globals
+  global.fetch = jest.fn().mockResolvedValue({
+    text: () => Promise.resolve('// Mock test script content'),
+    ok: true
+  });
+
+  // Mock VS Code
+  jest.mock('vscode', () => ({
+    window: executor.window,
+    commands: {
+      executeCommand: jest.fn()
+    },
+    Uri: {
+      file: jest.fn((path: string) => ({ fsPath: path }))
+    },
+    workspace: {
+      workspaceFolders: [{ uri: { fsPath: '/mock/workspace' } }]
+    }
+  }));
+
+  return executor;
+}
+
+/**
+ * Cleanup function for tests
+ */
+export function cleanupE2eCommandTests() {
+  jest.clearAllMocks();
+  jest.resetModules();
+}

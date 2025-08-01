@@ -1,0 +1,443 @@
+/**
+ * Integration tests for E2E command flows
+ * Tests end-to-end scenarios across multiple commands and components
+ */
+
+import { describe, test, beforeEach, afterEach, expect, jest } from '@jest/globals';
+import * as vscode from 'vscode';
+import { 
+  setupE2eCommandTests, 
+  cleanupE2eCommandTests, 
+  TestCommandExecutor,
+  E2eCommandAssertions,
+  TestDataFactory
+} from './testUtils';
+
+describe('E2E Commands Integration Tests', () => {
+  let executor: TestCommandExecutor;
+
+  beforeEach(() => {
+    executor = setupE2eCommandTests();
+    
+    // Setup comprehensive integration environment
+    setupIntegratedCommands(executor);
+  });
+
+  afterEach(() => {
+    cleanupE2eCommandTests();
+  });
+
+  describe('Complete E2E Test Workflow', () => {
+    test('should create, generate suite, and run complete E2E workflow', async () => {
+      // Arrange
+      const testDescription = 'User authentication flow';
+      const suiteDescription = 'Authentication test suite';
+      
+      // Configure responses for the workflow
+      executor.window.setInputBoxResponse('Provide a description for the new E2E test', testDescription);
+      executor.window.setInputBoxResponse('What section of the app do you want to create test suites for?', suiteDescription);
+      executor.window.setQuickPickResponse('Select an E2E test suite to view details or run', {
+        label: 'Authentication Tests',
+        uuid: 'suite-1'
+      });
+      
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act & Assert - Execute workflow steps
+      
+      // Step 1: Create new E2E test
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ E2E test created successfully');
+      
+      // Step 2: Generate test suite
+      await executor.executeCommand('debugg-ai.runE2eSuiteGenerator');
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ E2E test suite generated successfully');
+      
+      // Step 3: Run the test suite
+      await executor.executeCommand('debugg-ai.runE2eTestSuite');
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ E2E test suite completed');
+      
+      // Verify all components were called
+      expect(executor.client.e2es.createE2eTest).toHaveBeenCalledWith(testDescription, expect.any(Object));
+      expect(executor.client.e2es.createE2eTestSuite).toHaveBeenCalledWith(suiteDescription, expect.any(Object));
+      expect(executor.client.e2es.listE2eTestSuites).toHaveBeenCalled();
+    });
+
+    test('should handle errors gracefully across workflow steps', async () => {
+      // Arrange
+      const testDescription = 'Error prone test';
+      executor.window.setInputBoxResponse('Provide a description for the new E2E test', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      
+      // Make the second step fail
+      executor.client.e2es.createE2eTestSuite = jest.fn().mockRejectedValue(new Error('Suite creation failed'));
+
+      // Act & Assert
+      
+      // Step 1: Should succeed
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ E2E test created successfully');
+      
+      // Step 2: Should fail gracefully
+      await executor.executeCommand('debugg-ai.runE2eSuiteGenerator');
+      E2eCommandAssertions.assertErrorMessage(executor.window, 'Failed to generate E2E test suite');
+      
+      // Verify partial execution
+      expect(executor.client.e2es.createE2eTest).toHaveBeenCalled();
+      expect(executor.client.e2es.createE2eTestSuite).toHaveBeenCalled();
+    });
+  });
+
+  describe('Working Changes to Test Generation Flow', () => {
+    test('should generate tests from working changes end-to-end', async () => {
+      // Arrange
+      const workingChanges = TestDataFactory.createWorkingChanges();
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Mock the commit tester to return working changes
+      const mockCommitTester = {
+        generateTestsForWorkingChanges: jest.fn().mockResolvedValue(workingChanges)
+      };
+
+      // Mock the AiE2eAgent for new architecture
+      const mockAiE2eAgent = {
+        testHandler: {
+          run: jest.fn().mockResolvedValue(undefined),
+          isTestRunning: jest.fn().mockReturnValue(false),
+          getTestState: jest.fn().mockReturnValue({
+            status: 'completed',
+            progress: 100
+          }),
+          getTestObject: jest.fn().mockResolvedValue({
+            object: {
+              uuid: 'commit-suite-123',
+              runStatus: 'completed',
+              tests: [
+                {
+                  uuid: 'test-123',
+                  description: 'Generated login test',
+                  testScript: 'https://mock-server.com/login-test.js'
+                }
+              ]
+            }
+          }),
+          saveTestFile: jest.fn().mockResolvedValue(undefined)
+        }
+      };
+
+      // Override the command implementation for this test
+      const generateTestsCommand = async () => {
+        const changes = await mockCommitTester.generateTestsForWorkingChanges();
+        
+        if (changes.workingChanges.changes.length === 0) {
+          executor.window.showWarningMessage("⚠️ No working changes found.");
+          return;
+        }
+        
+        executor.window.showInformationMessage("🤖 Generating tests for your working changes...");
+        
+        await mockAiE2eAgent.testHandler.run();
+        
+        const testObject = await mockAiE2eAgent.testHandler.getTestObject();
+        if (testObject) {
+          const tests = testObject.object.tests;
+          const workspaceDirs = await executor.ide.getWorkspaceDirs();
+          
+          for (const test of tests) {
+            const testScriptContent = await fetch(test.testScript).then(res => res.text());
+            const testScriptName = test.testScript.split('/').pop() ?? `${testObject.object.uuid}`;
+            await mockAiE2eAgent.testHandler.saveTestFile(workspaceDirs, { 
+              name: testScriptName, 
+              content: testScriptContent 
+            });
+          }
+          
+          executor.window.showInformationMessage(`✅ Tests generated successfully! ${tests.length} test(s) created.`);
+        }
+      };
+
+      executor.registerCommand('test-generateTestsForWorkingChanges', generateTestsCommand);
+
+      // Act
+      await executor.executeCommand('test-generateTestsForWorkingChanges');
+
+      // Assert
+      expect(mockCommitTester.generateTestsForWorkingChanges).toHaveBeenCalled();
+      expect(mockAiE2eAgent.testHandler.run).toHaveBeenCalled();
+      expect(mockAiE2eAgent.testHandler.saveTestFile).toHaveBeenCalledWith(
+        ['/mock/workspace'],
+        {
+          name: 'login-test.js',
+          content: '// Mock test script content'
+        }
+      );
+      E2eCommandAssertions.assertInformationMessage(executor.window, '🤖 Generating tests for your working changes');
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ Tests generated successfully! 1 test(s) created.');
+    });
+
+    test('should handle no working changes scenario', async () => {
+      // Arrange
+      const emptyChanges = {
+        workingChanges: { changes: [] },
+        branchInfo: { branch: 'main', commitHash: 'abc123' }
+      };
+      
+      const mockCommitTester = {
+        generateTestsForWorkingChanges: jest.fn().mockResolvedValue(emptyChanges)
+      };
+
+      const generateTestsCommand = async () => {
+        const changes = await mockCommitTester.generateTestsForWorkingChanges();
+        
+        if (changes.workingChanges.changes.length === 0) {
+          executor.window.showWarningMessage("⚠️ No working changes found.");
+          return;
+        }
+      };
+
+      executor.registerCommand('test-generateTestsEmpty', generateTestsCommand);
+
+      // Act  
+      await executor.executeCommand('test-generateTestsEmpty');
+
+      // Assert
+      expect(mockCommitTester.generateTestsForWorkingChanges).toHaveBeenCalled();
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'No working changes found');
+    });
+  });
+
+  describe('Configuration and Port Management Integration', () => {
+    test('should handle port configuration consistently across commands', async () => {
+      // Arrange
+      const customPort = 8080;
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: customPort }
+      });
+
+      const testDescription = 'Port consistency test';
+      const suiteDescription = 'Port consistency suite';
+
+      // Act - Execute multiple commands that use port configuration
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+      await executor.executeCommand('debugg-ai.runE2eSuiteGenerator', suiteDescription);
+
+      // Assert - All commands should use the same configured port
+      expect(executor.client.e2es.createE2eTest).toHaveBeenCalledWith(testDescription, expect.any(Object));
+      expect(executor.client.e2es.createE2eTestSuite).toHaveBeenCalledWith(suiteDescription, expect.any(Object));
+      
+      // Verify config was loaded for each command
+      expect(executor.configHandler.loadConfig).toHaveBeenCalledTimes(2);
+    });
+
+    test('should prompt for port consistently when not configured', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+      executor.window.setInputBoxResponse('Provide the port number for the local server', '3000');
+      
+      const testDescription = 'Port prompt test';
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+      await executor.executeCommand('debugg-ai.runE2eSuiteGenerator', testDescription);
+
+      // Assert - Both commands should prompt for port
+      expect(executor.window.showInputBox).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: 'Provide the port number for the local server',
+          value: '3000'
+        })
+      );
+      expect(executor.window.showInputBox).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('Repository Context Integration', () => {
+    test('should maintain repository context across suite operations', async () => {
+      // Arrange
+      const repoInfo = {
+        repoName: 'integration-test-repo',
+        repoPath: '/integration/test/repo',
+        branchName: 'feature/integration-test'
+      };
+      
+      executor.client.getRepoInfo = jest.fn().mockResolvedValue(repoInfo);
+      executor.window.setQuickPickResponse('Select an E2E test suite to view details or run', {
+        label: 'Integration Test Suite',
+        uuid: 'integration-suite-1'
+      });
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTestSuite');
+
+      // Assert
+      expect(executor.client.getRepoInfo).toHaveBeenCalledWith('/mock/workspace/test.ts');
+      expect(executor.client.e2es.listE2eTestSuites).toHaveBeenCalledWith(repoInfo);
+    });
+
+    test('should handle repository info errors gracefully', async () => {
+      // Arrange
+      executor.client.getRepoInfo = jest.fn().mockRejectedValue(new Error('Repo info failed'));
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act & Assert
+      await expect(executor.executeCommand('debugg-ai.runE2eTestSuite'))
+        .rejects.toThrow('Repo info failed');
+    });
+  });
+
+  describe('User Interface Flow Integration', () => {
+    test('should provide consistent user experience across commands', async () => {
+      // Arrange
+      const testDescription = 'UX consistency test';
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act - Execute commands that show various UI elements
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+      await executor.executeCommand('debugg-ai.runE2eSuiteGenerator', testDescription);
+
+      // Assert - Verify consistent UI patterns
+      
+      // Information messages should follow consistent format
+      expect(executor.window.showInformationMessage).toHaveBeenCalledWith(
+        expect.stringMatching(/^🚀 Starting E2E test creation/)
+      );
+      expect(executor.window.showInformationMessage).toHaveBeenCalledWith(
+        expect.stringMatching(/^🔧 Generating E2E test suite/)
+      );
+      
+      // Success messages should follow consistent format
+      expect(executor.window.showInformationMessage).toHaveBeenCalledWith(
+        expect.stringMatching(/^✅ E2E test created successfully/)
+      );
+      expect(executor.window.showInformationMessage).toHaveBeenCalledWith(
+        expect.stringMatching(/^✅ E2E test suite generated successfully/)
+      );
+    });
+
+    test('should handle user cancellation consistently', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+      
+      // User provides description but cancels port input
+      executor.window.setInputBoxResponse('Provide a description for the new E2E test', 'Test description');
+      executor.window.setInputBoxResponse('Provide the port number for the local server', '');
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+
+      // Assert
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'No local port provided');
+      expect(executor.client.e2es.createE2eTest).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Error Recovery and Resilience', () => {
+    test('should recover from network failures gracefully', async () => {
+      // Arrange
+      const testDescription = 'Network failure test';
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      
+      // Simulate network failure on first call, success on retry
+      let callCount = 0;
+      executor.client.e2es.createE2eTest = jest.fn().mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) {
+          throw new Error('Network timeout');
+        }
+        return TestDataFactory.createMockE2eTest();
+      });
+
+      // Act - First call fails, but doesn't crash the system
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, 'Failed to create E2E test: Network timeout');
+      
+      // Act - Second call should succeed (simulating retry/recovery)
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+      
+      // Assert
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ E2E test created successfully');
+      expect(executor.client.e2es.createE2eTest).toHaveBeenCalledTimes(2);
+    });
+
+    test('should maintain system stability under concurrent operations', async () => {
+      // Arrange
+      const testDescription1 = 'Concurrent test 1';
+      const testDescription2 = 'Concurrent test 2';
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act - Execute commands concurrently
+      const promise1 = executor.executeCommand('debugg-ai.createNewE2eTest', testDescription1);
+      const promise2 = executor.executeCommand('debugg-ai.createNewE2eTest', testDescription2);
+      
+      await Promise.all([promise1, promise2]);
+
+      // Assert - Both operations should complete successfully
+      expect(executor.client.e2es.createE2eTest).toHaveBeenCalledTimes(2);
+      expect(executor.client.e2es.createE2eTest).toHaveBeenCalledWith(testDescription1, expect.any(Object));
+      expect(executor.client.e2es.createE2eTest).toHaveBeenCalledWith(testDescription2, expect.any(Object));
+    });
+  });
+});
+
+/**
+ * Helper function to setup integrated command implementations
+ */
+function setupIntegratedCommands(executor: TestCommandExecutor) {
+  // Import and setup all command implementations with shared state
+  // This ensures they work together as they would in the real extension
+  
+  const sharedState = {
+    lastCreatedTest: null as any,
+    lastCreatedSuite: null as any,
+    activeCommands: new Set<string>()
+  };
+
+  // Override client methods to maintain state
+  const originalCreateE2eTest = executor.client.e2es.createE2eTest;
+  executor.client.e2es.createE2eTest = jest.fn().mockImplementation(async (...args) => {
+    const result = await originalCreateE2eTest(...args);
+    sharedState.lastCreatedTest = result;
+    return result;
+  });
+
+  const originalCreateE2eTestSuite = executor.client.e2es.createE2eTestSuite;
+  executor.client.e2es.createE2eTestSuite = jest.fn().mockImplementation(async (...args) => {
+    const result = await originalCreateE2eTestSuite(...args);
+    sharedState.lastCreatedSuite = result;
+    return result;
+  });
+
+  // Track active commands to prevent conflicts
+  const originalExecuteCommand = executor.executeCommand;
+  executor.executeCommand = jest.fn().mockImplementation(async (commandId: string, ...args: any[]) => {
+    if (sharedState.activeCommands.has(commandId)) {
+      throw new Error(`Command ${commandId} is already running`);
+    }
+    
+    sharedState.activeCommands.add(commandId);
+    try {
+      return await originalExecuteCommand.call(executor, commandId, ...args);
+    } finally {
+      sharedState.activeCommands.delete(commandId);
+    }
+  });
+}

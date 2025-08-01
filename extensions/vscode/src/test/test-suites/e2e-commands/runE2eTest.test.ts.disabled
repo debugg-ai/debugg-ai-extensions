@@ -1,0 +1,366 @@
+/**
+ * Unit tests for debugg-ai.runE2eTest command
+ * Tests both current functionality and migration compatibility
+ */
+
+import { describe, test, beforeEach, afterEach, expect, jest } from '@jest/globals';
+import * as vscode from 'vscode';
+import { 
+  setupE2eCommandTests, 
+  cleanupE2eCommandTests, 
+  TestCommandExecutor,
+  E2eCommandAssertions,
+  TestDataFactory,
+  MockAiE2eAgent,
+  MockNgrokTunnelClient
+} from './testUtils';
+
+// Mock the AiE2eAgent class
+jest.mock('../../../test/e2e-agents/aiE2eAgent', () => ({
+  AiE2eAgent: jest.fn().mockImplementation(() => new MockAiE2eAgent())
+}));
+
+// Mock the NgrokTunnelClient
+jest.mock('../../../tunnels/ngrokClient', () => ({
+  NgrokTunnelClient: jest.fn().mockImplementation(() => new MockNgrokTunnelClient())
+}));
+
+describe('runE2eTest Command Tests', () => {
+  let executor: TestCommandExecutor;
+  let mockAiE2eAgent: MockAiE2eAgent;
+  let mockNgrokClient: MockNgrokTunnelClient;
+
+  beforeEach(() => {
+    executor = setupE2eCommandTests();
+    mockAiE2eAgent = new MockAiE2eAgent();
+    mockNgrokClient = new MockNgrokTunnelClient();
+
+    // Mock the command implementation
+    const runE2eTestCommand = async () => {
+      const { config } = await executor.configHandler.loadConfig();
+      let localPortConfig = config?.debuggAiServerPort;
+      
+      const getTestDescription = async () => {
+        const testDescription = await executor.window.showInputBox({
+          prompt: 'What test do you want to run? (e.g. Test my login page...)'
+        });
+        return testDescription;
+      };
+
+      const testDescription = await getTestDescription();
+      if (!testDescription) {
+        executor.window.showWarningMessage("⚠️ No test description provided. Please provide a description to run the E2E test.");
+        return;
+      }
+      
+      executor.window.showInformationMessage(`🏃 Starting E2E test run: ${testDescription}`);
+      
+      try {
+        await mockAiE2eAgent.runE2eTest(testDescription, localPortConfig ?? 3000);
+        executor.window.showInformationMessage(`✅ E2E test completed: ${testDescription}`);
+      } catch (error) {
+        executor.window.showErrorMessage(`❌ E2E test failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+
+    executor.registerCommand('debugg-ai.runE2eTest', runE2eTestCommand);
+  });
+
+  afterEach(() => {
+    cleanupE2eCommandTests();
+  });
+
+  describe('Happy Path Tests', () => {
+    test('should run E2E test with user-provided description', async () => {
+      // Arrange
+      const testDescription = 'Test my login page functionality';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      E2eCommandAssertions.assertInputBoxCalled(executor.window, 'What test do you want to run?');
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalledWith(testDescription, 3000);
+      E2eCommandAssertions.assertInformationMessage(executor.window, '🏃 Starting E2E test run');
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ E2E test completed');
+    });
+
+    test('should use default port when not configured', async () => {
+      // Arrange
+      const testDescription = 'Test dashboard navigation';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalledWith(testDescription, 3000);
+    });
+
+    test('should use configured port when available', async () => {
+      // Arrange
+      const testDescription = 'Test checkout process';
+      const configuredPort = 8080;
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: configuredPort }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalledWith(testDescription, configuredPort);
+    });
+  });
+
+  describe('Error Handling Tests', () => {
+    test('should show warning when no test description provided', async () => {
+      // Arrange
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', '');
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'No test description provided');
+      expect(mockAiE2eAgent.runE2eTest).not.toHaveBeenCalled();
+    });
+
+    test('should handle E2eTestHandler errors gracefully', async () => {
+      // Arrange
+      const testDescription = 'Test error handling';
+      const errorMessage = 'Test execution failed';
+      mockAiE2eAgent.runE2eTest = jest.fn().mockRejectedValue(new Error(errorMessage));
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, `E2E test failed: ${errorMessage}`);
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalledWith(testDescription, 3000);
+    });
+
+    test('should handle string errors', async () => {
+      // Arrange
+      const testDescription = 'Test string error';
+      const errorMessage = 'String error message';
+      mockAiE2eAgent.runE2eTest = jest.fn().mockRejectedValue(errorMessage);
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, `E2E test failed: ${errorMessage}`);
+    });
+
+    test('should handle config loading failure', async () => {
+      // Arrange
+      const testDescription = 'Test config failure';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockRejectedValue(new Error('Config load failed'));
+
+      // Act & Assert
+      await expect(executor.executeCommand('debugg-ai.runE2eTest'))
+        .rejects.toThrow('Config load failed');
+    });
+  });
+
+  describe('User Experience Tests', () => {
+    test('should provide helpful prompt with example', async () => {
+      // Arrange
+      const testDescription = 'Test user experience';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      expect(executor.window.showInputBox).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: 'What test do you want to run? (e.g. Test my login page...)'
+        })
+      );
+    });
+
+    test('should show informative messages during test execution', async () => {
+      // Arrange
+      const testDescription = 'Test informative messages';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      expect(executor.window.showInformationMessage).toHaveBeenCalledTimes(2);
+      expect(executor.window.showInformationMessage).toHaveBeenCalledWith(`🏃 Starting E2E test run: ${testDescription}`);
+      expect(executor.window.showInformationMessage).toHaveBeenCalledWith(`✅ E2E test completed: ${testDescription}`);
+    });
+  });
+
+  describe('Integration with Dependencies', () => {
+    test('should create E2eTestHandler with correct dependencies', async () => {
+      // Arrange
+      const testDescription = 'Test handler creation';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Mock the E2eTestHandler constructor to verify parameters
+      const E2eTestHandlerMock = jest.fn().mockImplementation(() => mockAiE2eAgent);
+      jest.doMock('core/e2es/e2eTestHandler', () => ({
+        E2eTestHandler: E2eTestHandlerMock
+      }));
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert - In real implementation, verify constructor was called with client, ide, configHandler, ngrokClient
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalled();
+    });
+
+    test('should load configuration before test execution', async () => {
+      // Arrange
+      const testDescription = 'Test config loading';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 4000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      expect(executor.configHandler.loadConfig).toHaveBeenCalled();
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalledWith(testDescription, 4000);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    test('should handle whitespace-only description', async () => {
+      // Arrange
+      const whitespaceDescription = '   ';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', whitespaceDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      // Whitespace description should be accepted (current behavior)
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalledWith(whitespaceDescription, 3000);
+    });
+
+    test('should handle null config gracefully', async () => {
+      // Arrange
+      const testDescription = 'Test null config';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: null });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalledWith(testDescription, 3000);
+    });
+
+    test('should handle undefined config gracefully', async () => {
+      // Arrange
+      const testDescription = 'Test undefined config';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({});
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalledWith(testDescription, 3000);
+    });
+
+    test('should handle port config of 0', async () => {
+      // Arrange
+      const testDescription = 'Test zero port config';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 0 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      // Port 0 should be treated as falsy, so default should be used
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalledWith(testDescription, 3000);
+    });
+  });
+
+  describe('Async Behavior Tests', () => {
+    test('should handle slow test execution', async () => {
+      // Arrange
+      const testDescription = 'Test slow execution';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      
+      // Make the test handler take some time
+      mockAiE2eAgent.runE2eTest = jest.fn().mockImplementation(async (desc, port) => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return { uuid: 'test-uuid', description: desc, status: 'completed' };
+      });
+
+      // Act
+      const startTime = Date.now();
+      await executor.executeCommand('debugg-ai.runE2eTest');
+      const endTime = Date.now();
+
+      // Assert
+      expect(endTime - startTime).toBeGreaterThanOrEqual(100);
+      expect(mockAiE2eAgent.runE2eTest).toHaveBeenCalledWith(testDescription, 3000);
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ E2E test completed');
+    });
+
+    test('should handle timeout scenarios', async () => {
+      // Arrange
+      const testDescription = 'Test timeout';
+      executor.window.setInputBoxResponse('What test do you want to run? (e.g. Test my login page...)', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      
+      // Make the test handler timeout
+      mockAiE2eAgent.runE2eTest = jest.fn().mockRejectedValue(new Error('Test execution timed out'));
+
+      // Act
+      await executor.executeCommand('debugg-ai.runE2eTest');
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, 'Test execution timed out');
+    });
+  });
+});

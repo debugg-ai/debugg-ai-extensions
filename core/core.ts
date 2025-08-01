@@ -1233,7 +1233,7 @@ export class Core {
       });
 
       // Show user feedback
-      await this.ide.showToast("info", `Creating E2E test: ${description}`, 3000);
+      await this.ide.showToast("info", `Creating E2E test...`, 2000);
 
       // Return null since the actual test creation is handled by the VS Code command
       return null;
@@ -1515,10 +1515,6 @@ export class Core {
         command: "debugg-ai.generateTestsForWorkingChanges",
         args: []
       });
-
-      // Show user feedback
-      await this.ide.showToast("info", `Creating E2E commit suite: ${description}`, 3000);
-
       // Return null since the actual commit suite creation is handled by the VS Code command
       return null;
     });

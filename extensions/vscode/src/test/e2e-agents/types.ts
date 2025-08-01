@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 export type Status = 'completed' | 'pending' | 'success' | 'error' | 'failed' | 'skipped' | 'running';
-export type Outcome = 'pending' | 'skipped' | 'unknown' | 'pass' | 'fail';
+export type Outcome = 'pending' | 'skipped' | 'unknown' | 'pass' | 'fail' | 'error';
 
 
 export interface FailureDetail {

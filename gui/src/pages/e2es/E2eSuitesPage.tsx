@@ -12,9 +12,8 @@ import {
 import type { E2eTestSuite } from "core/debuggAIServer/types";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pagination } from "../../components/Pagination";
-import type { PaginationInfo } from "../../components/Pagination";
 import { PlatformOnboardingCard } from "../../components/OnboardingCard/platform/PlatformOnboardingCard";
+import { Pagination } from "../../components/Pagination";
 import { useAuth } from "../../context/Auth";
 import { IdeMessengerContext } from "../../context/IdeMessenger";
 import { useNavigationListener } from "../../hooks/useNavigationListener";
@@ -77,17 +76,14 @@ function E2eSuitesPage() {
 
     try {
       setRefreshing(true);
-      (dispatch as any)(fetchE2eSuites({
+      await (dispatch as any)(fetchE2eSuites({
         filters: currentFilters,
         pagination: currentPagination,
         search: ""
-      }));
+      })).unwrap();
+      setRefreshing(false);
     } catch (error) {
       console.error('Error refreshing suites:', error);
-    } finally {
-      if (mountedRef.current) {
-        setRefreshing(false);
-      }
     }
   }, [dispatch, currentFilters, currentPagination]);
 
@@ -111,8 +107,6 @@ function E2eSuitesPage() {
 
   // Create suite handler - delegates to IDE
   const handleCreateSuite = useCallback(async () => {
-    if (!mountedRef.current) return;
-
     try {
       await dispatch(createE2eSuiteWithIdeInput()).unwrap();
       // Refresh the list after creation

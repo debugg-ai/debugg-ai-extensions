@@ -1,0 +1,350 @@
+/**
+ * Unit tests for debugg-ai.createNewE2eTest command
+ * Tests both current functionality and migration compatibility
+ */
+
+import { describe, test, beforeEach, afterEach, expect, jest } from '@jest/globals';
+import * as vscode from 'vscode';
+import { 
+  setupE2eCommandTests, 
+  cleanupE2eCommandTests, 
+  TestCommandExecutor,
+  E2eCommandAssertions,
+  TestDataFactory,
+  MockAiE2eAgent 
+} from './testUtils';
+
+// Mock the AiE2eAgent class
+jest.mock('../../../test/e2e-agents/aiE2eAgent', () => ({
+  AiE2eAgent: jest.fn().mockImplementation(() => new MockAiE2eAgent())
+}));
+
+describe('createNewE2eTest Command Tests', () => {
+  let executor: TestCommandExecutor;
+  let mockAiE2eAgent: MockAiE2eAgent;
+
+  beforeEach(() => {
+    executor = setupE2eCommandTests();
+    mockAiE2eAgent = new MockAiE2eAgent();
+
+    // Mock the command implementation
+    const createNewE2eTestCommand = async (description?: string) => {
+      const getTestDescription = async () => {
+        if (description) {
+          return description;
+        }
+        const testDescription = await executor.window.showInputBox({
+          prompt: 'Provide a description for the new E2E test',
+        });
+        return testDescription;
+      };
+
+      const { config } = await executor.configHandler.loadConfig();
+      let localPortConfig = config?.debuggAiServerPort;
+      
+      if (!localPortConfig) {
+        const localPort = await executor.window.showInputBox({
+          prompt: 'Provide the port number for the local server',
+          value: '3000',
+        });
+        if (!localPort) {
+          executor.window.showWarningMessage("⚠️ No local port provided. A port number is required to run the server.");
+          return;
+        }
+        localPortConfig = parseInt(localPort, 10);
+      }
+
+      const testDescription = await getTestDescription();
+      if (!testDescription) {
+        executor.window.showWarningMessage("⚠️ No test description provided. Please provide a description to create the E2E test.");
+        return;
+      }
+      
+      executor.window.showInformationMessage(`🚀 Starting E2E test creation: ${testDescription}`);
+      
+      try {
+        await mockAiE2eAgent.createNewE2eTest(testDescription, localPortConfig);
+        executor.window.showInformationMessage(`✅ E2E test created successfully: ${testDescription}`);
+      } catch (error) {
+        executor.window.showErrorMessage(`❌ Failed to create E2E test: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+
+    executor.registerCommand('debugg-ai.createNewE2eTest', createNewE2eTestCommand);
+  });
+
+  afterEach(() => {
+    cleanupE2eCommandTests();
+  });
+
+  describe('Happy Path Tests', () => {
+    test('should create E2E test with provided description parameter', async () => {
+      // Arrange
+      const testDescription = 'Test user login functionality';
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+
+      // Assert
+      expect(mockAiE2eAgent.createNewE2eTest).toHaveBeenCalledWith(testDescription, 3000);
+      E2eCommandAssertions.assertInformationMessage(executor.window, '🚀 Starting E2E test creation');
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ E2E test created successfully');
+    });
+
+    test('should create E2E test with user input when no description provided', async () => {
+      // Arrange
+      const testDescription = 'Test dashboard functionality';
+      executor.window.setInputBoxResponse('Provide a description for the new E2E test', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 4000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+
+      // Assert
+      E2eCommandAssertions.assertInputBoxCalled(executor.window, 'Provide a description for the new E2E test');
+      expect(mockAiE2eAgent.createNewE2eTest).toHaveBeenCalledWith(testDescription, 4000);
+      E2eCommandAssertions.assertInformationMessage(executor.window, 'Starting E2E test creation');
+    });
+
+    test('should prompt for port when not configured and use provided port', async () => {
+      // Arrange
+      const testDescription = 'Test checkout process';
+      const customPort = '5000';
+      executor.window.setInputBoxResponse('Provide a description for the new E2E test', testDescription);
+      executor.window.setInputBoxResponse('Provide the port number for the local server', customPort);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+
+      // Assert
+      E2eCommandAssertions.assertInputBoxCalled(executor.window, 'Provide the port number for the local server');
+      expect(mockAiE2eAgent.createNewE2eTest).toHaveBeenCalledWith(testDescription, 5000);
+    });
+  });
+
+  describe('Error Handling Tests', () => {
+    test('should show warning when no test description provided', async () => {
+      // Arrange
+      executor.window.setInputBoxResponse('Provide a description for the new E2E test', '');
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+
+      // Assert
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'No test description provided');
+      expect(mockAiE2eAgent.createNewE2eTest).not.toHaveBeenCalled();
+    });
+
+    test('should show warning when no port provided and not configured', async () => {
+      // Arrange
+      const testDescription = 'Test user registration';
+      executor.window.setInputBoxResponse('Provide a description for the new E2E test', testDescription);
+      executor.window.setInputBoxResponse('Provide the port number for the local server', '');
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+
+      // Assert
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'No local port provided');
+      expect(mockAiE2eAgent.createNewE2eTest).not.toHaveBeenCalled();
+    });
+
+    test('should handle AiE2eAgent errors gracefully', async () => {
+      // Arrange
+      const testDescription = 'Test error handling';
+      const errorMessage = 'Network connection failed';
+      mockAiE2eAgent.createNewE2eTest = jest.fn().mockRejectedValue(new Error(errorMessage));
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, `Failed to create E2E test: ${errorMessage}`);
+      expect(mockAiE2eAgent.createNewE2eTest).toHaveBeenCalledWith(testDescription, 3000);
+    });
+
+    test('should handle non-Error exceptions', async () => {
+      // Arrange
+      const testDescription = 'Test string error handling';
+      const errorMessage = 'String error message';
+      mockAiE2eAgent.createNewE2eTest = jest.fn().mockRejectedValue(errorMessage);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, `Failed to create E2E test: ${errorMessage}`);
+    });
+  });
+
+  describe('Configuration Tests', () => {
+    test('should use default port value when prompting user', async () => {
+      // Arrange
+      const testDescription = 'Test default port';
+      executor.window.setInputBoxResponse('Provide a description for the new E2E test', testDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+
+      // Assert
+      expect(executor.window.showInputBox).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: 'Provide the port number for the local server',
+          value: '3000'
+        })
+      );
+    });
+
+    test('should handle invalid port input', async () => {
+      // Arrange
+      const testDescription = 'Test invalid port';
+      const invalidPort = 'invalid-port';
+      executor.window.setInputBoxResponse('Provide a description for the new E2E test', testDescription);
+      executor.window.setInputBoxResponse('Provide the port number for the local server', invalidPort);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+
+      // Assert
+      // parseInt('invalid-port', 10) returns NaN, which should be handled
+      expect(mockAiE2eAgent.createNewE2eTest).toHaveBeenCalledWith(testDescription, NaN);
+    });
+  });
+
+  describe('Integration with Dependencies', () => {
+    test('should create AiE2eAgent with correct parameters', async () => {
+      // Arrange
+      const testDescription = 'Test agent creation';
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Mock the AiE2eAgent constructor to verify parameters
+      const AiE2eAgentMock = jest.fn().mockImplementation(() => mockAiE2eAgent);
+      jest.doMock('../../../test/e2e-agents/aiE2eAgent', () => ({
+        AiE2eAgent: AiE2eAgentMock
+      }));
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+
+      // Assert - In a real implementation, we would verify the constructor was called with IDE and client
+      expect(mockAiE2eAgent.createNewE2eTest).toHaveBeenCalled();
+    });
+
+    test('should load configuration correctly', async () => {
+      // Arrange
+      const testDescription = 'Test config loading';
+      const mockConfig = { debuggAiServerPort: 8080 };
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: mockConfig });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+
+      // Assert
+      expect(executor.configHandler.loadConfig).toHaveBeenCalled();
+      expect(mockAiE2eAgent.createNewE2eTest).toHaveBeenCalledWith(testDescription, 8080);
+    });
+  });
+
+  describe('User Experience Tests', () => {
+    test('should show informative messages during test creation process', async () => {
+      // Arrange
+      const testDescription = 'Test UX messages';
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest', testDescription);
+
+      // Assert
+      expect(executor.window.showInformationMessage).toHaveBeenCalledTimes(2);
+      expect(executor.window.showInformationMessage).toHaveBeenCalledWith(`🚀 Starting E2E test creation: ${testDescription}`);
+      expect(executor.window.showInformationMessage).toHaveBeenCalledWith(`✅ E2E test created successfully: ${testDescription}`);
+    });
+
+    test('should provide helpful prompts to user', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: {} });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+
+      // Assert
+      expect(executor.window.showInputBox).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: 'Provide a description for the new E2E test'
+        })
+      );
+      expect(executor.window.showInputBox).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: 'Provide the port number for the local server',
+          value: '3000'
+        })
+      );
+    });
+  });
+
+  describe('Edge Cases', () => {
+    test('should handle empty string description from parameter', async () => {
+      // Arrange
+      const emptyDescription = '';
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest', emptyDescription);
+
+      // Assert
+      // Empty string should be treated as no description
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'No test description provided');
+      expect(mockAiE2eAgent.createNewE2eTest).not.toHaveBeenCalled();
+    });
+
+    test('should handle whitespace-only description', async () => {
+      // Arrange
+      const whitespaceDescription = '   ';
+      executor.window.setInputBoxResponse('Provide a description for the new E2E test', whitespaceDescription);
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.createNewE2eTest');
+
+      // Assert
+      // Whitespace description should be accepted (current behavior)
+      expect(mockAiE2eAgent.createNewE2eTest).toHaveBeenCalledWith(whitespaceDescription, 3000);
+    });
+
+    test('should handle config loading failure', async () => {
+      // Arrange
+      const testDescription = 'Test config failure';
+      executor.configHandler.loadConfig = jest.fn().mockRejectedValue(new Error('Config load failed'));
+
+      // Act & Assert
+      await expect(executor.executeCommand('debugg-ai.createNewE2eTest', testDescription))
+        .rejects.toThrow('Config load failed');
+    });
+  });
+});

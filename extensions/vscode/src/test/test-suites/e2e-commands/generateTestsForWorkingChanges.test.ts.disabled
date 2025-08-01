@@ -1,0 +1,576 @@
+/**
+ * Unit tests for debugg-ai.generateTestsForWorkingChanges command
+ * Tests the new architecture using AiE2eAgent + RemoteTestHandler
+ */
+
+import { describe, test, beforeEach, afterEach, expect, jest } from '@jest/globals';
+import * as vscode from 'vscode';
+import { 
+  setupE2eCommandTests, 
+  cleanupE2eCommandTests, 
+  TestCommandExecutor,
+  E2eCommandAssertions,
+  TestDataFactory,
+  MockCommitTester,
+  MockAiE2eAgent
+} from './testUtils';
+
+// Mock the CommitTester class
+jest.mock('../../../test/commit/commitTester', () => ({
+  CommitTester: jest.fn().mockImplementation(() => new MockCommitTester())
+}));
+
+// Mock the AiE2eAgent class  
+jest.mock('../../../test/e2e-agents/aiE2eAgent', () => ({
+  AiE2eAgent: jest.fn().mockImplementation(() => new MockAiE2eAgent())
+}));
+
+// Mock fetch globally
+global.fetch = jest.fn();
+
+describe('generateTestsForWorkingChanges Command Tests', () => {
+  let executor: TestCommandExecutor;
+  let mockCommitTester: MockCommitTester;
+  let mockAiE2eAgent: MockAiE2eAgent;
+  let mockWorkingChanges: any;
+
+  beforeEach(() => {
+    executor = setupE2eCommandTests();
+    mockCommitTester = new MockCommitTester();
+    mockAiE2eAgent = new MockAiE2eAgent();
+    mockWorkingChanges = TestDataFactory.createWorkingChanges();
+
+    // Setup fetch mock
+    (global.fetch as jest.Mock).mockResolvedValue({
+      text: () => Promise.resolve('// Mock test script content'),
+      ok: true
+    });
+
+    // Mock the command implementation
+    const generateTestsForWorkingChangesCommand = async () => {
+      const { config } = await executor.configHandler.loadConfig();
+      let localPortConfig = config?.debuggAiServerPort;
+
+      if (!mockCommitTester) {
+        // Would normally create new CommitTester here
+      }
+
+      executor.window.setStatusBarMessage("Generating tests for working changes...", 4000);
+
+      const changes = await mockCommitTester.generateTestsForWorkingChanges();
+
+      // Create AiE2eAgent with new architecture
+      const aiE2eAgent = mockAiE2eAgent;
+
+      try {
+        if (changes.workingChanges.changes.length === 0) {
+          executor.window.showWarningMessage("⚠️ No working changes found. Make some code changes first, then run this command to generate tests.");
+          return;
+        }
+        
+        executor.window.showInformationMessage("🤖 Generating tests for your working changes...");
+        
+        // Run the handler to process the request
+        await aiE2eAgent.testHandler.run();
+
+        // Wait for test completion
+        while (aiE2eAgent.testHandler.isTestRunning()) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      } catch (error) {
+        console.error('[Commands.generateTestsForWorkingChanges] Error running tests:', error);
+        executor.window.showErrorMessage(
+          `Error running tests: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+
+      try {
+        // Handle the final state and results
+        const testState = aiE2eAgent.testHandler.getTestState();
+        const testObjectS = await aiE2eAgent.testHandler.getTestObject();
+        
+        if (testObjectS) {
+          let testObject = testObjectS.object as any;
+          const tests = testObject.tests;
+          const workspaceDirs = await executor.ide.getWorkspaceDirs();
+
+          if (tests && tests.length > 0) {
+            for (const test of tests) {
+              const testScriptUrl = test.testScript;
+              
+              try {
+                const testScriptContent = await fetch(testScriptUrl).then(res => res.text());
+                const testScriptName = test.testScript.split('/').pop() ?? `${testObject.uuid}`;
+                await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { 
+                  name: testScriptName, 
+                  content: testScriptContent 
+                });
+              } catch (error) {
+                console.error('[Commands.generateTestsForWorkingChanges] Error downloading test script:', error);
+              }
+            }
+          }
+          
+          if (testObject.runStatus === "completed") {
+            executor.window.showInformationMessage(`✅ Tests generated successfully! ${tests?.length || 0} test(s) created.`);
+          } else {
+            executor.window.showErrorMessage(`❌ Test generation failed with status: ${testObject.runStatus}`);
+          }
+        }
+      } catch (error) {
+        console.error('[Commands.generateTestsForWorkingChanges] Error downloading test scripts:', error);
+        executor.window.showErrorMessage(
+          `Error handling tests: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    };
+
+    executor.registerCommand('debugg-ai.generateTestsForWorkingChanges', generateTestsForWorkingChangesCommand);
+  });
+
+  afterEach(() => {
+    cleanupE2eCommandTests();
+    jest.clearAllMocks();
+  });
+
+  describe('Happy Path Tests', () => {
+    test('should generate tests for working changes successfully', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      expect(mockCommitTester.generateTestsForWorkingChanges).toHaveBeenCalled();
+      expect(mockAiE2eAgent.testHandler.run).toHaveBeenCalled();
+      E2eCommandAssertions.assertInformationMessage(executor.window, '🤖 Generating tests for your working changes');
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ Tests generated successfully!');
+    });
+
+    test('should show status bar message during generation', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      expect(executor.window.setStatusBarMessage).toHaveBeenCalledWith("Generating tests for working changes...", 4000);
+    });
+
+    test('should download and save test scripts successfully', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      const mockTestScript = 'https://mock-server.com/login-test.js';
+      
+      mockAiE2eAgent.testHandler.getTestObject = jest.fn().mockResolvedValue({
+        object: {
+          uuid: 'commit-suite-123',
+          description: 'Generated tests for working changes',
+          runStatus: 'completed',
+          tests: [
+            {
+              uuid: 'test-123',
+              description: 'Login test',
+              testScript: mockTestScript,
+              status: 'completed'
+            }
+          ]
+        }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      expect(global.fetch).toHaveBeenCalledWith(mockTestScript);
+      expect(mockAiE2eAgent.testHandler.saveTestFile).toHaveBeenCalledWith(
+        ['/mock/workspace'],
+        {
+          name: 'login-test.js',
+          content: '// Mock test script content'
+        }
+      );
+    });
+
+    test('should load configuration correctly', async () => {
+      // Arrange
+      const mockConfig = { debuggAiServerPort: 8080 };
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({ config: mockConfig });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      expect(executor.configHandler.loadConfig).toHaveBeenCalled();
+    });
+  });
+
+  describe('Error Handling Tests', () => {
+    test('should show warning when no working changes found', async () => {
+      // Arrange
+      const emptyChanges = {
+        workingChanges: { changes: [] },
+        branchInfo: { branch: 'main', commitHash: 'abc123' }
+      };
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(emptyChanges);
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      E2eCommandAssertions.assertWarningMessage(executor.window, 'No working changes found');
+      expect(mockAiE2eAgent.testHandler.run).not.toHaveBeenCalled();
+    });
+
+    test('should handle test runner errors gracefully', async () => {
+      // Arrange
+      const errorMessage = 'Test runner failed';
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      mockAiE2eAgent.testHandler.run = jest.fn().mockRejectedValue(new Error(errorMessage));
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, `Error running tests: ${errorMessage}`);
+    });
+
+    test('should handle string errors', async () => {
+      // Arrange
+      const errorMessage = 'String error message';
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      mockAiE2eAgent.testHandler.run = jest.fn().mockRejectedValue(errorMessage);
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, `Error running tests: ${errorMessage}`);
+    });
+
+    test('should handle test script download failures gracefully', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      
+      // Mock fetch failure
+      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+      
+      mockAiE2eAgent.testHandler.getTestObject = jest.fn().mockResolvedValue({
+        object: {
+          uuid: 'commit-suite-123',
+          runStatus: 'completed',
+          tests: [
+            {
+              uuid: 'test-123',
+              testScript: 'https://mock-server.com/failed-test.js'
+            }
+          ]
+        }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      // Should continue execution despite download failure
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ Tests generated successfully!');
+    });
+
+    test('should handle test result processing errors', async () => {
+      // Arrange
+      const errorMessage = 'Failed to process test results';
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      mockAiE2eAgent.testHandler.getTestObject = jest.fn().mockRejectedValue(new Error(errorMessage));
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, `Error handling tests: ${errorMessage}`);
+    });
+
+    test('should handle failed test status', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      
+      mockAiE2eAgent.testHandler.getTestObject = jest.fn().mockResolvedValue({
+        object: {
+          uuid: 'commit-suite-123',
+          runStatus: 'failed',
+          tests: []
+        }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      E2eCommandAssertions.assertErrorMessage(executor.window, 'Test generation failed with status: failed');
+    });
+  });
+
+  describe('New Architecture Integration Tests', () => {
+    test('should create AiE2eAgent with correct parameters', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      // In real implementation, would verify AiE2eAgent constructor was called with correct options
+      expect(mockAiE2eAgent.testHandler.run).toHaveBeenCalled();
+    });
+
+    test('should wait for test completion properly', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      
+      // Mock test running for a few iterations
+      let callCount = 0;
+      mockAiE2eAgent.testHandler.isTestRunning = jest.fn().mockImplementation(() => {
+        callCount++;
+        return callCount <= 2; // Return true for first 2 calls, then false
+      });
+
+      // Act
+      const startTime = Date.now();
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+      const endTime = Date.now();
+
+      // Assert
+      expect(mockAiE2eAgent.testHandler.isTestRunning).toHaveBeenCalled();
+      // Should have waited at least 4 seconds (2 iterations * 2 seconds)
+      expect(endTime - startTime).toBeGreaterThanOrEqual(4000);
+    });
+
+    test('should get test state and results from handler', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      expect(mockAiE2eAgent.testHandler.getTestState).toHaveBeenCalled();
+      expect(mockAiE2eAgent.testHandler.getTestObject).toHaveBeenCalled();
+    });
+
+    test('should get workspace directories for saving test files', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      expect(executor.ide.getWorkspaceDirs).toHaveBeenCalled();
+    });
+  });
+
+  describe('Test File Handling', () => {
+    test('should generate correct test file names from URLs', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      
+      mockAiE2eAgent.testHandler.getTestObject = jest.fn().mockResolvedValue({
+        object: {
+          uuid: 'commit-suite-123',
+          runStatus: 'completed',
+          tests: [
+            {
+              uuid: 'test-123',
+              testScript: 'https://mock-server.com/path/to/complex-test-name.spec.js'
+            }
+          ]
+        }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      expect(mockAiE2eAgent.testHandler.saveTestFile).toHaveBeenCalledWith(
+        ['/mock/workspace'],
+        {
+          name: 'complex-test-name.spec.js',
+          content: '// Mock test script content'
+        }
+      );
+    });
+
+    test('should handle test scripts without proper filename', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      
+      const testObjectUuid = 'commit-suite-123';
+      mockAiE2eAgent.testHandler.getTestObject = jest.fn().mockResolvedValue({
+        object: {
+          uuid: testObjectUuid,
+          runStatus: 'completed',
+          tests: [
+            {
+              uuid: 'test-123',
+              testScript: 'https://mock-server.com/' // No filename in URL
+            }
+          ]
+        }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      expect(mockAiE2eAgent.testHandler.saveTestFile).toHaveBeenCalledWith(
+        ['/mock/workspace'],
+        {
+          name: testObjectUuid, // Should fallback to test object UUID
+          content: '// Mock test script content'
+        }
+      );
+    });
+
+    test('should handle multiple test files', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      
+      mockAiE2eAgent.testHandler.getTestObject = jest.fn().mockResolvedValue({
+        object: {
+          uuid: 'commit-suite-123',
+          runStatus: 'completed',
+          tests: [
+            {
+              uuid: 'test-1',
+              testScript: 'https://mock-server.com/login-test.js'
+            },
+            {
+              uuid: 'test-2',
+              testScript: 'https://mock-server.com/dashboard-test.js'
+            }
+          ]
+        }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      expect(mockAiE2eAgent.testHandler.saveTestFile).toHaveBeenCalledTimes(2);
+      expect(mockAiE2eAgent.testHandler.saveTestFile).toHaveBeenNthCalledWith(1,
+        ['/mock/workspace'],
+        {
+          name: 'login-test.js',
+          content: '// Mock test script content'
+        }
+      );
+      expect(mockAiE2eAgent.testHandler.saveTestFile).toHaveBeenNthCalledWith(2,
+        ['/mock/workspace'],
+        {
+          name: 'dashboard-test.js',
+          content: '// Mock test script content'
+        }
+      );
+    });
+  });
+
+  describe('Edge Cases', () => {
+    test('should handle undefined test object gracefully', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      mockAiE2eAgent.testHandler.getTestObject = jest.fn().mockResolvedValue(undefined);
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      // Should not crash when test object is undefined
+      expect(mockAiE2eAgent.testHandler.run).toHaveBeenCalled();
+    });
+
+    test('should handle empty tests array', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockResolvedValue({
+        config: { debuggAiServerPort: 3000 }
+      });
+      mockCommitTester.generateTestsForWorkingChanges = jest.fn().mockResolvedValue(mockWorkingChanges);
+      
+      mockAiE2eAgent.testHandler.getTestObject = jest.fn().mockResolvedValue({
+        object: {
+          uuid: 'commit-suite-123',
+          runStatus: 'completed',
+          tests: []
+        }
+      });
+
+      // Act
+      await executor.executeCommand('debugg-ai.generateTestsForWorkingChanges');
+
+      // Assert
+      E2eCommandAssertions.assertInformationMessage(executor.window, '✅ Tests generated successfully! 0 test(s) created.');
+      expect(mockAiE2eAgent.testHandler.saveTestFile).not.toHaveBeenCalled();
+    });
+
+    test('should handle config loading failure', async () => {
+      // Arrange
+      executor.configHandler.loadConfig = jest.fn().mockRejectedValue(new Error('Config load failed'));
+
+      // Act & Assert
+      await expect(executor.executeCommand('debugg-ai.generateTestsForWorkingChanges'))
+        .rejects.toThrow('Config load failed');
+    });
+  });
+});

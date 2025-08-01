@@ -156,17 +156,14 @@ function E2eTestsPage() {
     try {
       setRefreshing(true);
       // Dispatch Redux action to ensure state is updated
-      (dispatch as any)(fetchE2eTests({
+      await (dispatch as any)(fetchE2eTests({
         filters: currentFilters,
         pagination: currentPagination,
         search: ""
-      }));
+      })).unwrap();
+      setRefreshing(false);
     } catch (error) {
       console.error('Error refreshing tests:', error);
-    } finally {
-      if (mountedRef.current) {
-        setRefreshing(false);
-      }
     }
   }, [dispatch, currentFilters, currentPagination]);
 
@@ -184,37 +181,29 @@ function E2eTestsPage() {
   }, []);
 
   // Handle test creation
-  const handleCreateTest = useCallback(async (data: { description: string; filePath?: string; repoName?: string; branchName?: string }) => {
-    if (!mountedRef.current) return;
-
+  const handleCreateTest = useCallback(async () => {
     try {
       setCreateLoading(true);
 
       // Use Redux thunk to create test
       await dispatch(createE2eTest({
-        description: data.description,
-        filePath: data.filePath,
-        repoName: data.repoName,
-        branchName: data.branchName,
+        description: '',
+        filePath: '',
+        repoName: '',
+        branchName: '',
       })).unwrap();
 
       // Refresh the list after creation
-      dispatch(fetchE2eTests({
+      await (dispatch as any)(fetchE2eTests({
         filters: currentFilters,
         pagination: currentPagination,
         search: ""
-      }));
+      })).unwrap();
 
-      if (mountedRef.current) {
-        setIsCreateModalOpen(false);
-      }
     } catch (error) {
       console.error('Error creating test:', error);
-      // Handle error (could show toast notification)
     } finally {
-      if (mountedRef.current) {
-        setCreateLoading(false);
-      }
+      setCreateLoading(false);
     }
   }, [dispatch, currentFilters, currentPagination]);
 
@@ -237,7 +226,7 @@ function E2eTestsPage() {
               <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
             <button
-              onClick={handleOpenModal}
+              onClick={handleCreateTest}
               className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-vsc-button-foreground bg-vsc-button-background rounded-sm hover:bg-vsc-button-hoverBackground transition-colors"
             >
               <PlusIcon className="h-4 w-4" />
