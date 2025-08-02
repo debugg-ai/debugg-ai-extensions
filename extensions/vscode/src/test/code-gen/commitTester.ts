@@ -9,6 +9,10 @@ import { E2eTestHandler } from 'core/e2es/e2eTestHandler';
 import { NgrokTunnelClient } from 'core/e2es/ngrok-service';
 import { IDE } from 'core/index.js';
 import * as vscode from 'vscode';
+import { ContextExtractor } from './analyzers/ContextExtractor';
+import { E2eFileAnalyzer } from './analyzers/E2eFileAnalyzer';
+import { CodebaseContext } from './types/codebaseContext';
+import { E2eSnapshot } from './types/e2eAnalysis';
 
 export interface TestGenerationResult {
   success: boolean;
@@ -39,6 +43,8 @@ export class CommitTester {
   private testOutputDir: string = 'tests/playwright';
   private fileWatchers: Map<string, fs.StatWatcher> = new Map();
   private context: vscode.ExtensionContext;
+  private e2eFileAnalyzer: E2eFileAnalyzer;
+  private contextExtractor: ContextExtractor;
 
   constructor(
     client: DebuggAIServerClient,
@@ -56,6 +62,8 @@ export class CommitTester {
       configHandler,
       new NgrokTunnelClient()
     );
+    this.e2eFileAnalyzer = new E2eFileAnalyzer(ide);
+    this.contextExtractor = new ContextExtractor(ide);
   }
 
   /**
@@ -550,6 +558,8 @@ Focus on testing the user-facing functionality that was affected by these change
   async generateTestsForWorkingChanges(): Promise<{
     workingChanges: WorkingChanges;
     branchInfo: {branch: string, commitHash: string};
+    e2eSnapshot?: E2eSnapshot | undefined;
+    codebaseContext?: CodebaseContext | undefined;
     testFiles?: string[];
   }> {
     const nullResult = {
@@ -561,6 +571,8 @@ Focus on testing the user-facing functionality that was affected by these change
         }
       },
       branchInfo: {branch: '', commitHash: ''},
+      e2eSnapshot: undefined,
+      codebaseContext: undefined,
       testFiles: []
     };
     try {
@@ -594,40 +606,31 @@ Focus on testing the user-facing functionality that was affected by these change
       console.log('[CommitTester] Branch info:', branchInfo);
       const workingChanges = await this.getWorkingChanges(workspaceDir, workspaceDirPath, branchInfo);
       console.log('[CommitTester] Working changes:', workingChanges);
+      
       if (!workingChanges.changes.length) {
         return nullResult;
       }
 
-      // Structure the working changes properly
-      // Send them to the server at /e2es/consolidate-changes/
-      //    - repository information
-      //    - branch information
-      //    - working changes
-      //    - commit hash
-      //    - commit message
-      //    - author
-      //    - date
-      //    - changed files
-      // The server will respond with a list of test descriptions
-
-      // We should not re-create how we run tests. Respond with descriptions
-      //   and just let our existing test run commands handle it.
-      // Send the new descriptions to the server at /e2es/generate-tests/ to create them
-      // Wait for the tests to complete
-      // Save the test files
-      // Return the test files
-
-
-      // Create a description of the working changes
-      // const changeDescription = this.createWorkingChangesDescription(workingChanges, branchInfo);
+      // Analyze existing e2e structure to understand current coverage
+      const repoName = path.basename(workspaceDirPath);
+      const e2eSnapshot = await this.createE2eSnapshot(workspaceDirPath, repoName, branchInfo, workingChanges);
       
+      console.log('[CommitTester] E2E snapshot created:', e2eSnapshot ? 'success' : 'failed');
 
-      // Wait for test completion and save files
-      // const testFiles = await this.waitForTestCompletionAndSaveFiles(e2eTest);
+      // Extract codebase context for changed files and related components
+      const codebaseContext = await this.extractCodebaseContext(workspaceDirPath, repoName, branchInfo, workingChanges);
+      
+      console.log('[CommitTester] Codebase context extracted:', codebaseContext ? 'success' : 'failed');
+      if (codebaseContext) {
+        const stats = this.contextExtractor.getExtractionStats(codebaseContext);
+        console.log(`[CommitTester] Context stats: ${stats.filesAnalyzed} files, ${stats.totalSizeKB}KB, ${stats.focusAreas} focus areas`);
+      }
       
       return {
         workingChanges: workingChanges,
         branchInfo: branchInfo,
+        e2eSnapshot: e2eSnapshot || undefined,
+        codebaseContext: codebaseContext || undefined,
         testFiles: []
       };
       
@@ -642,8 +645,256 @@ Focus on testing the user-facing functionality that was affected by these change
           }
         },
         branchInfo: {branch: '', commitHash: ''},
+        e2eSnapshot: undefined,
+        codebaseContext: undefined,
         testFiles: []
       };
+    }
+  }
+
+  /**
+   * Create a comprehensive e2e snapshot including existing e2e files and working changes analysis
+   */
+  private async createE2eSnapshot(
+    workspaceDirPath: string, 
+    repoName: string, 
+    branchInfo: {branch: string, commitHash: string},
+    workingChanges: WorkingChanges
+  ): Promise<E2eSnapshot | null> {
+    try {
+      console.log('[CommitTester] Creating e2e snapshot for repository:', repoName);
+      
+      // Create base e2e snapshot using the analyzer
+      const snapshot = await this.e2eFileAnalyzer.createE2eSnapshot(workspaceDirPath, repoName, branchInfo);
+      
+      if (!snapshot) {
+        console.log('[CommitTester] No existing e2e files found, creating minimal snapshot');
+        // Create a minimal snapshot even if no e2e files exist
+        return this.createMinimalE2eSnapshot(workspaceDirPath, repoName, branchInfo, workingChanges);
+      }
+
+      // Enhance the snapshot with working changes analysis
+      const enhancedSnapshot = await this.enhanceSnapshotWithWorkingChanges(snapshot, workingChanges);
+      
+      console.log('[CommitTester] Enhanced e2e snapshot created with', enhancedSnapshot.currentE2eFiles.length, 'existing e2e files');
+      return enhancedSnapshot;
+      
+    } catch (error) {
+      console.error('[CommitTester] Error creating e2e snapshot:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a minimal e2e snapshot when no existing e2e files are found
+   */
+  private async createMinimalE2eSnapshot(
+    workspaceDirPath: string,
+    repoName: string,
+    branchInfo: {branch: string, commitHash: string},
+    workingChanges: WorkingChanges
+  ): Promise<E2eSnapshot> {
+    const e2eFramework = await this.e2eFileAnalyzer.detectE2eFramework(workspaceDirPath);
+    
+    return {
+      repository: {
+        name: repoName,
+        path: workspaceDirPath,
+        branch: branchInfo.branch,
+        commitHash: branchInfo.commitHash,
+        lastUpdated: new Date().toISOString()
+      },
+      e2eFramework,
+      currentE2eFiles: [],
+      coverageSummary: {
+        totalE2eFiles: 0,
+        passingE2eFiles: 0,
+        failingE2eFiles: 0,
+        totalComponentsCovered: 0,
+        totalPagesCovered: 0,
+        coverageAreas: this.inferCoverageAreasFromChanges(workingChanges)
+      },
+      uncoveredAreas: this.identifyUncoveredAreas(workingChanges),
+      e2ePatterns: {
+        namingConvention: `${e2eFramework.primary === 'cypress' ? 'feature.cy.ts' : 'feature.spec.ts'}`,
+        commonSelectors: {
+          buttons: "[data-testid*='button']",
+          forms: "[data-testid*='form']",
+          inputs: "[data-testid*='input']",
+          modals: "[data-testid*='modal']"
+        },
+        pageObjectModel: false,
+        dataStrategy: 'inline'
+      },
+      dependencies: {
+        e2e_utilities: e2eFramework.primary !== 'unknown' ? [`@${e2eFramework.primary}/test`] : [],
+        assertions: ['expect'],
+        changed_files: workingChanges.changes.map(c => c.file)
+      }
+    };
+  }
+
+  /**
+   * Enhance existing e2e snapshot with working changes analysis
+   */
+  private async enhanceSnapshotWithWorkingChanges(
+    snapshot: E2eSnapshot,
+    workingChanges: WorkingChanges
+  ): Promise<E2eSnapshot> {
+    // Add working changes context to dependencies
+    const enhancedDependencies = {
+      ...snapshot.dependencies,
+      changed_files: workingChanges.changes.map(c => c.file),
+      change_types: workingChanges.changes.map(c => c.status)
+    };
+
+    // Identify potential gaps in e2e coverage based on changes
+    const additionalUncoveredAreas = this.identifyUncoveredAreas(workingChanges);
+    const mergedUncoveredAreas = [
+      ...snapshot.uncoveredAreas,
+      ...additionalUncoveredAreas.filter(area => 
+        !snapshot.uncoveredAreas.some(existing => existing.component === area.component)
+      )
+    ];
+
+    // Update coverage areas with inferred areas from changes
+    const inferredAreas = this.inferCoverageAreasFromChanges(workingChanges);
+    const mergedCoverageAreas = [
+      ...new Set([...snapshot.coverageSummary.coverageAreas, ...inferredAreas])
+    ];
+
+    return {
+      ...snapshot,
+      coverageSummary: {
+        ...snapshot.coverageSummary,
+        coverageAreas: mergedCoverageAreas
+      },
+      uncoveredAreas: mergedUncoveredAreas,
+      dependencies: enhancedDependencies
+    };
+  }
+
+  /**
+   * Infer coverage areas from working changes
+   */
+  private inferCoverageAreasFromChanges(workingChanges: WorkingChanges): string[] {
+    const areas = new Set<string>();
+    
+    for (const change of workingChanges.changes) {
+      const file = change.file.toLowerCase();
+      
+      // Infer areas from file paths and content
+      if (file.includes('auth') || file.includes('login') || file.includes('signin')) {
+        areas.add('Authentication');
+      }
+      if (file.includes('nav') || file.includes('header') || file.includes('menu')) {
+        areas.add('Navigation');
+      }
+      if (file.includes('form') || file.includes('contact') || file.includes('input')) {
+        areas.add('Forms');
+      }
+      if (file.includes('user') || file.includes('profile') || file.includes('account')) {
+        areas.add('User Management');
+      }
+      if (file.includes('api') || file.includes('service') || file.includes('endpoint')) {
+        areas.add('API Integration');
+      }
+      if (file.includes('component') || file.includes('ui') || file.includes('button')) {
+        areas.add('UI Components');
+      }
+      
+      // Analyze diff content for more context
+      if (change.diff) {
+        const diff = change.diff.toLowerCase();
+        if (diff.includes('fetch') || diff.includes('axios') || diff.includes('http')) {
+          areas.add('API Integration');
+        }
+        if (diff.includes('onclick') || diff.includes('submit') || diff.includes('button')) {
+          areas.add('User Interactions');
+        }
+        if (diff.includes('validation') || diff.includes('error') || diff.includes('required')) {
+          areas.add('Form Validation');
+        }
+      }
+    }
+    
+    return Array.from(areas);
+  }
+
+  /**
+   * Identify areas that are not covered by existing tests
+   */
+  private identifyUncoveredAreas(workingChanges: WorkingChanges): Array<{component: string, pages: string[], reason: string}> {
+    const uncovered: Array<{component: string, pages: string[], reason: string}> = [];
+    
+    for (const change of workingChanges.changes) {
+      const fileName = path.basename(change.file, path.extname(change.file));
+      const component = fileName.charAt(0).toUpperCase() + fileName.slice(1);
+      
+      // Determine likely pages/routes affected
+      const pages: string[] = [];
+      if (change.file.includes('page') || change.file.includes('route')) {
+        pages.push(`/${fileName.toLowerCase()}`);
+      }
+      
+      let reason = 'New or modified code without corresponding tests';
+      if (change.status === 'A') {
+        reason = 'New file added without test coverage';
+      } else if (change.status === 'M') {
+        reason = 'Modified file may need additional test coverage';
+      } else if (change.status === 'D') {
+        reason = 'File deleted - verify related tests are still valid';
+      }
+      
+      uncovered.push({
+        component,
+        pages,
+        reason
+      });
+    }
+    
+    return uncovered;
+  }
+
+  /**
+   * Extract codebase context for working changes
+   */
+  private async extractCodebaseContext(
+    workspaceDirPath: string,
+    repoName: string,
+    branchInfo: {branch: string, commitHash: string},
+    workingChanges: WorkingChanges
+  ): Promise<CodebaseContext | null> {
+    try {
+      console.log('[CommitTester] Extracting codebase context for', repoName);
+      
+      // Use the context extractor to get comprehensive context
+      const context = await this.contextExtractor.extractCodebaseContext(
+        workspaceDirPath,
+        repoName,
+        workingChanges,
+        branchInfo
+      );
+
+      if (context) {
+        console.log(`[CommitTester] Context extracted: ${context.totalContextFiles} files, ${Math.round(context.totalContextSizeBytes/1024)}KB`);
+        console.log(`[CommitTester] Focus areas: ${context.focusAreas.join(', ')}`);
+        
+        // Log architectural patterns found
+        if (context.architecturalPatterns.length > 0) {
+          console.log(`[CommitTester] Architectural patterns: ${context.architecturalPatterns.join(', ')}`);
+        }
+        
+        // Log user journeys if found
+        if (context.userJourneyMapping.length > 0) {
+          console.log(`[CommitTester] User journeys: ${context.userJourneyMapping.join(', ')}`);
+        }
+      }
+
+      return context;
+    } catch (error) {
+      console.error('[CommitTester] Error extracting codebase context:', error);
+      return null;
     }
   }
 
