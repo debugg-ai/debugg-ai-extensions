@@ -900,16 +900,8 @@ export class TerminalFormatter {
      */
     public calculateExecutionTime(state: TestState): string {
         // Simple estimation based on test complexity
-        const baseTime = 30; // seconds
-        let multiplier = 1;
-        
-        if (state.tests && state.tests.length > 0) {
-            multiplier = state.tests.length;
-        } else if (state.steps && state.steps.length > 0) {
-            multiplier = Math.max(1, state.steps.length * 0.5);
-        }
-        
-        const estimatedSeconds = Math.round(baseTime * multiplier);
+        const totalExecutionMs = this.calculateTotalExecutionMs(state);
+        const estimatedSeconds = Math.round(totalExecutionMs / 1000);
         
         if (estimatedSeconds < 60) {
             return `~${estimatedSeconds}s`;

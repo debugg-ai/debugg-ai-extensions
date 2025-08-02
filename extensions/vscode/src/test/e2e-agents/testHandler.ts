@@ -191,7 +191,7 @@ export abstract class TestHandler {
             for (const test of state.tests) {
                 console.log("Processing files for test: ", test);
                 const testRun = test.object?.curRun;
-                const testName = testRun?.test?.name ?? "";
+                const testName = test.object?.name ?? "";
                 const testUuid = testRun?.uuid ?? "";
                 if (test.outcome === 'fail') {
                     grade = 'fail';

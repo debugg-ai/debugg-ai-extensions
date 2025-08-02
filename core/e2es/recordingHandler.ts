@@ -28,7 +28,7 @@ export async function fetchAndOpenGif(ide: IDE, recordingUrl: string, testName: 
     let localUrl = recordingUrl.replace('localhost', 'localhost:8002');
     console.log('localUrl', localUrl);
 
-    const filePath = path.join(gifDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId}.gif`);
+    const filePath = path.join(gifDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}.gif`);
     const fileUrl = new URL(localUrl);
 
     const file = fs.createWriteStream(filePath);
@@ -111,7 +111,7 @@ export async function fetchAndOpenScript(ide: IDE, scriptUrl: string, testName: 
         }
     }
 
-    const filePath = path.join(scriptDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId}-script${fileExtension}`);
+    const filePath = path.join(scriptDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}-script${fileExtension}`);
     const fileUrl = new URL(localUrl);
 
     const file = fs.createWriteStream(filePath);
@@ -181,7 +181,7 @@ export async function fetchAndOpenJson(ide: IDE, jsonUrl: string, testName: stri
     let localUrl = jsonUrl.replace('localhost', 'localhost:8002');
     console.log('localUrl', localUrl);
 
-    const filePath = path.join(jsonDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId}-details.json`);
+    const filePath = path.join(jsonDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}-details.json`);
     const fileUrl = new URL(localUrl);
 
     const file = fs.createWriteStream(filePath);

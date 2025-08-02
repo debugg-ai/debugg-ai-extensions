@@ -1639,6 +1639,8 @@ const getCommandsMap: (
             changes: changes,
             commitHash: changes.branchInfo?.commitHash,
             branchName: changes.branchInfo?.branch,
+            codeContext: changes.codebaseContext,
+            currentTests: changes.e2eSnapshot,
           },
           title: "Generate tests for working changes",
           testObjectType: "commit-suite",
