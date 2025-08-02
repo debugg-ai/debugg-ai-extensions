@@ -758,38 +758,4 @@ Focus on testing the user-facing functionality that was affected by these change
     };
   }
 
-  /**
-   * Create a description of working changes for test generation
-   */
-  private createWorkingChangesDescription(changes: Array<{status: string, file: string, diff?: string}>, branchInfo: {branch: string, commitHash: string}): string {
-    const modifiedFiles = changes.filter(c => c.status === 'M').map(c => c.file);
-    const addedFiles = changes.filter(c => c.status === 'A').map(c => c.file);
-    const deletedFiles = changes.filter(c => c.status === 'D').map(c => c.file);
-    
-    let description = `Generate comprehensive E2E tests for the current working changes on branch '${branchInfo.branch}'.\n\n`;
-    
-    if (modifiedFiles.length > 0) {
-      description += `Modified files: ${modifiedFiles.join(', ')}\n`;
-    }
-    if (addedFiles.length > 0) {
-      description += `Added files: ${addedFiles.join(', ')}\n`;
-    }
-    if (deletedFiles.length > 0) {
-      description += `Deleted files: ${deletedFiles.join(', ')}\n`;
-    }
-    
-    description += `\nPlease generate E2E tests that cover the functionality affected by these changes. `;
-    description += `Focus on testing the new features, bug fixes, or improvements represented by these modifications. `;
-    description += `Include tests for both positive and negative scenarios, edge cases, and integration points.`;
-    
-    // Add some sample diffs for context
-    const sampleChanges = changes.slice(0, 3); // Limit to first 3 changes
-    for (const change of sampleChanges) {
-      if (change.diff && change.diff.length < 1000) { // Limit diff size
-        description += `\n\nChanges in ${change.file}:\n${change.diff}`;
-      }
-    }
-    
-    return description;
-  }
 }
