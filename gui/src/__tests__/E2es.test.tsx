@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
@@ -323,7 +323,7 @@ describe('E2esPage', () => {
   describe('Error Handling', () => {
     it('should handle missing auth context gracefully', () => {
       expect(() => 
-        render(
+        renderWithProviders(
           <Provider store={createMockStore()}>
             <MemoryRouter>
               <IdeMessengerContext.Provider value={createMockIdeMessenger()}>
@@ -337,7 +337,7 @@ describe('E2esPage', () => {
 
     it('should handle missing IDE messenger gracefully', () => {
       expect(() => 
-        render(
+        renderWithProviders(
           <Provider store={createMockStore()}>
             <MemoryRouter>
               <div data-testid="mock-auth-provider">

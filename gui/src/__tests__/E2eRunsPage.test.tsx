@@ -1,10 +1,10 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { E2eRun, E2eTest } from 'core/debuggAIServer/types';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IdeMessengerContext } from '../context/IdeMessenger';
 import E2eRunsPage from '../pages/e2es/E2eRunsPage';
+import { renderWithProviders } from '../util/test/render';
 
 // Mock the navigate hook
 const mockNavigate = vi.fn();
@@ -133,12 +133,15 @@ const mockRun: E2eRun = {
 };
 
 const renderWithContext = (ideMessenger = createMockIdeMessenger()) => {
-  return render(
-    <MemoryRouter initialEntries={['/e2es/test-123/runs/run-456']}>
-      <IdeMessengerContext.Provider value={ideMessenger}>
-        <E2eRunsPage />
-      </IdeMessengerContext.Provider>
-    </MemoryRouter>
+  return renderWithProviders(
+    <IdeMessengerContext.Provider value={ideMessenger}>
+      <E2eRunsPage />
+    </IdeMessengerContext.Provider>,
+    {
+      routerProps: {
+        initialEntries: ['/e2es/test-123/runs/run-456']
+      }
+    }
   );
 };
 

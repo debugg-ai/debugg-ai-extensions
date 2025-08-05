@@ -1,7 +1,7 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '../util/test/render';
 import userEvent from '@testing-library/user-event';
 import type { E2eTestCommitSuite } from 'core/debuggAIServer/types';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IdeMessengerContext } from '../context/IdeMessenger';
 import E2eCommitSuites from '../pages/e2es/E2eCommitSuites';
@@ -121,12 +121,10 @@ const mockCommitSuites: E2eTestCommitSuite[] = [
 ];
 
 const renderWithContext = (ideMessenger = createMockIdeMessenger()) => {
-  return render(
-    <MemoryRouter>
-      <IdeMessengerContext.Provider value={ideMessenger}>
-        <E2eCommitSuites />
-      </IdeMessengerContext.Provider>
-    </MemoryRouter>
+  return renderWithProviders(
+    <IdeMessengerContext.Provider value={ideMessenger}>
+      <E2eCommitSuites />
+    </IdeMessengerContext.Provider>
   );
 };
 
@@ -547,12 +545,10 @@ describe('E2eCommitSuites', () => {
 
   describe('Error Handling', () => {
     it('should handle missing IDE messenger gracefully', () => {
-      render(
-        <MemoryRouter>
-          <IdeMessengerContext.Provider value={null as any}>
-            <E2eCommitSuites />
-          </IdeMessengerContext.Provider>
-        </MemoryRouter>
+      renderWithProviders(
+        <IdeMessengerContext.Provider value={null as any}>
+          <E2eCommitSuites />
+        </IdeMessengerContext.Provider>
       );
       
       // Should show loading state even without IDE messenger

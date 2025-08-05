@@ -422,6 +422,12 @@
         "category": "Debugg AI",
         "title": "Generate Tests for Working Changes",
         "group": "Debugg AI"
+      },
+      {
+        "command": "debugg-ai.generateTestsForCommit",
+        "category": "Debugg AI",
+        "title": "Generate Tests for Commit",
+        "group": "Debugg AI"
       }
     ],
     "keybindings": [

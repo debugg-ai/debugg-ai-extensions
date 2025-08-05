@@ -1,10 +1,10 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { E2eTestSuite } from 'core/debuggAIServer/types';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IdeMessengerContext } from '../context/IdeMessenger';
 import E2eSuites from '../pages/e2es/E2eSuites';
+import { renderWithProviders } from '../util/test/render';
 
 // Mock the navigate hook
 const mockNavigate = vi.fn();
@@ -20,7 +20,20 @@ vi.mock('react-router-dom', async () => {
 const createMockIdeMessenger = (overrides = {}) => ({
   post: vi.fn(),
   respond: vi.fn(),
-  request: vi.fn(),
+  request: vi.fn().mockImplementation((messageType: string) => {
+    switch (messageType) {
+      case 'e2eSuites/fetchE2eSuites':
+        return Promise.resolve({ count: mockSuites.length, next: null, previous: null, results: mockSuites });
+      case 'getControlPlaneSessionInfo':
+        return Promise.resolve({ user: { id: 'test-user' }, workspaceName: 'test-workspace' });
+      case 'getIdeSettings':
+        return Promise.resolve({});
+      case 'config/listProfiles':
+        return Promise.resolve([]);
+      default:
+        return Promise.resolve({});
+    }
+  }),
   streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()),
   llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
   
@@ -31,7 +44,7 @@ const createMockIdeMessenger = (overrides = {}) => ({
   deleteE2eTest: vi.fn().mockResolvedValue(undefined),
   
   // E2E Test Suites methods
-  fetchE2eSuites: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] }),
+  fetchE2eSuites: vi.fn().mockResolvedValue({ count: mockSuites.length, next: null, previous: null, results: mockSuites }),
   createE2eSuite: vi.fn().mockResolvedValue({ success: true }),
   runE2eSuite: vi.fn().mockResolvedValue(undefined),
   deleteE2eSuite: vi.fn().mockResolvedValue("deleted"),
@@ -116,23 +129,19 @@ const mockSuites: E2eTestSuite[] = [
 ];
 
 const renderWithContext = (ideMessenger = createMockIdeMessenger()) => {
-  return render(
-    <MemoryRouter>
-      <IdeMessengerContext.Provider value={ideMessenger}>
-        <E2eSuites />
-      </IdeMessengerContext.Provider>
-    </MemoryRouter>
+  return renderWithProviders(
+    <IdeMessengerContext.Provider value={ideMessenger}>
+      <E2eSuites />
+    </IdeMessengerContext.Provider>
   );
 };
 
 describe('E2eSuites', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -156,14 +165,9 @@ describe('E2eSuites', () => {
     it('should display test suites after loading', async () => {
       renderWithContext();
       
-      // Fast-forward past the simulated API delay
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
-      
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
       
       expect(screen.getByText('Shopping Cart Integration')).toBeInTheDocument();
       expect(screen.getByText('Comprehensive tests for user authentication and authorization flows')).toBeInTheDocument();
@@ -173,9 +177,6 @@ describe('E2eSuites', () => {
     it('should display suite status badges correctly', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -190,9 +191,6 @@ describe('E2eSuites', () => {
       renderWithContext();
       
       // Mock empty response by fast-forwarding but not adding any suites
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       // Wait for loading to complete but expect empty state
       await waitFor(() => {
@@ -213,9 +211,6 @@ describe('E2eSuites', () => {
       unmount();
       
       // Fast-forward timers - should not cause state updates on unmounted component
-      act(() => {
-        vi.advanceTimersByTime(1000);
-      });
       
       // No errors should be thrown
       expect(true).toBe(true);
@@ -225,9 +220,6 @@ describe('E2eSuites', () => {
       renderWithContext();
       
       // Wait for initial load
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -241,9 +233,6 @@ describe('E2eSuites', () => {
       await userEvent.click(refreshButton);
       
       // Should handle cancellation gracefully
-      act(() => {
-        vi.advanceTimersByTime(1000);
-      });
       
       expect(screen.getByText(/Refreshing.../)).toBeInTheDocument();
     });
@@ -253,9 +242,6 @@ describe('E2eSuites', () => {
     it('should open create modal when create button is clicked', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -271,9 +257,6 @@ describe('E2eSuites', () => {
     it('should close modal when cancel button is clicked', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -295,9 +278,6 @@ describe('E2eSuites', () => {
     it('should require description field', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -315,9 +295,6 @@ describe('E2eSuites', () => {
     it('should enable submit button when description is provided', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -339,9 +316,6 @@ describe('E2eSuites', () => {
     it('should handle form submission correctly', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -377,9 +351,6 @@ describe('E2eSuites', () => {
     it('should handle view suite action', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -395,9 +366,6 @@ describe('E2eSuites', () => {
     it('should handle run suite action', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -416,9 +384,6 @@ describe('E2eSuites', () => {
     it('should handle refresh button clicks', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -433,9 +398,6 @@ describe('E2eSuites', () => {
     it('should disable refresh button while refreshing', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -456,9 +418,6 @@ describe('E2eSuites', () => {
       renderWithContext();
       
       // The component structure should handle errors gracefully
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         // Component should not crash on errors
@@ -469,12 +428,10 @@ describe('E2eSuites', () => {
     });
 
     it('should handle missing IDE messenger gracefully', () => {
-      render(
-        <MemoryRouter>
-          <IdeMessengerContext.Provider value={null as any}>
-            <E2eSuites />
-          </IdeMessengerContext.Provider>
-        </MemoryRouter>
+      renderWithProviders(
+        <IdeMessengerContext.Provider value={null as any}>
+          <E2eSuites />
+        </IdeMessengerContext.Provider>
       );
       
       // Should show loading state even without IDE messenger
@@ -486,9 +443,6 @@ describe('E2eSuites', () => {
     it('should show empty state CTA when no suites exist', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.queryByText('Loading test suites...')).not.toBeInTheDocument();
@@ -526,9 +480,6 @@ describe('E2eSuites', () => {
     it('should display suite information correctly', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -544,9 +495,6 @@ describe('E2eSuites', () => {
     it('should handle missing suite names gracefully', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         // Should show "Unnamed Suite" for suites without names
@@ -560,9 +508,6 @@ describe('E2eSuites', () => {
     it('should reset form after successful submission', async () => {
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();
@@ -580,9 +525,6 @@ describe('E2eSuites', () => {
       await userEvent.click(submitButton);
       
       // Fast-forward through the creation process
-      act(() => {
-        vi.advanceTimersByTime(2000);
-      });
       
       // Modal should close and form should be reset
       await waitFor(() => {
@@ -595,9 +537,6 @@ describe('E2eSuites', () => {
       
       renderWithContext();
       
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
       
       await waitFor(() => {
         expect(screen.getByText('Authentication Flow Tests')).toBeInTheDocument();

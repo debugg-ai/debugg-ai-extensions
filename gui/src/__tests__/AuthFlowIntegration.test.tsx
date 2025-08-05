@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '../util/test/render';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Provider } from 'react-redux';
@@ -168,7 +169,7 @@ describe('Complete Auth Flow Integration Tests', () => {
   let store: any;
 
   const renderAuthFlow = (component: React.ReactElement) => {
-    return render(
+    return renderWithProviders(
       <Provider store={store}>
         <IdeMessengerContext.Provider value={authHarness as any}>
           <AuthProvider>

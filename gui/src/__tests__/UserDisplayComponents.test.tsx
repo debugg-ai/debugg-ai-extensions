@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { renderWithProviders } from '../util/test/render';
 import { describe, it, expect } from 'vitest';
 import type { PublicUserInfo, E2eTestCommitSuite } from 'core/debuggAIServer/types';
 
@@ -63,46 +64,46 @@ function CommitSuiteUserDisplay({ suite }: { suite: { createdBy: any } }) {
 describe('User Display Components', () => {
   describe('UserDisplayComponent', () => {
     it('should render full name when both firstName and lastName are present', () => {
-      render(<UserDisplayComponent user={mockUserObject} />);
+      renderWithProviders(<UserDisplayComponent user={mockUserObject} />);
       expect(screen.getByTestId('user-display')).toHaveTextContent('John Doe');
     });
 
     it('should render first name only when lastName is missing', () => {
       const userWithoutLastName = { ...mockUserObject, lastName: '' };
-      render(<UserDisplayComponent user={userWithoutLastName} />);
+      renderWithProviders(<UserDisplayComponent user={userWithoutLastName} />);
       expect(screen.getByTestId('user-display')).toHaveTextContent('John');
     });
 
     it('should render last name only when firstName is missing', () => {
       const userWithoutFirstName = { ...mockUserObject, firstName: '' };
-      render(<UserDisplayComponent user={userWithoutFirstName} />);
+      renderWithProviders(<UserDisplayComponent user={userWithoutFirstName} />);
       expect(screen.getByTestId('user-display')).toHaveTextContent('Doe');
     });
 
     it('should fall back to email when no names are present', () => {
       const userWithoutNames = { ...mockUserObject, firstName: '', lastName: '' };
-      render(<UserDisplayComponent user={userWithoutNames} />);
+      renderWithProviders(<UserDisplayComponent user={userWithoutNames} />);
       expect(screen.getByTestId('user-display')).toHaveTextContent('john.doe@example.com');
     });
 
     it('should render "Unknown User" when no name or email is present', () => {
       const userWithoutInfo = { ...mockUserObject, firstName: '', lastName: '', email: '' };
-      render(<UserDisplayComponent user={userWithoutInfo} />);
+      renderWithProviders(<UserDisplayComponent user={userWithoutInfo} />);
       expect(screen.getByTestId('user-display')).toHaveTextContent('Unknown User');
     });
 
     it('should handle string user ID', () => {
-      render(<UserDisplayComponent user="user123" />);
+      renderWithProviders(<UserDisplayComponent user="user123" />);
       expect(screen.getByTestId('user-display')).toHaveTextContent('User user123');
     });
 
     it('should handle null/undefined user', () => {
-      render(<UserDisplayComponent user={null} />);
+      renderWithProviders(<UserDisplayComponent user={null} />);
       expect(screen.getByTestId('user-display')).toHaveTextContent('User Unknown');
     });
 
     it('should never render a raw object', () => {
-      const { container } = render(<UserDisplayComponent user={mockUserObject} />);
+      const { container } = renderWithProviders(<UserDisplayComponent user={mockUserObject} />);
       const displayText = container.textContent;
       
       // Ensure we never render the object itself
@@ -118,24 +119,24 @@ describe('User Display Components', () => {
 
   describe('CommitSuiteUserDisplay', () => {
     it('should render commit suite creator properly', () => {
-      render(<CommitSuiteUserDisplay suite={mockCommitSuite} />);
+      renderWithProviders(<CommitSuiteUserDisplay suite={mockCommitSuite} />);
       expect(screen.getByTestId('commit-suite-user')).toHaveTextContent('By: John Doe');
     });
 
     it('should handle commit suite with string createdBy', () => {
       const suiteWithStringUser = { ...mockCommitSuite, createdBy: 'user123' };
-      render(<CommitSuiteUserDisplay suite={suiteWithStringUser} />);
+      renderWithProviders(<CommitSuiteUserDisplay suite={suiteWithStringUser} />);
       expect(screen.getByTestId('commit-suite-user')).toHaveTextContent('By: User user123');
     });
 
     it('should handle commit suite with no createdBy', () => {
       const suiteWithoutUser = { ...mockCommitSuite, createdBy: undefined };
-      render(<CommitSuiteUserDisplay suite={suiteWithoutUser} />);
+      renderWithProviders(<CommitSuiteUserDisplay suite={suiteWithoutUser} />);
       expect(screen.getByTestId('commit-suite-user')).toHaveTextContent('By: User Unknown');
     });
 
     it('should never render raw user object in commit suite', () => {
-      const { container } = render(<CommitSuiteUserDisplay suite={mockCommitSuite} />);
+      const { container } = renderWithProviders(<CommitSuiteUserDisplay suite={mockCommitSuite} />);
       const displayText = container.textContent;
       
       // Ensure we never render the object itself
@@ -168,7 +169,7 @@ describe('User Display Components', () => {
       };
 
       // This should not throw
-      expect(() => render(<BrokenComponent />)).not.toThrow();
+      expect(() => renderWithProviders(<BrokenComponent />)).not.toThrow();
       
       // And should render proper text
       const display = screen.getByTestId('safe-display');

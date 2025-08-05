@@ -1,4 +1,5 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { renderWithProviders } from '../util/test/render';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
@@ -130,7 +131,7 @@ describe('E2E Suite Pages Integration Tests', () => {
       store.dispatch = mockDispatch;
 
       expect(() => {
-        render(
+        renderWithProviders(
           <TestWrapper store={store}>
             <E2eCommitSuitesPage />
           </TestWrapper>
@@ -158,7 +159,7 @@ describe('E2E Suite Pages Integration Tests', () => {
 
       store.dispatch = vi.fn().mockResolvedValue({ payload: [] });
 
-      render(
+      renderWithProviders(
         <TestWrapper store={store}>
           <E2eCommitSuitesPage />
         </TestWrapper>
@@ -182,7 +183,7 @@ describe('E2E Suite Pages Integration Tests', () => {
 
       store.dispatch = vi.fn().mockResolvedValue({ payload: [] });
 
-      render(
+      renderWithProviders(
         <TestWrapper store={store}>
           <E2eCommitSuitesPage />
         </TestWrapper>
@@ -209,7 +210,7 @@ describe('E2E Suite Pages Integration Tests', () => {
 
       store.dispatch = vi.fn().mockResolvedValue({ payload: [] });
 
-      render(
+      renderWithProviders(
         <TestWrapper store={store}>
           <E2eCommitSuitesPage />
         </TestWrapper>
@@ -244,7 +245,7 @@ describe('E2E Suite Pages Integration Tests', () => {
       const store = createTestStore();
 
       expect(() => {
-        render(
+        renderWithProviders(
           <TestWrapper store={store}>
             <E2eCommitSuiteDetailPage />
           </TestWrapper>
@@ -270,7 +271,7 @@ describe('E2E Suite Pages Integration Tests', () => {
 
       const store = createTestStore();
 
-      render(
+      renderWithProviders(
         <TestWrapper store={store}>
           <E2eCommitSuiteDetailPage />
         </TestWrapper>
@@ -291,7 +292,7 @@ describe('E2E Suite Pages Integration Tests', () => {
 
       const store = createTestStore();
 
-      render(
+      renderWithProviders(
         <TestWrapper store={store}>
           <E2eCommitSuiteDetailPage />
         </TestWrapper>
@@ -329,7 +330,7 @@ describe('E2E Suite Pages Integration Tests', () => {
 
         store.dispatch = vi.fn().mockResolvedValue({ payload: [] });
 
-        const { container, unmount } = render(
+        const { container, unmount } = renderWithProviders(
           <TestWrapper store={store}>
             <E2eCommitSuitesPage />
           </TestWrapper>
@@ -363,7 +364,7 @@ describe('E2E Suite Pages Integration Tests', () => {
 
       store.dispatch = vi.fn().mockResolvedValue({ payload: [] });
 
-      const { rerender } = render(
+      const { rerender } = renderWithProviders(
         <TestWrapper store={store}>
           <E2eCommitSuitesPage />
         </TestWrapper>
