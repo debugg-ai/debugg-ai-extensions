@@ -4,6 +4,7 @@ import { IdeSettings } from "..";
 import {
   getLocalEnvironmentDotFilePath,
   getStagingEnvironmentDotFilePath,
+  getTestEnvironmentDotFilePath,
 } from "../util/paths";
 
 export interface ControlPlaneEnv {
@@ -105,7 +106,9 @@ export function getControlPlaneEnvSync(
   if (fs.existsSync(getLocalEnvironmentDotFilePath())) {
     return LOCAL_ENV;
   }
-
+  if (fs.existsSync(getTestEnvironmentDotFilePath())) {
+    return TEST_ENV;
+  }
   if (fs.existsSync(getStagingEnvironmentDotFilePath())) {
     return STAGING_ENV;
   }
