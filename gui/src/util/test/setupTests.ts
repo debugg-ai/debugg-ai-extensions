@@ -23,8 +23,14 @@ Object.defineProperty(window, "matchMedia", {
   })),
 });
 
-// Mock VS Code API
-Object.defineProperty(global, "vscode", {
+// Mock VS Code API - must be available globally for typeof check
+(global as any).vscode = {
+  postMessage: vi.fn(),
+  setState: vi.fn(),
+  getState: vi.fn(() => ({})),
+};
+
+Object.defineProperty(window, "vscode", {
   writable: true,
   value: {
     postMessage: vi.fn(),
@@ -33,7 +39,8 @@ Object.defineProperty(global, "vscode", {
   },
 });
 
-Object.defineProperty(window, "vscode", {
+// Ensure vscode is available at module level
+Object.defineProperty(globalThis, "vscode", {
   writable: true,
   value: {
     postMessage: vi.fn(),

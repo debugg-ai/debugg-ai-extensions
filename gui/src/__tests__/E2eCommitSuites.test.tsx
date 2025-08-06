@@ -20,7 +20,26 @@ vi.mock('react-router-dom', async () => {
 const createMockIdeMessenger = (overrides = {}) => ({
   post: vi.fn(),
   respond: vi.fn(),
-  request: vi.fn(),
+  request: vi.fn().mockImplementation((messageType: string) => {
+    switch (messageType) {
+      case 'e2eCommitSuites/fetchE2eCommitSuites':
+        return Promise.resolve({ 
+          content: { count: mockCommitSuites.length, next: null, previous: null, results: mockCommitSuites },
+          status: 'success'
+        });
+      case 'getControlPlaneSessionInfo':
+        return Promise.resolve({ 
+          content: { user: { id: 'test-user' }, workspaceName: 'test-workspace' },
+          status: 'success'
+        });
+      case 'getIdeSettings':
+        return Promise.resolve({ content: {}, status: 'success' });
+      case 'config/listProfiles':
+        return Promise.resolve({ content: [], status: 'success' });
+      default:
+        return Promise.resolve({ content: {}, status: 'success' });
+    }
+  }),
   streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()),
   llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
   
@@ -121,11 +140,16 @@ const mockCommitSuites: E2eTestCommitSuite[] = [
 ];
 
 const renderWithContext = (ideMessenger = createMockIdeMessenger()) => {
-  return renderWithProviders(
-    <IdeMessengerContext.Provider value={ideMessenger}>
-      <E2eCommitSuites />
-    </IdeMessengerContext.Provider>
-  );
+  let result;
+  act(() => {
+    result = renderWithProviders(
+      <IdeMessengerContext.Provider value={ideMessenger}>
+        <E2eCommitSuites />
+      </IdeMessengerContext.Provider>,
+      { mockIdeMessenger: ideMessenger }
+    );
+  });
+  return result!;
 };
 
 describe('E2eCommitSuites', () => {
