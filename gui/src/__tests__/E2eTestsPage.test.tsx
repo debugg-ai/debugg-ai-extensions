@@ -1,28 +1,25 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IdeMessengerContext } from '../context/IdeMessenger';
 import E2eTestsPage from '../pages/e2es/E2eTestsPage';
 import e2eTestsSlice from '../redux/slices/e2eTestsSlice';
+import { renderWithProviders as baseRenderWithProviders } from '../util/test/render';
 
 // Mock the E2eTestsTable component
-const MockE2eTestsTable = () => (
-  <div data-testid="e2e-tests-table">
-    <div>Test 1: Authentication Flow</div>
-    <div>Test 2: Shopping Cart</div>
-    <div>Test 3: Payment Process</div>
-  </div>
-);
-
-vi.mock('../../components/e2es/e2e-tests-table', () => ({
-  E2eTestsTable: MockE2eTestsTable,
+vi.mock('../components/e2es/e2e-tests-table', () => ({
+  E2eTestsTable: () => (
+    <div data-testid="e2e-tests-table">
+      <div>Test 1: Authentication Flow</div>
+      <div>Test 2: Shopping Cart</div>
+      <div>Test 3: Payment Process</div>
+    </div>
+  ),
 }));
 
 // Mock the navigation listener hook
-vi.mock('../../hooks/useNavigationListener', () => ({
+vi.mock('../hooks/useNavigationListener', () => ({
   useNavigationListener: vi.fn(),
 }));
 
@@ -37,16 +34,35 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock the Redux thunk
-const mockFetchE2eTests = vi.fn();
-vi.mock('../../redux/thunks/e2eTestsThunks', () => ({
-  fetchE2eTests: mockFetchE2eTests,
+vi.mock('../redux/thunks/e2eTestsThunks', () => ({
+  fetchE2eTests: vi.fn(),
+  createE2eTest: vi.fn(),
 }));
 
 // Create mock IDE messenger
 const createMockIdeMessenger = (overrides = {}) => ({
   post: vi.fn(),
   respond: vi.fn(),
-  request: vi.fn().mockResolvedValue({ success: true }),
+  request: vi.fn().mockImplementation((messageType: string) => {
+    switch (messageType) {
+      case 'e2eTests/fetchE2eTests':
+        return Promise.resolve({ 
+          content: { count: 0, next: null, previous: null, results: [] },
+          status: 'success'
+        });
+      case 'getControlPlaneSessionInfo':
+        return Promise.resolve({ 
+          content: { user: { id: 'test-user' }, workspaceName: 'test-workspace' },
+          status: 'success'
+        });
+      case 'getIdeSettings':
+        return Promise.resolve({ content: {}, status: 'success' });
+      case 'config/listProfiles':
+        return Promise.resolve({ content: [], status: 'success' });
+      default:
+        return Promise.resolve({ content: {}, status: 'success' });
+    }
+  }),
   streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()), 
   llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
   
@@ -105,27 +121,22 @@ const renderWithProviders = (
   ideMessenger = createMockIdeMessenger(),
   storeState = {}
 ) => {
-  const store = createMockStore(storeState);
-  
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <IdeMessengerContext.Provider value={ideMessenger}>
-            <E2eTestsPage />
-          </IdeMessengerContext.Provider>
-        </MemoryRouter>
-      </Provider>
-    ),
-  };
+  let result;
+  act(() => {
+    result = baseRenderWithProviders(
+      <IdeMessengerContext.Provider value={ideMessenger}>
+        <E2eTestsPage />
+      </IdeMessengerContext.Provider>,
+      { mockIdeMessenger: ideMessenger }
+    );
+  });
+  return result!;
 };
 
 describe('E2eTestsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    mockFetchE2eTests.mockReturnValue({ type: 'fetchE2eTests/pending' });
   });
 
   afterEach(() => {
@@ -145,7 +156,7 @@ describe('E2eTestsPage', () => {
       renderWithProviders();
       
       expect(screen.getByRole('button', { name: /refresh/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /create test/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create/i })).toBeInTheDocument();
     });
 
     it('should render the E2eTestsTable component', () => {
@@ -211,7 +222,7 @@ describe('E2eTestsPage', () => {
     it('should open create modal when create button is clicked', async () => {
       renderWithProviders();
       
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       expect(screen.getByText('Create E2E Test')).toBeInTheDocument();
@@ -222,7 +233,7 @@ describe('E2eTestsPage', () => {
       renderWithProviders();
       
       // Open modal
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       expect(screen.getByText('Create E2E Test')).toBeInTheDocument();
@@ -237,7 +248,7 @@ describe('E2eTestsPage', () => {
     it('should require description field', async () => {
       renderWithProviders();
       
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       // Submit button should be disabled without description
@@ -248,7 +259,7 @@ describe('E2eTestsPage', () => {
     it('should enable submit button when description is provided', async () => {
       renderWithProviders();
       
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       // Fill in description
@@ -263,7 +274,7 @@ describe('E2eTestsPage', () => {
     it('should handle optional fields correctly', async () => {
       renderWithProviders();
       
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       // Fill in all fields
@@ -296,7 +307,7 @@ describe('E2eTestsPage', () => {
       renderWithProviders(mockIdeMessenger, {});
       
       // Open modal and fill form
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       const descriptionField = screen.getByPlaceholderText('Describe what this test should validate...');
@@ -324,7 +335,7 @@ describe('E2eTestsPage', () => {
       renderWithProviders(mockIdeMessenger, {});
       
       // Create test
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       const descriptionField = screen.getByPlaceholderText('Describe what this test should validate...');
@@ -349,7 +360,7 @@ describe('E2eTestsPage', () => {
       
       renderWithProviders(mockIdeMessenger);
       
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       const descriptionField = screen.getByPlaceholderText('Describe what this test should validate...');
@@ -367,7 +378,7 @@ describe('E2eTestsPage', () => {
       
       renderWithProviders(mockIdeMessenger);
       
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       const descriptionField = screen.getByPlaceholderText('Describe what this test should validate...');
@@ -419,7 +430,7 @@ describe('E2eTestsPage', () => {
 
   describe('Error Handling', () => {
     it('should handle missing IDE messenger gracefully', () => {
-      render(
+      renderWithProviders(
         <Provider store={createMockStore()}>
           <MemoryRouter>
             <IdeMessengerContext.Provider value={null as any}>
@@ -444,7 +455,7 @@ describe('E2eTestsPage', () => {
       
       renderWithProviders(mockIdeMessenger);
       
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       const descriptionField = screen.getByPlaceholderText('Describe what this test should validate...');
@@ -511,7 +522,7 @@ describe('E2eTestsPage', () => {
       
       renderWithProviders(mockIdeMessenger);
       
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       // Fill form
@@ -558,13 +569,13 @@ describe('E2eTestsPage', () => {
       renderWithProviders();
       
       expect(screen.getByRole('button', { name: /refresh/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /create test/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create/i })).toBeInTheDocument();
     });
 
     it('should handle keyboard navigation in modal', async () => {
       renderWithProviders();
       
-      const createButton = screen.getByRole('button', { name: /create test/i });
+      const createButton = screen.getByRole('button', { name: /create/i });
       await userEvent.click(createButton);
       
       // Modal should be keyboard accessible

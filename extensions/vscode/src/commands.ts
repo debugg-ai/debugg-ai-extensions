@@ -1034,6 +1034,10 @@ const getCommandsMap: (
             description: "Create tests for uncommitted code changes",
           },
           {
+            label: "$(git-commit) Generate Tests for Commit",
+            description: "Create tests for a specific commit",
+          },
+          {
             label: "$(eye) Show E2E Tests",
             description: "View all E2E tests",
           },
@@ -1081,6 +1085,9 @@ const getCommandsMap: (
               break;
             case "$(file-code) Generate Tests for Working Changes":
               vscode.commands.executeCommand("debugg-ai.generateTestsForWorkingChanges");
+              break;
+            case "$(git-commit) Generate Tests for Commit":
+              vscode.commands.executeCommand("debugg-ai.generateTestsForCommit");
               break;
             case "$(eye) Show E2E Tests":
               vscode.commands.executeCommand("debugg-ai.showE2es");
@@ -1616,6 +1623,162 @@ const getCommandsMap: (
         if (newDir && commitTester) {
           commitTester.setTestOutputDirectory(newDir);
           vscode.window.showInformationMessage(`Test output directory set to: ${newDir}`);
+        }
+      },
+
+      "debugg-ai.generateTestsForCommit": async () => {
+        captureCommandTelemetry("debugg-ai.generateTestsForCommit");
+        const client = await debuggAIServerClientPromise;
+        const { config } = await configHandler.loadConfig();
+        let localPortConfig = config?.debuggAiServerPort;
+
+        if (!commitTester) {
+          commitTester = new CommitTester(client, ide, configHandler, extensionContext);
+        }
+
+        vscode.window.setStatusBarMessage("Fetching recent commits...", 2000);
+
+        try {
+          // Get recent commits using git log
+          const workspaceDirs = await ide.getWorkspaceDirs();
+          if (!workspaceDirs || workspaceDirs.length === 0) {
+            vscode.window.showWarningMessage("⚠️ No workspace found. Please open a workspace first.");
+            return;
+          }
+
+          const workspaceDir = workspaceDirs[0];
+          
+          // Execute git log command to get recent commits
+          const gitLogCommand = 'git log --oneline -20 --no-merges';
+          const gitLogResult = await new Promise<string>((resolve, reject) => {
+            require('child_process').exec(gitLogCommand, { cwd: workspaceDir }, (error: any, stdout: string, stderr: string) => {
+              if (error) {
+                reject(new Error(`Git command failed: ${error.message}`));
+                return;
+              }
+              resolve(stdout.trim());
+            });
+          });
+
+          if (!gitLogResult) {
+            vscode.window.showWarningMessage("⚠️ No commits found in the current repository.");
+            return;
+          }
+
+          // Parse commits into dropdown items
+          const commits = gitLogResult.split('\n').map(line => {
+            const [hash, ...messageParts] = line.split(' ');
+            const message = messageParts.join(' ');
+            return {
+              label: `${hash.substring(0, 8)} - ${message}`,
+              description: hash,
+              detail: message,
+              hash: hash
+            };
+          });
+
+          // Show commit selection dropdown
+          const selectedCommit = await vscode.window.showQuickPick(commits, {
+            placeHolder: "Select a commit to generate E2E tests for",
+            matchOnDescription: true,
+            matchOnDetail: true
+          });
+
+          if (!selectedCommit) {
+            return; // User cancelled
+          }
+
+          vscode.window.setStatusBarMessage(`Generating E2E tests for commit ${selectedCommit.hash.substring(0, 8)}...`, 3000);
+
+          // Get changes for the selected commit
+          const changes = await commitTester.generateTestsForCommit(selectedCommit.hash);
+
+          const aiE2eAgent = new AiE2eAgent(client, ide, {
+            testParams: {
+              description: `Generate tests for commit ${selectedCommit.hash.substring(0, 8)}: ${selectedCommit.detail}`,
+              changes: changes,
+              commitHash: selectedCommit.hash,
+              branchName: changes.branchInfo?.branch,
+              codeContext: changes.codebaseContext,
+              currentTests: changes.e2eSnapshot,
+            },
+            title: `Generate tests for commit ${selectedCommit.hash.substring(0, 8)}`,
+            testObjectType: "commit-suite",
+            testRunType: "generate",
+            remote: true,
+            localServerPort: localPortConfig ?? 3000,
+          } as unknown as AiE2eAgentOptions);
+
+          try {
+            if (changes.workingChanges.changes.length === 0) {
+              vscode.window.showWarningMessage(`⚠️ No changes found in commit ${selectedCommit.hash.substring(0, 8)}.`);
+              return;
+            }
+            
+            vscode.window.setStatusBarMessage(`🤖 Generating tests for commit ${selectedCommit.hash.substring(0, 8)}...`, 3000);
+            await aiE2eAgent.run();
+
+            while (aiE2eAgent.isTestRunning()) {
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          } catch (error) {
+            console.error('[Commands.generateTestsForCommit] Error running tests:', error);
+            vscode.window.showErrorMessage(
+              `Error running tests: ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
+
+          try {
+            if (!aiE2eAgent.testHandler) {
+              throw new Error('Test handler not initialized');
+            }
+            const testState = aiE2eAgent.testHandler.getTestState();
+            const testObjectS = await aiE2eAgent.testHandler.getTestObject();
+            if (testObjectS) {
+              let testObject = testObjectS.object as unknown as E2eTestCommitSuite;
+              console.log("Test object - ", testObject);
+              const tests = testObject.tests;
+              console.log("Tests - ", tests);
+
+              const workspaceDirs = await ide.getWorkspaceDirs();
+              console.log("Workspace dirs - ", workspaceDirs);
+
+              if (tests && tests.length > 0) {
+                for (const test of tests) {
+                  const testScriptUrl = test.testScript;
+                  console.log("Test script url - ", testScriptUrl);
+
+                  try {
+                    const testScriptContent = await fetch(testScriptUrl).then(res => res.text());
+                    const testScriptName = testScriptUrl.split('/').pop() ?? `${testObject.uuid}`;
+                    if (aiE2eAgent.testHandler) {
+                      await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: testScriptName, content: testScriptContent, testName: test.name });
+                    }
+                  } catch (error) {
+                    console.error('[Commands.generateTestsForCommit] Error downloading test script:', error);
+                    vscode.window.showErrorMessage(
+                      `Error downloading test script: ${error instanceof Error ? error.message : String(error)}`
+                    );
+                  }
+                }
+              }
+              if (testObject.runStatus === "completed") {
+                vscode.window.showInformationMessage(`✅ Tests generated successfully for commit ${selectedCommit.hash.substring(0, 8)}! ${tests?.length || 0} test(s) created.`);
+              } else {
+                vscode.window.showErrorMessage(`❌ Test generation failed with status: ${testObject.runStatus}`);
+              }
+            }
+          } catch (error) {
+            console.error('[Commands.generateTestsForCommit] Error processing test results:', error);
+            vscode.window.showErrorMessage(
+              `Error processing test results: ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
+        } catch (error) {
+          console.error('[Commands.generateTestsForCommit] Error:', error);
+          vscode.window.showErrorMessage(
+            `Error generating tests for commit: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
       },
 

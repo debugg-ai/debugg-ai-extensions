@@ -433,6 +433,10 @@ export function getStagingEnvironmentDotFilePath(): string {
   return path.join(getDebuggAIGlobalPath(), ".staging");
 }
 
+export function getTestEnvironmentDotFilePath(): string {
+  return path.join(getDebuggAIGlobalPath(), ".test");
+}
+
 export function getDiffsDirectoryPath(): string {
   const diffsPath = path.join(getDebuggAIGlobalPath(), ".diffs"); // .replace(/^C:/, "c:"); ??
   if (!fs.existsSync(diffsPath)) {

@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '../util/test/render';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
@@ -122,7 +123,7 @@ describe('E2eSuitesPage', () => {
       store.dispatch = mockDispatch;
 
       expect(() => {
-        render(
+        renderWithProviders(
           <TestWrapper store={store}>
             <E2eSuitesPage />
           </TestWrapper>
@@ -150,7 +151,7 @@ describe('E2eSuitesPage', () => {
 
       store.dispatch = vi.fn().mockResolvedValue({ payload: [] });
 
-      render(
+      renderWithProviders(
         <TestWrapper store={store}>
           <E2eSuitesPage />
         </TestWrapper>
@@ -174,7 +175,7 @@ describe('E2eSuitesPage', () => {
 
       store.dispatch = vi.fn().mockResolvedValue({ payload: [] });
 
-      render(
+      renderWithProviders(
         <TestWrapper store={store}>
           <E2eSuitesPage />
         </TestWrapper>
@@ -203,7 +204,7 @@ describe('E2eSuitesPage', () => {
 
       store.dispatch = vi.fn().mockResolvedValue({ payload: [] });
 
-      render(
+      renderWithProviders(
         <TestWrapper store={store}>
           <E2eSuitesPage />
         </TestWrapper>
@@ -238,7 +239,7 @@ describe('E2eSuitesPage', () => {
 
         store.dispatch = vi.fn().mockResolvedValue({ payload: [] });
 
-        const { container, unmount } = render(
+        const { container, unmount } = renderWithProviders(
           <TestWrapper store={store}>
             <E2eSuitesPage />
           </TestWrapper>

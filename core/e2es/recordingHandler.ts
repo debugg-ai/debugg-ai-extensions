@@ -5,6 +5,96 @@ import * as path from "path";
 import { URL } from "url";
 import { IDE } from "../index.js";
 
+async function downloadFileWithRedirects(url: string, filePath: string, maxRedirects: number = 5): Promise<void> {
+    let currentUrl = url;
+    let redirectCount = 0;
+
+    while (redirectCount <= maxRedirects) {
+        console.log(`Attempting to download from: ${currentUrl} (redirect ${redirectCount})`);
+        
+        const fileUrl = new URL(currentUrl);
+        const file = fs.createWriteStream(filePath);
+
+        try {
+            const redirectUrl = await new Promise<string | null>((resolve, reject) => {
+                const request = fileUrl.protocol === 'https:' ? https.get : http.get;
+                
+                request(currentUrl, (response) => {
+                    const statusCode = response.statusCode || 0;
+                    
+                    // Handle redirects
+                    if (statusCode >= 300 && statusCode < 400) {
+                        const location = response.headers.location;
+                        if (!location) {
+                            reject(new Error(`Redirect response (${statusCode}) without Location header`));
+                            return;
+                        }
+                        
+                        // Close the current file stream since we're redirecting
+                        file.close();
+                        resolve(location);
+                        return;
+                    }
+                    
+                    // Handle success
+                    if (statusCode === 200) {
+                        response.pipe(file);
+                        file.on("finish", () => {
+                            file.close();
+                            resolve(null); // null means success, no redirect
+                        });
+                        return;
+                    }
+                    
+                    // Handle other errors
+                    file.close();
+                    reject(new Error(`Failed to download file: ${statusCode}`));
+                }).on("error", (err) => {
+                    file.close();
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                    }
+                    reject(err);
+                });
+            });
+
+            // If no redirect, we're done
+            if (!redirectUrl) {
+                return;
+            }
+
+            // Handle redirect
+            redirectCount++;
+            if (redirectCount > maxRedirects) {
+                throw new Error(`Too many redirects (${maxRedirects})`);
+            }
+            
+            // Convert relative URLs to absolute
+            if (redirectUrl.startsWith('/')) {
+                const baseUrl = new URL(currentUrl);
+                currentUrl = `${baseUrl.protocol}//${baseUrl.host}${redirectUrl}`;
+            } else if (redirectUrl.startsWith('http')) {
+                currentUrl = redirectUrl;
+            } else {
+                // Relative URL, resolve against current URL
+                currentUrl = new URL(redirectUrl, currentUrl).toString();
+            }
+            
+            console.log(`Redirecting to: ${currentUrl}`);
+
+        } catch (error) {
+            // Clean up file on error
+            file.close();
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+            throw error;
+        }
+    }
+
+    throw new Error(`Exceeded maximum redirects (${maxRedirects})`);
+}
+
 
 export async function fetchAndOpenGif(ide: IDE, recordingUrl: string, testName: string, testId: string): Promise<void> {
     let projectRoot = (await ide.getWorkspaceDirs())[0];
@@ -29,46 +119,9 @@ export async function fetchAndOpenGif(ide: IDE, recordingUrl: string, testName: 
     console.log('localUrl', localUrl);
 
     const filePath = path.join(gifDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}.gif`);
-    const fileUrl = new URL(localUrl);
 
-    const file = fs.createWriteStream(filePath);
-
-    await new Promise<void>((resolve, reject) => {
-        console.log('fetching gif', fileUrl);
-        if (fileUrl.protocol === 'https:') {
-            https.get(localUrl, (response) => {
-                if (response.statusCode !== 200) {
-                    reject(new Error(`Failed to download file: ${response.statusCode}`));
-                    return;
-                }
-
-                response.pipe(file);
-                file.on("finish", () => {
-                    file.close();
-                    resolve();
-                });
-            }).on("error", (err) => {
-                fs.unlinkSync(filePath);
-                reject(err);
-            });
-
-        } else {
-            http.get(localUrl, (response) => {
-                if (response.statusCode !== 200) {
-                    reject(new Error(`Failed to download file: ${response.statusCode}`));
-                    return;
-                }
-                response.pipe(file);
-                file.on("finish", () => {
-                    file.close();
-                    resolve();
-                });
-            }).on("error", (err) => {
-                fs.unlinkSync(filePath);
-                reject(err);
-            });
-        }
-    });
+    console.log('fetching gif from', localUrl);
+    await downloadFileWithRedirects(localUrl, filePath);
     // const fileUri = vscode.Uri.file(filePath);
     // await vscode.commands.executeCommand('vscode.open', fileUri);
     const fileUri = filePath.replace("file://", "");
@@ -112,46 +165,9 @@ export async function fetchAndOpenScript(ide: IDE, scriptUrl: string, testName: 
     }
 
     const filePath = path.join(scriptDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}-script${fileExtension}`);
-    const fileUrl = new URL(localUrl);
 
-    const file = fs.createWriteStream(filePath);
-
-    await new Promise<void>((resolve, reject) => {
-        console.log('fetching script', fileUrl);
-        if (fileUrl.protocol === 'https:') {
-            https.get(localUrl, (response) => {
-                if (response.statusCode !== 200) {
-                    reject(new Error(`Failed to download file: ${response.statusCode}`));
-                    return;
-                }
-
-                response.pipe(file);
-                file.on("finish", () => {
-                    file.close();
-                    resolve();
-                });
-            }).on("error", (err) => {
-                fs.unlinkSync(filePath);
-                reject(err);
-            });
-
-        } else {
-            http.get(localUrl, (response) => {
-                if (response.statusCode !== 200) {
-                    reject(new Error(`Failed to download file: ${response.statusCode}`));
-                    return;
-                }
-                response.pipe(file);
-                file.on("finish", () => {
-                    file.close();
-                    resolve();
-                });
-            }).on("error", (err) => {
-                fs.unlinkSync(filePath);
-                reject(err);
-            });
-        }
-    });
+    console.log('fetching script from', localUrl);
+    await downloadFileWithRedirects(localUrl, filePath);
 
     const fileUri = filePath.replace("file://", "");
     console.log('script fileUri', fileUri);
@@ -182,46 +198,9 @@ export async function fetchAndOpenJson(ide: IDE, jsonUrl: string, testName: stri
     console.log('localUrl', localUrl);
 
     const filePath = path.join(jsonDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}-details.json`);
-    const fileUrl = new URL(localUrl);
 
-    const file = fs.createWriteStream(filePath);
-
-    await new Promise<void>((resolve, reject) => {
-        console.log('fetching json', fileUrl);
-        if (fileUrl.protocol === 'https:') {
-            https.get(localUrl, (response) => {
-                if (response.statusCode !== 200) {
-                    reject(new Error(`Failed to download file: ${response.statusCode}`));
-                    return;
-                }
-
-                response.pipe(file);
-                file.on("finish", () => {
-                    file.close();
-                    resolve();
-                });
-            }).on("error", (err) => {
-                fs.unlinkSync(filePath);
-                reject(err);
-            });
-
-        } else {
-            http.get(localUrl, (response) => {
-                if (response.statusCode !== 200) {
-                    reject(new Error(`Failed to download file: ${response.statusCode}`));
-                    return;
-                }
-                response.pipe(file);
-                file.on("finish", () => {
-                    file.close();
-                    resolve();
-                });
-            }).on("error", (err) => {
-                fs.unlinkSync(filePath);
-                reject(err);
-            });
-        }
-    });
+    console.log('fetching json from', localUrl);
+    await downloadFileWithRedirects(localUrl, filePath);
 
     const fileUri = filePath.replace("file://", "");
     console.log('json fileUri', fileUri);

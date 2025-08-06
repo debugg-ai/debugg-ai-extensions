@@ -1,4 +1,5 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { renderWithProviders } from '../util/test/render';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import type { E2eTestCommitSuite } from 'core/debuggAIServer/types';
@@ -99,7 +100,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
       () => new Promise(resolve => setTimeout(() => resolve(mockCommitSuite), 100))
     );
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -113,7 +114,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
     // Mock successful API response
     mockIdeMessenger.getE2eCommitSuite.mockResolvedValue(mockCommitSuite);
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -137,7 +138,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
     // Mock API failure
     mockIdeMessenger.getE2eCommitSuite.mockRejectedValue(new Error('API Error'));
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -158,7 +159,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
     // Mock null response
     mockIdeMessenger.getE2eCommitSuite.mockResolvedValue(null);
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -176,7 +177,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
     // Mock undefined response
     mockIdeMessenger.getE2eCommitSuite.mockResolvedValue(undefined);
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -196,7 +197,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
       .mockRejectedValueOnce(new Error('API Error'))
       .mockResolvedValueOnce(mockCommitSuite);
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -224,7 +225,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
     // Test that the component can handle logging without crashing
     mockIdeMessenger.getE2eCommitSuite.mockResolvedValue(mockCommitSuite);
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -249,7 +250,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
     // Test that component properly handles mounting/unmounting cycles
     mockIdeMessenger.getE2eCommitSuite.mockResolvedValue(mockCommitSuite);
 
-    const { unmount } = render(
+    const { unmount } = renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -263,7 +264,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
     unmount();
     
     // Mount a new instance
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -285,7 +286,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
       );
     });
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -313,7 +314,7 @@ describe('E2eCommitSuiteDetailPage Loading States', () => {
 
     mockIdeMessenger.getE2eCommitSuite.mockResolvedValue(malformedData);
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>

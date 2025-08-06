@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '../util/test/render';
 import type { E2eTest, E2eTestCommitSuite } from 'core/debuggAIServer/types';
 import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -152,7 +153,7 @@ describe('E2eCommitSuiteDetailPage Integration Tests', () => {
   it('should load and display complete commit suite with all tabs', async () => {
     mockIdeMessenger.getE2eCommitSuite.mockResolvedValue(mockCommitSuiteWithTests);
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -193,7 +194,7 @@ describe('E2eCommitSuiteDetailPage Integration Tests', () => {
       () => new Promise(resolve => setTimeout(() => resolve(mockCommitSuiteWithTests), 500))
     );
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -220,7 +221,7 @@ describe('E2eCommitSuiteDetailPage Integration Tests', () => {
       .mockRejectedValueOnce(new Error('Network timeout'))
       .mockResolvedValueOnce(mockCommitSuiteWithTests);
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -264,7 +265,7 @@ describe('E2eCommitSuiteDetailPage Integration Tests', () => {
       return Promise.resolve(mockCommitSuiteWithTests);
     });
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -294,7 +295,7 @@ describe('E2eCommitSuiteDetailPage Integration Tests', () => {
     mockIdeMessenger.getE2eCommitSuite.mockResolvedValue(mockCommitSuiteWithTests);
     mockIdeMessenger.runE2eCommitSuite.mockResolvedValue({});
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -318,7 +319,7 @@ describe('E2eCommitSuiteDetailPage Integration Tests', () => {
   it('should handle navigation scenarios correctly', async () => {
     mockIdeMessenger.getE2eCommitSuite.mockResolvedValue(mockCommitSuiteWithTests);
 
-    render(
+    renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>
@@ -343,7 +344,7 @@ describe('E2eCommitSuiteDetailPage Integration Tests', () => {
       () => new Promise(resolve => setTimeout(() => resolve(mockCommitSuiteWithTests), 1000))
     );
 
-    const { unmount } = render(
+    const { unmount } = renderWithProviders(
       <TestWrapper>
         <E2eCommitSuiteDetailPage />
       </TestWrapper>

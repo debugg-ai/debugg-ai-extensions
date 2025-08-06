@@ -1009,4 +1009,134 @@ Focus on testing the user-facing functionality that was affected by these change
     };
   }
 
+  /**
+   * Generate tests for a specific commit
+   */
+  async generateTestsForCommit(commitHash: string): Promise<{
+    workingChanges: WorkingChanges;
+    branchInfo: {branch: string, commitHash: string};
+    e2eSnapshot?: E2eSnapshot | undefined;
+    codebaseContext?: CodebaseContext | undefined;
+    testFiles?: string[];
+  }> {
+    const nullResult = {
+      workingChanges: {
+        changes: [],
+        branchInfo: {
+          branch: '',
+          commitHash: ''
+        }
+      },
+      branchInfo: {branch: '', commitHash: ''},
+      e2eSnapshot: undefined,
+      codebaseContext: undefined,
+      testFiles: []
+    };
+
+    try {
+      console.log(`[CommitTester] Generating tests for commit ${commitHash}`);
+
+      let workspaceDir = await this.getCurrentWorkspaceDir();
+      if (!workspaceDir) {
+        console.log('[CommitTester] No workspace directory found');
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            console.log('[CommitTester] No active text editor found');
+            return nullResult;
+        }
+        const repoName = await this.ide.getRepoName(editor.document.uri.fsPath);
+        if (!repoName) {
+            console.log('[CommitTester] No repo name found for file');
+            return nullResult;
+        }
+        workspaceDir = path.dirname(editor.document.uri.fsPath);
+      }
+
+      console.log('[CommitTester] Workspace directory:', workspaceDir);
+
+      // Get commit changes using git show
+      const commitChanges = await this.getCommitChanges(workspaceDir, commitHash);
+      console.log('[CommitTester] Found changes for commit:', commitChanges.changes.length);
+
+      // Get current branch info
+      const branchInfo = await this.getBranchInfo(workspaceDir);
+      console.log('[CommitTester] Branch info:', branchInfo);
+
+      // Create working changes structure for the commit
+      const workingChanges: WorkingChanges = {
+        changes: commitChanges.changes,
+        branchInfo: {
+          branch: branchInfo.branch,
+          commitHash: commitHash
+        }
+      };
+
+      // Get e2e snapshot
+      const e2eSnapshot = await this.getE2eSnapshot(workspaceDir, workingChanges);
+      console.log('[CommitTester] E2E snapshot:', e2eSnapshot);
+
+      // Get codebase context
+      const codebaseContext = await this.getCodebaseContext(workspaceDir, workingChanges);
+      console.log('[CommitTester] Codebase context extracted');
+
+      return {
+        workingChanges,
+        branchInfo: {
+          branch: branchInfo.branch,
+          commitHash: commitHash
+        },
+        e2eSnapshot,
+        codebaseContext,
+        testFiles: []
+      };
+
+    } catch (error) {
+      console.error(`[CommitTester] Error generating tests for commit ${commitHash}:`, error);
+      return nullResult;
+    }
+  }
+
+  /**
+   * Get changes for a specific commit
+   */
+  private async getCommitChanges(workspaceDir: string, commitHash: string): Promise<{changes: WorkingChange[]}> {
+    return new Promise((resolve, reject) => {
+      const command = `git show --name-status --format="" ${commitHash}`;
+      require('child_process').exec(command, { cwd: workspaceDir }, (error: any, stdout: string, stderr: string) => {
+        if (error) {
+          console.error(`[CommitTester] Error getting commit changes: ${error.message}`);
+          reject(error);
+          return;
+        }
+
+        const changes: WorkingChange[] = [];
+        const lines = stdout.trim().split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+          const parts = line.trim().split('\t');
+          if (parts.length >= 2) {
+            const status = parts[0];
+            const file = parts[1];
+            
+            // Map git status to our WorkingChange status
+            let changeStatus: 'added' | 'modified' | 'deleted' | 'renamed' = 'modified';
+            if (status.startsWith('A')) changeStatus = 'added';
+            else if (status.startsWith('D')) changeStatus = 'deleted';
+            else if (status.startsWith('R')) changeStatus = 'renamed';
+            else if (status.startsWith('M')) changeStatus = 'modified';
+
+            changes.push({
+              file,
+              status: changeStatus,
+              additions: 0, // We could get this from git diff --stat if needed
+              deletions: 0
+            });
+          }
+        }
+
+        resolve({ changes });
+      });
+    });
+  }
+
 }

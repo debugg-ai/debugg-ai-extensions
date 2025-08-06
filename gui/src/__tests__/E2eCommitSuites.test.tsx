@@ -1,7 +1,7 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '../util/test/render';
 import userEvent from '@testing-library/user-event';
 import type { E2eTestCommitSuite } from 'core/debuggAIServer/types';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IdeMessengerContext } from '../context/IdeMessenger';
 import E2eCommitSuites from '../pages/e2es/E2eCommitSuites';
@@ -20,7 +20,26 @@ vi.mock('react-router-dom', async () => {
 const createMockIdeMessenger = (overrides = {}) => ({
   post: vi.fn(),
   respond: vi.fn(),
-  request: vi.fn(),
+  request: vi.fn().mockImplementation((messageType: string) => {
+    switch (messageType) {
+      case 'e2eCommitSuites/fetchE2eCommitSuites':
+        return Promise.resolve({ 
+          content: { count: mockCommitSuites.length, next: null, previous: null, results: mockCommitSuites },
+          status: 'success'
+        });
+      case 'getControlPlaneSessionInfo':
+        return Promise.resolve({ 
+          content: { user: { id: 'test-user' }, workspaceName: 'test-workspace' },
+          status: 'success'
+        });
+      case 'getIdeSettings':
+        return Promise.resolve({ content: {}, status: 'success' });
+      case 'config/listProfiles':
+        return Promise.resolve({ content: [], status: 'success' });
+      default:
+        return Promise.resolve({ content: {}, status: 'success' });
+    }
+  }),
   streamRequest: vi.fn().mockReturnValue((async function*() { yield []; })()),
   llmStreamChat: vi.fn().mockReturnValue((async function*() { yield []; })()),
   
@@ -121,13 +140,16 @@ const mockCommitSuites: E2eTestCommitSuite[] = [
 ];
 
 const renderWithContext = (ideMessenger = createMockIdeMessenger()) => {
-  return render(
-    <MemoryRouter>
+  let result;
+  act(() => {
+    result = renderWithProviders(
       <IdeMessengerContext.Provider value={ideMessenger}>
         <E2eCommitSuites />
-      </IdeMessengerContext.Provider>
-    </MemoryRouter>
-  );
+      </IdeMessengerContext.Provider>,
+      { mockIdeMessenger: ideMessenger }
+    );
+  });
+  return result!;
 };
 
 describe('E2eCommitSuites', () => {
@@ -547,12 +569,10 @@ describe('E2eCommitSuites', () => {
 
   describe('Error Handling', () => {
     it('should handle missing IDE messenger gracefully', () => {
-      render(
-        <MemoryRouter>
-          <IdeMessengerContext.Provider value={null as any}>
-            <E2eCommitSuites />
-          </IdeMessengerContext.Provider>
-        </MemoryRouter>
+      renderWithProviders(
+        <IdeMessengerContext.Provider value={null as any}>
+          <E2eCommitSuites />
+        </IdeMessengerContext.Provider>
       );
       
       // Should show loading state even without IDE messenger

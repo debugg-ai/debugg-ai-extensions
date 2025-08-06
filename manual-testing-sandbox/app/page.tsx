@@ -24,7 +24,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="px-5 py-2 text-base font-semibold text-gray-700 dark:text-gray-300 hover:text-[#2B2DFF] dark:hover:text-[#A259FF] transition-colors rounded-full border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800"
             >
-              About Debugg.ai
+              Learn More About Debugg.ai
             </a>
           </div>
         </div>
