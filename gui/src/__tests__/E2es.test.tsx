@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { screen } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';

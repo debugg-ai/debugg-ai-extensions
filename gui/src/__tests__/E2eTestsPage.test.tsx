@@ -1,7 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Provider } from 'react-redux';
+import { MemoryRouter } from 'react-router-dom';
 import { IdeMessengerContext } from '../context/IdeMessenger';
 import E2eTestsPage from '../pages/e2es/E2eTestsPage';
 import e2eTestsSlice from '../redux/slices/e2eTestsSlice';
@@ -430,7 +432,7 @@ describe('E2eTestsPage', () => {
 
   describe('Error Handling', () => {
     it('should handle missing IDE messenger gracefully', () => {
-      renderWithProviders(
+      render(
         <Provider store={createMockStore()}>
           <MemoryRouter>
             <IdeMessengerContext.Provider value={null as any}>

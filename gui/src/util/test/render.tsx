@@ -3,7 +3,7 @@ import { render, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PropsWithChildren } from "react";
 import { Provider } from "react-redux";
-import { MemoryRouter, RouterProps } from "react-router-dom";
+import { MemoryRouter, MemoryRouterProps } from "react-router-dom";
 import { configureStore } from "@reduxjs/toolkit";
 import { AuthProvider } from "../../context/Auth";
 import { setupStore } from "../../redux/store";
@@ -111,7 +111,7 @@ function setupTestStore(mockIdeMessenger?: IIdeMessenger) {
 // as allows the user to specify other things such as initialState, store.
 type ExtendedRenderOptions = Omit<RenderOptions, "queries"> & {
   store?: ReturnType<typeof setupTestStore>;
-  routerProps?: RouterProps;
+  routerProps?: MemoryRouterProps;
   mockIdeMessenger?: IIdeMessenger;
 };
 
