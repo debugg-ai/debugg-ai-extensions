@@ -44,6 +44,7 @@ import { post } from "./util/axiosNaming";
 import { Battery } from "./util/battery";
 import { VsCodeIde } from "./VsCodeIde";
 
+import { fileURLToPath } from "node:url";
 import type { VsCodeWebviewProtocol } from "./webviewProtocol";
 
 // Global commit tester instance
@@ -1647,20 +1648,12 @@ const getCommandsMap: (
           }
 
           const workspaceDir = workspaceDirs[0];
-          
-          // Execute git log command to get recent commits
-          const gitLogCommand = 'git log --oneline -20 --no-merges';
-          const gitLogResult = await new Promise<string>((resolve, reject) => {
-            require('child_process').exec(gitLogCommand, { cwd: workspaceDir }, (error: any, stdout: string, stderr: string) => {
-              if (error) {
-                reject(new Error(`Git command failed: ${error.message}`));
-                return;
-              }
-              resolve(stdout.trim());
-            });
-          });
+          const workspaceDirPath = fileURLToPath(workspaceDir);
 
-          if (!gitLogResult) {
+          // Execute git log command to get recent commits
+          const [gitLogResult] = await ide.subprocess(`git log --oneline -20 --no-merges`, workspaceDirPath);
+          console.log("Git log result - ", gitLogResult);
+          if (!gitLogResult || gitLogResult.length === 0) {
             vscode.window.showWarningMessage("⚠️ No commits found in the current repository.");
             return;
           }
@@ -1691,7 +1684,14 @@ const getCommandsMap: (
           vscode.window.setStatusBarMessage(`Generating E2E tests for commit ${selectedCommit.hash.substring(0, 8)}...`, 3000);
 
           // Get changes for the selected commit
-          const changes = await commitTester.generateTestsForCommit(selectedCommit.hash);
+          const changes = await commitTester.generateCommitContext({
+            hash: selectedCommit.hash,
+            message: selectedCommit.detail,
+            author: '',
+            date: '',
+            files: [],
+            diff: ''
+          });
 
           const aiE2eAgent = new AiE2eAgent(client, ide, {
             testParams: {
@@ -1715,7 +1715,9 @@ const getCommandsMap: (
               return;
             }
             
-            vscode.window.setStatusBarMessage(`🤖 Generating tests for commit ${selectedCommit.hash.substring(0, 8)}...`, 3000);
+            vscode.window.showInformationMessage(`🤖 Generating tests for commit ${selectedCommit.hash.substring(0, 8)}...`).then(() => {
+              setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 2000);
+            });
             await aiE2eAgent.run();
 
             while (aiE2eAgent.isTestRunning()) {
@@ -1818,7 +1820,9 @@ const getCommandsMap: (
             return;
           }
           
-          vscode.window.setStatusBarMessage("🤖 Generating tests for your working changes...", 3000);
+          vscode.window.showInformationMessage("🤖 Generating tests for your working changes...").then(() => {
+            setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1000);
+          });
           // Actually run the handler to process the request
           await aiE2eAgent.run();
 
@@ -1830,6 +1834,7 @@ const getCommandsMap: (
           vscode.window.showErrorMessage(
             `Error running tests: ${error instanceof Error ? error.message : String(error)}`
           );
+          return;
         }
 
         try {

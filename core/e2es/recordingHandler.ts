@@ -5,7 +5,7 @@ import * as path from "path";
 import { URL } from "url";
 import { IDE } from "../index.js";
 
-async function downloadFileWithRedirects(url: string, filePath: string, maxRedirects: number = 5): Promise<void> {
+async function downloadFileWithRedirects(url: string, filePath: string, maxRedirects: number = 5, originalBaseUrl?: string): Promise<void> {
     let currentUrl = url;
     let redirectCount = 0;
 
@@ -40,6 +40,12 @@ async function downloadFileWithRedirects(url: string, filePath: string, maxRedir
                     if (statusCode === 200) {
                         response.pipe(file);
                         file.on("finish", () => {
+                            if (originalBaseUrl) {
+                                // Replace any https://<any digit, letter, hyphen>.ngrok.debugg.ai urls with localhost:localPort
+                                const fileContent = fs.readFileSync(filePath, 'utf8');
+                                const updatedContent = fileContent.replace(/https:\/\/[a-zA-Z0-9-]{1,}\.ngrok\.debugg\.ai/g, originalBaseUrl);
+                                fs.writeFileSync(filePath, updatedContent);
+                            }
                             file.close();
                             resolve(null); // null means success, no redirect
                         });
@@ -129,7 +135,7 @@ export async function fetchAndOpenGif(ide: IDE, recordingUrl: string, testName: 
     await ide.openImageFile(fileUri);
 }
 
-export async function fetchAndOpenScript(ide: IDE, scriptUrl: string, testName: string, testId: string): Promise<void> {
+export async function fetchAndOpenScript(ide: IDE, scriptUrl: string, testName: string, testId: string, originalBaseUrl?: string): Promise<void> {
     let projectRoot = (await ide.getWorkspaceDirs())[0];
     projectRoot = projectRoot.replace("file://", "");
     let cacheDir = path.join(projectRoot, ".debugg-ai");
@@ -164,17 +170,17 @@ export async function fetchAndOpenScript(ide: IDE, scriptUrl: string, testName: 
         }
     }
 
-    const filePath = path.join(scriptDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}-script${fileExtension}`);
+    const filePath = path.join(scriptDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}.spec${fileExtension}`);
 
     console.log('fetching script from', localUrl);
-    await downloadFileWithRedirects(localUrl, filePath);
+    await downloadFileWithRedirects(localUrl, filePath, 5, originalBaseUrl);
 
     const fileUri = filePath.replace("file://", "");
     console.log('script fileUri', fileUri);
     await ide.openFile(fileUri);
 }
 
-export async function fetchAndOpenJson(ide: IDE, jsonUrl: string, testName: string, testId: string): Promise<void> {
+export async function fetchAndOpenJson(ide: IDE, jsonUrl: string, testName: string, testId: string, originalBaseUrl?: string): Promise<void> {
     let projectRoot = (await ide.getWorkspaceDirs())[0];
     projectRoot = projectRoot.replace("file://", "");
     let cacheDir = path.join(projectRoot, ".debugg-ai");
@@ -200,9 +206,10 @@ export async function fetchAndOpenJson(ide: IDE, jsonUrl: string, testName: stri
     const filePath = path.join(jsonDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}-details.json`);
 
     console.log('fetching json from', localUrl);
-    await downloadFileWithRedirects(localUrl, filePath);
+    await downloadFileWithRedirects(localUrl, filePath, 5, originalBaseUrl);
 
     const fileUri = filePath.replace("file://", "");
     console.log('json fileUri', fileUri);
-    await ide.openFile(fileUri);
+    // For now don't open the jsons. 
+    // await ide.openFile(fileUri);
 }

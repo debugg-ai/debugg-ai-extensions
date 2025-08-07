@@ -131,7 +131,7 @@ export class E2esTestHandler extends RemoteTestHandler {
 
             if (this.testState.status === "completed" || this.testState.status === "failed") {
                 console.log(`📡 E2E test completed. Handling completion.`);
-                this.handleCompletion(this.testState);
+                this.handleCompletion(this.testState, `http://localhost:${this.remoteOptions.localTunnelPort}`);
             }
             return this.testState;
         } catch (error) {
@@ -154,7 +154,7 @@ export class E2esTestHandler extends RemoteTestHandler {
     /**
      * Handle E2E test completion.
      */
-    protected async handleCompletion(state: TestState): Promise<void> {
+    protected async handleCompletion(state: TestState, originalBaseUrl?: string): Promise<void> {
         // Add completion step
         const updatedState = {
             ...state,
@@ -172,7 +172,7 @@ export class E2esTestHandler extends RemoteTestHandler {
         };
 
         // Use parent completion handler
-        await super.handleCompletion(updatedState);
+        await super.handleCompletion(updatedState, originalBaseUrl);
 
         // E2E-specific completion logic
         if (this.testState.status === "success" || this.testState.status === "completed") {

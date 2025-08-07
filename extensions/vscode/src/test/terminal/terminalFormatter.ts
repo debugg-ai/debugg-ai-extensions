@@ -318,10 +318,10 @@ export class TerminalFormatter {
         
         if (testType === 'commit-suite') {
             output.push(chalk.magenta.bold('🔄 Commit Test Suite'));
-            output.push(chalk.dim(`   Validating ${tests.length} generated test(s)\r\n`));
+            output.push(chalk.dim(`   Generating ${tests.length} generated test(s)\r\n`));
         } else if (testType === 'test-suite') {
             output.push(chalk.blue.bold('📦 Feature Test Suite'));
-            output.push(chalk.dim(`   Running ${tests.length} comprehensive test(s)\r\n`));
+            output.push(chalk.dim(`   Generating ${tests.length} comprehensive test(s)\r\n`));
         }
         
         tests.forEach((test, index) => {

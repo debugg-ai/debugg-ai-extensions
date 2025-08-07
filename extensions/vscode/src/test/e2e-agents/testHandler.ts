@@ -140,7 +140,7 @@ export abstract class TestHandler {
             } catch (error) {
                 console.error('Error during polling interval:', error);
                 clearInterval(interval);
-                
+
                 // Ensure VS Code test run gets properly terminated
                 if (this.vsCodeTestRun) {
                     this.vsCodeTestRun.errored(
@@ -151,7 +151,7 @@ export abstract class TestHandler {
                     this.vsCodeTestRun = null;
                     this.vsCodeTestItem = null;
                 }
-                
+
                 await this.cleanupError(error instanceof Error ? error.message : String(error));
             }
         }, this.pollingInterval);
@@ -180,9 +180,11 @@ export abstract class TestHandler {
      * Need to print out the formatted results.
      * Clean up the test run.
      */
-    protected async handleCompletion(state: TestState): Promise<void> {
-        const completionMsg = `✅ Test completed successfully! Status: ${state.status}`;
-        vscode.window.showInformationMessage(completionMsg);
+    protected async handleCompletion(state: TestState, originalBaseUrl?: string): Promise<void> {
+        const completionMsg = `✅ E2e session completed successfully! Status: ${state.status}`;
+        vscode.window.showInformationMessage(completionMsg).then(() => {
+            setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1000);
+        });
         this.formatter?.printSummary(state);
 
         let grade: 'pass' | 'fail' | 'error' = 'pass';
@@ -203,15 +205,15 @@ export abstract class TestHandler {
                 if (testRun?.runGif) {
                     fetchAndOpenGif(this.ide, testRun.runGif, testName, testUuid);
                 }
-                
+
                 // Download script file if available
                 if (testRun?.runScript) {
-                    fetchAndOpenScript(this.ide, testRun.runScript, testName, testUuid);
+                    fetchAndOpenScript(this.ide, testRun.runScript, testName, testUuid, originalBaseUrl);
                 }
-                
+
                 // Download JSON details file if available
                 if (testRun?.runJson) {
-                    fetchAndOpenJson(this.ide, testRun.runJson, testName, testUuid);
+                    fetchAndOpenJson(this.ide, testRun.runJson, testName, testUuid, originalBaseUrl);
                 }
             }
         } else {
@@ -250,13 +252,13 @@ export abstract class TestHandler {
         const timeoutMsg = `⏰ Test timed out after ${this.timeoutMinutes} minutes. The test may be taking longer than expected or there may be an issue.`;
         vscode.window.showErrorMessage(timeoutMsg);
         this.formatter?.printMessage(timeoutMsg, "error");
-        
+
         // Ensure VS Code test run gets properly terminated with timeout error
         if (this.vsCodeTestRun && this.vsCodeTestItem) {
             this.vsCodeTestRun.errored(this.vsCodeTestItem, [new vscode.TestMessage(timeoutMsg)]);
             this.vsCodeTestRun.end();
         }
-        
+
         this.vsCodeTestRun = null;
         this.vsCodeTestItem = null;
         this.formatter = null;
@@ -284,7 +286,7 @@ export abstract class TestHandler {
      */
     protected async cleanupError(reason: string): Promise<void> {
         this.isRunning = false;
-        
+
         // Ensure VS Code test run gets properly terminated if it still exists
         if (this.vsCodeTestRun && this.vsCodeTestItem) {
             this.vsCodeTestRun.errored(this.vsCodeTestItem, [new vscode.TestMessage(`Test failed: ${reason}`)]);
@@ -292,15 +294,15 @@ export abstract class TestHandler {
             this.vsCodeTestRun = null;
             this.vsCodeTestItem = null;
         }
-        
+
         // Default implementation - subclasses should override
         const errorMsg = `❌ Test failed: ${reason}`;
         console.error(errorMsg);
         vscode.window.showErrorMessage(errorMsg);
-        
+
         // Clear formatter
         this.formatter = null;
-        
+
         for (const callback of this.cleanupCallbacks) {
             try {
                 callback();
@@ -350,7 +352,9 @@ export abstract class TestHandler {
     async run(): Promise<void> {
         try {
             this.isRunning = true;
-            vscode.window.showInformationMessage(`🚀 Starting test run: ${this.options.title || 'Test Process'}`);
+            vscode.window.showInformationMessage(`🚀 Starting test run: ${this.options.title || 'Test Process'}`).then(() => {
+                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1000);
+            });
 
             // Initialize the test handler
             await this.initialize();
@@ -364,11 +368,15 @@ export abstract class TestHandler {
             }
 
             // Set up VS Code test run
-            vscode.window.showInformationMessage(`🔧 Setting up test environment...`);
+            vscode.window.showInformationMessage(`🔧 Setting up test environment...`).then(() => {
+                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1000);
+            });
             await this.setupVsCodeTester();
 
             // Set up polling interval
-            vscode.window.showInformationMessage(`⏱️ Monitoring test progress...`);
+            vscode.window.showInformationMessage(`⏱️ Monitoring test progress...`).then(() => {
+                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1000);
+            });
             const pollingInterval = await this.setupPollingInterval();
 
             // Set up timeout

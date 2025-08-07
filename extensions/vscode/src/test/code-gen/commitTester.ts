@@ -74,7 +74,7 @@ export class CommitTester {
       // Check if commit testing is enabled (default to true)
       const config = vscode.workspace.getConfiguration('debugg-ai');
       const commitTestingEnabled = config.get<boolean>('enableCommitTesting', true);
-      
+
       if (!commitTestingEnabled) {
         console.log('[CommitTester] Commit testing is disabled in settings');
         return;
@@ -100,10 +100,10 @@ export class CommitTester {
 
       this.isMonitoring = true;
       console.log('[CommitTester] Started monitoring git commits automatically');
-      
+
       // Create test output directory
       await this.ensureTestOutputDir();
-      
+
     } catch (error) {
       console.error('[CommitTester] Failed to initialize:', error);
     }
@@ -122,17 +122,17 @@ export class CommitTester {
     }
 
     console.log(`[CommitTester] Setting up monitoring for ${repoPath}`);
-    
+
     // Get initial commit hash
     this.lastCommitHash = await this.getLatestCommitHash(repoPath);
-    
+
     let lastModified = fs.statSync(gitLogPath).mtimeMs;
 
     const watcher = fs.watchFile(gitLogPath, { interval: 1000 }, async (curr, prev) => {
       if (curr.mtimeMs !== lastModified) {
         lastModified = curr.mtimeMs;
         console.log(`[CommitTester] New commit detected in ${repoPath}`);
-        
+
         // Add a small delay to ensure git log is fully written
         setTimeout(async () => {
           await this.handleNewCommit(repoPath);
@@ -176,13 +176,13 @@ export class CommitTester {
   stopMonitoring(): void {
     this.isMonitoring = false;
     this.lastCommitHash = null;
-    
+
     // Clean up all file watchers
     for (const [repoPath, watcher] of this.fileWatchers) {
       fs.unwatchFile(path.join(repoPath, '.git', 'logs', 'HEAD'));
     }
     this.fileWatchers.clear();
-    
+
     console.log('[CommitTester] Stopped monitoring git commits');
   }
 
@@ -192,7 +192,7 @@ export class CommitTester {
   private async handleNewCommit(workspaceDir: string): Promise<void> {
     try {
       const newCommitHash = await this.getLatestCommitHash(workspaceDir);
-      
+
       if (newCommitHash === this.lastCommitHash) {
         return; // Same commit, no need to process
       }
@@ -207,20 +207,10 @@ export class CommitTester {
       );
 
       // Generate tests for the commit
-      const result = await this.generateTestsForCommit(commitInfo);
-      
-      if (result.success) {
-        vscode.window.showInformationMessage(
-          `✅ Generated ${result.testFiles.length} test files for commit ${newCommitHash.substring(0, 8)}`
-        );
-      } else {
-        vscode.window.showWarningMessage(
-          `⚠️ Failed to generate tests: ${result.error}`
-        );
-      }
+      const result = await this.generateCommitContext({ hash: newCommitHash, message: commitInfo.message, author: commitInfo.author, date: commitInfo.date, files: commitInfo.files, diff: commitInfo.diff });
 
       this.lastCommitHash = newCommitHash;
-      
+
     } catch (error) {
       console.error('[CommitTester] Error handling commit:', error);
       vscode.window.showErrorMessage(`Error handling commit: ${error}`);
@@ -279,58 +269,12 @@ export class CommitTester {
   }
 
   /**
-   * Generate tests for a specific commit
-   */
-  private async generateTestsForCommit(commitInfo: CommitInfo): Promise<TestGenerationResult> {
-    try {
-      const { config } = await this.configHandler.loadConfig();
-      let localPortConfig = config?.debuggAiServerPort;
-      
-      if (!localPortConfig) {
-        localPortConfig = 3000; // Default port
-      }
-
-      // Create a description for test generation based on commit info
-      const testDescription = this.createTestDescription(commitInfo);
-
-      // Generate test using the E2E test handler
-      const e2eTest = await this.e2eTestHandler.createAndRunE2eTest(
-        testDescription,
-        localPortConfig
-      );
-
-      if (!e2eTest) {
-        return {
-          success: false,
-          testFiles: [],
-          error: 'Failed to create E2E test'
-        };
-      }
-
-      // Wait for test completion and get results
-      const testFiles = await this.waitForTestCompletionAndSaveFiles(e2eTest);
-
-      return {
-        success: true,
-        testFiles: testFiles
-      };
-
-    } catch (error) {
-      return {
-        success: false,
-        testFiles: [],
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-
-  /**
    * Create a test description based on commit information
    */
   private createTestDescription(commitInfo: CommitInfo): string {
     const changedFiles = commitInfo.files.join(', ');
     const fileCount = commitInfo.files.length;
-    
+
     return `Generate comprehensive E2E tests for the changes in commit ${commitInfo.hash.substring(0, 8)}. 
     
 Commit Message: ${commitInfo.message}
@@ -361,7 +305,7 @@ Focus on testing the user-facing functionality that was affected by these change
       try {
         // Get the current test status
         const updatedTest = await this.client.e2es?.getE2eTest(e2eTest.uuid ?? '');
-        
+
         if (!updatedTest) {
           await new Promise(resolve => setTimeout(resolve, pollInterval));
           continue;
@@ -370,7 +314,7 @@ Focus on testing the user-facing functionality that was affected by these change
         // Check if test has a current run
         if (updatedTest.curRun?.uuid) {
           const run = await this.client.e2es?.getE2eRun(updatedTest.curRun.uuid);
-          
+
           if (run && run.status === 'completed') {
             // Test completed, extract and save test files
             return await this.extractAndSaveTestFiles(run);
@@ -392,18 +336,18 @@ Focus on testing the user-facing functionality that was affected by these change
    */
   private async extractAndSaveTestFiles(run: any): Promise<string[]> {
     const savedFiles: string[] = [];
-    
+
     try {
       // Look for test files in the conversation messages
       const conversations = run.conversations || [];
-      
+
       for (const conversation of conversations) {
         const messages = conversation.messages || [];
-        
+
         for (const message of messages) {
           if (message.role === 'assistant' && message.content) {
             const testFiles = this.extractTestFilesFromMessage(message.content);
-            
+
             for (const testFile of testFiles) {
               const savedPath = await this.saveTestFile(testFile);
               if (savedPath) {
@@ -423,25 +367,25 @@ Focus on testing the user-facing functionality that was affected by these change
   /**
    * Extract test files from a message content
    */
-  private extractTestFilesFromMessage(content: string): Array<{name: string, content: string}> {
-    const testFiles: Array<{name: string, content: string}> = [];
-    
+  private extractTestFilesFromMessage(content: string): Array<{ name: string, content: string }> {
+    const testFiles: Array<{ name: string, content: string }> = [];
+
     // Look for code blocks that might contain test files
     const codeBlockRegex = /```(\w+)?\s*([^\n]+)?\n([\s\S]*?)```/g;
     let match;
-    
+
     while ((match = codeBlockRegex.exec(content)) !== null) {
       const language = match[1] || '';
       const filename = match[2] || '';
       const code = match[3];
-      
+
       // Check if this looks like a test file
       if (this.isTestFile(language, filename, code)) {
         const name = filename || this.generateTestFileName(language);
         testFiles.push({ name, content: code });
       }
     }
-    
+
     return testFiles;
   }
 
@@ -455,14 +399,14 @@ Focus on testing the user-facing functionality that was affected by these change
       'playwright', 'page.', 'test.', 'expect(',
       'cy.', 'cypress', 'selenium', 'webdriver'
     ];
-    
-    const hasTestIndicators = testIndicators.some(indicator => 
+
+    const hasTestIndicators = testIndicators.some(indicator =>
       code.toLowerCase().includes(indicator.toLowerCase())
     );
-    
+
     const hasTestExtension = filename.match(/\.(test|spec)\.(js|ts|py|java|cs)$/i) !== null;
     const isTestLanguage = ['javascript', 'typescript', 'python', 'java', 'csharp'].includes(language.toLowerCase());
-    
+
     return hasTestIndicators || hasTestExtension || isTestLanguage;
   }
 
@@ -486,29 +430,29 @@ Focus on testing the user-facing functionality that was affected by these change
       'java': 'java',
       'csharp': 'cs'
     };
-    
+
     return extensions[language.toLowerCase()] || 'js';
   }
 
   /**
    * Save a test file to the test output directory
    */
-  private async saveTestFile(testFile: {name: string, content: string}): Promise<string | null> {
+  private async saveTestFile(testFile: { name: string, content: string }): Promise<string | null> {
     try {
       await this.ensureTestOutputDir();
-      
+
       const filePath = path.join(this.testOutputDir, testFile.name);
-      
+
       // Ensure the file has a proper extension
       if (!path.extname(testFile.name)) {
         testFile.name += '.js'; // Default to JavaScript
       }
-      
+
       await fs.promises.writeFile(filePath, testFile.content, 'utf8');
-      
+
       console.log(`[CommitTester] Saved test file: ${testFile.name}`);
       return filePath;
-      
+
     } catch (error) {
       console.error('[CommitTester] Error saving test file:', error);
       return null;
@@ -557,7 +501,7 @@ Focus on testing the user-facing functionality that was affected by these change
    */
   async generateTestsForWorkingChanges(): Promise<{
     workingChanges: WorkingChanges;
-    branchInfo: {branch: string, commitHash: string};
+    branchInfo: { branch: string, commitHash: string };
     e2eSnapshot?: E2eSnapshot | undefined;
     codebaseContext?: CodebaseContext | undefined;
     testFiles?: string[];
@@ -570,7 +514,7 @@ Focus on testing the user-facing functionality that was affected by these change
           commitHash: ''
         }
       },
-      branchInfo: {branch: '', commitHash: ''},
+      branchInfo: { branch: '', commitHash: '' },
       e2eSnapshot: undefined,
       codebaseContext: undefined,
       testFiles: []
@@ -585,13 +529,13 @@ Focus on testing the user-facing functionality that was affected by these change
         console.log('[CommitTester] No workspace directory found');
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            console.log('[CommitTester] No active text editor found');
-            return nullResult;
+          console.log('[CommitTester] No active text editor found');
+          return nullResult;
         }
         const repoName = await this.ide.getRepoName(editor.document.uri.fsPath);
         if (!repoName) {
-            console.log('[CommitTester] No repo name found for file');
-            return nullResult;
+          console.log('[CommitTester] No repo name found for file');
+          return nullResult;
         }
         workspaceDir = path.dirname(editor.document.uri.fsPath);
 
@@ -606,7 +550,7 @@ Focus on testing the user-facing functionality that was affected by these change
       console.log('[CommitTester] Branch info:', branchInfo);
       const workingChanges = await this.getWorkingChanges(workspaceDir, workspaceDirPath, branchInfo);
       console.log('[CommitTester] Working changes:', workingChanges);
-      
+
       if (!workingChanges.changes.length) {
         return nullResult;
       }
@@ -614,18 +558,18 @@ Focus on testing the user-facing functionality that was affected by these change
       // Analyze existing e2e structure to understand current coverage
       const repoName = path.basename(workspaceDirPath);
       const e2eSnapshot = await this.createE2eSnapshot(workspaceDirPath, repoName, branchInfo, workingChanges);
-      
+
       console.log('[CommitTester] E2E snapshot created:', e2eSnapshot ? 'success' : 'failed');
 
       // Extract codebase context for changed files and related components
       const codebaseContext = await this.extractCodebaseContext(workspaceDirPath, repoName, branchInfo, workingChanges);
-      
+
       console.log('[CommitTester] Codebase context extracted:', codebaseContext ? 'success' : 'failed');
       if (codebaseContext) {
         const stats = this.contextExtractor.getExtractionStats(codebaseContext);
         console.log(`[CommitTester] Context stats: ${stats.filesAnalyzed} files, ${stats.totalSizeKB}KB, ${stats.focusAreas} focus areas`);
       }
-      
+
       return {
         workingChanges: workingChanges,
         branchInfo: branchInfo,
@@ -633,7 +577,7 @@ Focus on testing the user-facing functionality that was affected by these change
         codebaseContext: codebaseContext || undefined,
         testFiles: []
       };
-      
+
     } catch (error) {
       console.error('[CommitTester] Error generating tests for working changes:', error);
       return {
@@ -644,7 +588,7 @@ Focus on testing the user-facing functionality that was affected by these change
             commitHash: ''
           }
         },
-        branchInfo: {branch: '', commitHash: ''},
+        branchInfo: { branch: '', commitHash: '' },
         e2eSnapshot: undefined,
         codebaseContext: undefined,
         testFiles: []
@@ -656,17 +600,17 @@ Focus on testing the user-facing functionality that was affected by these change
    * Create a comprehensive e2e snapshot including existing e2e files and working changes analysis
    */
   private async createE2eSnapshot(
-    workspaceDirPath: string, 
-    repoName: string, 
-    branchInfo: {branch: string, commitHash: string},
+    workspaceDirPath: string,
+    repoName: string,
+    branchInfo: { branch: string, commitHash: string },
     workingChanges: WorkingChanges
   ): Promise<E2eSnapshot | null> {
     try {
       console.log('[CommitTester] Creating e2e snapshot for repository:', repoName);
-      
+
       // Create base e2e snapshot using the analyzer
       const snapshot = await this.e2eFileAnalyzer.createE2eSnapshot(workspaceDirPath, repoName, branchInfo);
-      
+
       if (!snapshot) {
         console.log('[CommitTester] No existing e2e files found, creating minimal snapshot');
         // Create a minimal snapshot even if no e2e files exist
@@ -675,10 +619,10 @@ Focus on testing the user-facing functionality that was affected by these change
 
       // Enhance the snapshot with working changes analysis
       const enhancedSnapshot = await this.enhanceSnapshotWithWorkingChanges(snapshot, workingChanges);
-      
+
       console.log('[CommitTester] Enhanced e2e snapshot created with', enhancedSnapshot.currentE2eFiles.length, 'existing e2e files');
       return enhancedSnapshot;
-      
+
     } catch (error) {
       console.error('[CommitTester] Error creating e2e snapshot:', error);
       return null;
@@ -691,11 +635,11 @@ Focus on testing the user-facing functionality that was affected by these change
   private async createMinimalE2eSnapshot(
     workspaceDirPath: string,
     repoName: string,
-    branchInfo: {branch: string, commitHash: string},
+    branchInfo: { branch: string, commitHash: string },
     workingChanges: WorkingChanges
   ): Promise<E2eSnapshot> {
     const e2eFramework = await this.e2eFileAnalyzer.detectE2eFramework(workspaceDirPath);
-    
+
     return {
       repository: {
         name: repoName,
@@ -752,7 +696,7 @@ Focus on testing the user-facing functionality that was affected by these change
     const additionalUncoveredAreas = this.identifyUncoveredAreas(workingChanges);
     const mergedUncoveredAreas = [
       ...snapshot.uncoveredAreas,
-      ...additionalUncoveredAreas.filter(area => 
+      ...additionalUncoveredAreas.filter(area =>
         !snapshot.uncoveredAreas.some(existing => existing.component === area.component)
       )
     ];
@@ -779,10 +723,10 @@ Focus on testing the user-facing functionality that was affected by these change
    */
   private inferCoverageAreasFromChanges(workingChanges: WorkingChanges): string[] {
     const areas = new Set<string>();
-    
+
     for (const change of workingChanges.changes) {
       const file = change.file.toLowerCase();
-      
+
       // Infer areas from file paths and content
       if (file.includes('auth') || file.includes('login') || file.includes('signin')) {
         areas.add('Authentication');
@@ -802,7 +746,7 @@ Focus on testing the user-facing functionality that was affected by these change
       if (file.includes('component') || file.includes('ui') || file.includes('button')) {
         areas.add('UI Components');
       }
-      
+
       // Analyze diff content for more context
       if (change.diff) {
         const diff = change.diff.toLowerCase();
@@ -817,26 +761,26 @@ Focus on testing the user-facing functionality that was affected by these change
         }
       }
     }
-    
+
     return Array.from(areas);
   }
 
   /**
    * Identify areas that are not covered by existing tests
    */
-  private identifyUncoveredAreas(workingChanges: WorkingChanges): Array<{component: string, pages: string[], reason: string}> {
-    const uncovered: Array<{component: string, pages: string[], reason: string}> = [];
-    
+  private identifyUncoveredAreas(workingChanges: WorkingChanges): Array<{ component: string, pages: string[], reason: string }> {
+    const uncovered: Array<{ component: string, pages: string[], reason: string }> = [];
+
     for (const change of workingChanges.changes) {
       const fileName = path.basename(change.file, path.extname(change.file));
       const component = fileName.charAt(0).toUpperCase() + fileName.slice(1);
-      
+
       // Determine likely pages/routes affected
       const pages: string[] = [];
       if (change.file.includes('page') || change.file.includes('route')) {
         pages.push(`/${fileName.toLowerCase()}`);
       }
-      
+
       let reason = 'New or modified code without corresponding tests';
       if (change.status === 'A') {
         reason = 'New file added without test coverage';
@@ -845,14 +789,14 @@ Focus on testing the user-facing functionality that was affected by these change
       } else if (change.status === 'D') {
         reason = 'File deleted - verify related tests are still valid';
       }
-      
+
       uncovered.push({
         component,
         pages,
         reason
       });
     }
-    
+
     return uncovered;
   }
 
@@ -862,12 +806,12 @@ Focus on testing the user-facing functionality that was affected by these change
   private async extractCodebaseContext(
     workspaceDirPath: string,
     repoName: string,
-    branchInfo: {branch: string, commitHash: string},
+    branchInfo: { branch: string, commitHash: string },
     workingChanges: WorkingChanges
   ): Promise<CodebaseContext | null> {
     try {
       console.log('[CommitTester] Extracting codebase context for', repoName);
-      
+
       // Use the context extractor to get comprehensive context
       const context = await this.contextExtractor.extractCodebaseContext(
         workspaceDirPath,
@@ -877,14 +821,14 @@ Focus on testing the user-facing functionality that was affected by these change
       );
 
       if (context) {
-        console.log(`[CommitTester] Context extracted: ${context.totalContextFiles} files, ${Math.round(context.totalContextSizeBytes/1024)}KB`);
+        console.log(`[CommitTester] Context extracted: ${context.totalContextFiles} files, ${Math.round(context.totalContextSizeBytes / 1024)}KB`);
         console.log(`[CommitTester] Focus areas: ${context.focusAreas.join(', ')}`);
-        
+
         // Log architectural patterns found
         if (context.architecturalPatterns.length > 0) {
           console.log(`[CommitTester] Architectural patterns: ${context.architecturalPatterns.join(', ')}`);
         }
-        
+
         // Log user journeys if found
         if (context.userJourneyMapping.length > 0) {
           console.log(`[CommitTester] User journeys: ${context.userJourneyMapping.join(', ')}`);
@@ -916,31 +860,31 @@ Focus on testing the user-facing functionality that was affected by these change
 
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        return null;
+      return null;
     }
     try {
-        const filePath = editor.document.uri.fsPath;
-        const repoPath = await this.ide.getGitRootPath(filePath);
-        if (!repoPath) {
-            console.log('[CommitTester] No repo path found for file');
-            return null;
-        }
-        return repoPath;
+      const filePath = editor.document.uri.fsPath;
+      const repoPath = await this.ide.getGitRootPath(filePath);
+      if (!repoPath) {
+        console.log('[CommitTester] No repo path found for file');
+        return null;
+      }
+      return repoPath;
 
     } catch (e) {
-        console.error("Error setting up E2E test runner:", e);
-        vscode.window.showWarningMessage("File not found or not associated with a repo.");
-        return null;
+      console.error("Error setting up E2E test runner:", e);
+      vscode.window.showWarningMessage("File not found or not associated with a repo.");
+      return null;
     }
   }
 
   /**
    * Get current branch information
    */
-  private async getCurrentBranchInfo(workspaceDir: string): Promise<{branch: string, commitHash: string}> {
+  private async getCurrentBranchInfo(workspaceDir: string): Promise<{ branch: string, commitHash: string }> {
     const [branch] = await this.ide.subprocess(`git branch --show-current`, workspaceDir);
     const [commitHash] = await this.ide.subprocess(`git rev-parse HEAD`, workspaceDir);
-    
+
     return {
       branch: branch.trim(),
       commitHash: commitHash.trim()
@@ -950,7 +894,7 @@ Focus on testing the user-facing functionality that was affected by these change
   /**
    * Get working changes (modified, added, deleted files)
     */
-    private async getWorkingChanges(workspaceUri: string, workspaceDir: string, branchInfo: {branch: string, commitHash: string}): Promise<WorkingChanges> {
+  private async getWorkingChanges(workspaceUri: string, workspaceDir: string, branchInfo: { branch: string, commitHash: string }): Promise<WorkingChanges> {
     const ignoredFolders = ['node_modules', 'dist', 'build', this.testOutputDir, 'out'];
     const [statusOutput] = await this.ide.subprocess(`git status --porcelain`, workspaceDir);
     const changes: WorkingChange[] = [];
@@ -982,7 +926,7 @@ Focus on testing the user-facing functionality that was affected by these change
             }
           }
         }
-        
+
         changes.push({ status, file, diff });
       } else if (status === '??') {
         // Completely new files have 'diffs' which are just the file contents
@@ -999,7 +943,7 @@ Focus on testing the user-facing functionality that was affected by these change
         }
       }
     }
-    
+
     return {
       changes,
       branchInfo: {
@@ -1012,9 +956,9 @@ Focus on testing the user-facing functionality that was affected by these change
   /**
    * Generate tests for a specific commit
    */
-  async generateTestsForCommit(commitHash: string): Promise<{
+  public async generateCommitContext(commitInfo: CommitInfo): Promise<{
     workingChanges: WorkingChanges;
-    branchInfo: {branch: string, commitHash: string};
+    branchInfo: { branch: string, commitHash: string };
     e2eSnapshot?: E2eSnapshot | undefined;
     codebaseContext?: CodebaseContext | undefined;
     testFiles?: string[];
@@ -1027,71 +971,84 @@ Focus on testing the user-facing functionality that was affected by these change
           commitHash: ''
         }
       },
-      branchInfo: {branch: '', commitHash: ''},
+      branchInfo: { branch: '', commitHash: '' },
       e2eSnapshot: undefined,
       codebaseContext: undefined,
       testFiles: []
     };
 
     try {
-      console.log(`[CommitTester] Generating tests for commit ${commitHash}`);
+      console.log(`[CommitTester] Generating tests for commit ${commitInfo.hash}`);
 
+      // Get current git status to understand what changes exist
       let workspaceDir = await this.getCurrentWorkspaceDir();
+
       if (!workspaceDir) {
         console.log('[CommitTester] No workspace directory found');
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            console.log('[CommitTester] No active text editor found');
-            return nullResult;
+          console.log('[CommitTester] No active text editor found');
+          return nullResult;
         }
         const repoName = await this.ide.getRepoName(editor.document.uri.fsPath);
         if (!repoName) {
-            console.log('[CommitTester] No repo name found for file');
-            return nullResult;
+          console.log('[CommitTester] No repo name found for file');
+          return nullResult;
         }
         workspaceDir = path.dirname(editor.document.uri.fsPath);
-      }
 
+      }
       console.log('[CommitTester] Workspace directory:', workspaceDir);
 
+      const workspaceDirPath = fileURLToPath(workspaceDir);
+      console.log('[CommitTester] Workspace directory path:', workspaceDirPath);
+
+      // Get current branch and working changes
+      const branchInfo = await this.getCurrentBranchInfo(workspaceDirPath);
+      console.log('[CommitTester] Branch info:', branchInfo);
+
       // Get commit changes using git show
-      const commitChanges = await this.getCommitChanges(workspaceDir, commitHash);
+      const commitChanges = await this.getCommitChanges(workspaceDir, workspaceDirPath, commitInfo);
       console.log('[CommitTester] Found changes for commit:', commitChanges.changes.length);
 
-      // Get current branch info
-      const branchInfo = await this.getBranchInfo(workspaceDir);
-      console.log('[CommitTester] Branch info:', branchInfo);
+      console.log('[CommitTester] Branch info:', branchInfo); // TODO: remove this
 
       // Create working changes structure for the commit
       const workingChanges: WorkingChanges = {
         changes: commitChanges.changes,
         branchInfo: {
           branch: branchInfo.branch,
-          commitHash: commitHash
+          commitHash: branchInfo.commitHash
         }
       };
+      // Analyze existing e2e structure to understand current coverage
+      const repoName = path.basename(workspaceDirPath);
+      const e2eSnapshot = await this.createE2eSnapshot(workspaceDirPath, repoName, branchInfo, workingChanges);
 
-      // Get e2e snapshot
-      const e2eSnapshot = await this.getE2eSnapshot(workspaceDir, workingChanges);
-      console.log('[CommitTester] E2E snapshot:', e2eSnapshot);
+      console.log('[CommitTester] E2E snapshot created:', e2eSnapshot ? 'success' : 'failed');
 
-      // Get codebase context
-      const codebaseContext = await this.getCodebaseContext(workspaceDir, workingChanges);
-      console.log('[CommitTester] Codebase context extracted');
+      // Extract codebase context for changed files and related components
+      const codebaseContext = await this.extractCodebaseContext(workspaceDirPath, repoName, branchInfo, workingChanges);
+
+      console.log('[CommitTester] Codebase context extracted:', codebaseContext ? 'success' : 'failed');
+      if (codebaseContext) {
+        const stats = this.contextExtractor.getExtractionStats(codebaseContext);
+        console.log(`[CommitTester] Context stats: ${stats.filesAnalyzed} files, ${stats.totalSizeKB}KB, ${stats.focusAreas} focus areas`);
+      }
 
       return {
         workingChanges,
         branchInfo: {
           branch: branchInfo.branch,
-          commitHash: commitHash
+          commitHash: branchInfo.commitHash
         },
-        e2eSnapshot,
-        codebaseContext,
+        e2eSnapshot: e2eSnapshot || undefined,
+        codebaseContext: codebaseContext || undefined,
         testFiles: []
       };
 
     } catch (error) {
-      console.error(`[CommitTester] Error generating tests for commit ${commitHash}:`, error);
+      console.error(`[CommitTester] Error generating tests for commit ${commitInfo.hash}:`, error);
       return nullResult;
     }
   }
@@ -1099,44 +1056,135 @@ Focus on testing the user-facing functionality that was affected by these change
   /**
    * Get changes for a specific commit
    */
-  private async getCommitChanges(workspaceDir: string, commitHash: string): Promise<{changes: WorkingChange[]}> {
-    return new Promise((resolve, reject) => {
-      const command = `git show --name-status --format="" ${commitHash}`;
-      require('child_process').exec(command, { cwd: workspaceDir }, (error: any, stdout: string, stderr: string) => {
-        if (error) {
-          console.error(`[CommitTester] Error getting commit changes: ${error.message}`);
-          reject(error);
-          return;
-        }
+  private async getCommitChanges(workspaceUri: string, workspaceDirPath: string, commitInfo: CommitInfo): Promise<WorkingChanges> {
+    const ignoredFolders = ['node_modules', 'dist', 'build', this.testOutputDir, 'out'];
+    const changes: WorkingChange[] = [];
+    
+    try {
+      // Get the list of changed files with their status
+      const command = `git show --name-status --format="" ${commitInfo.hash}`;
+      const [stdout] = await this.ide.subprocess(command, workspaceDirPath);
+      console.log('[CommitTester.getCommitChanges] Status output:', stdout);
 
-        const changes: WorkingChange[] = [];
-        const lines = stdout.trim().split('\n').filter(line => line.trim());
+      const lines = stdout.trim().split('\n').filter(line => line.trim());
 
-        for (const line of lines) {
-          const parts = line.trim().split('\t');
-          if (parts.length >= 2) {
-            const status = parts[0];
-            const file = parts[1];
-            
-            // Map git status to our WorkingChange status
-            let changeStatus: 'added' | 'modified' | 'deleted' | 'renamed' = 'modified';
-            if (status.startsWith('A')) changeStatus = 'added';
-            else if (status.startsWith('D')) changeStatus = 'deleted';
-            else if (status.startsWith('R')) changeStatus = 'renamed';
-            else if (status.startsWith('M')) changeStatus = 'modified';
+      for (const line of lines) {
+        const parts = line.trim().split('\t');
+        if (parts.length >= 2) {
+          const gitStatus = parts[0];
+          const file = parts[1];
+          let oldFile: string | undefined;
 
+          // Handle renamed files (format: R100    old_file    new_file)
+          if (gitStatus.startsWith('R') && parts.length >= 3) {
+            oldFile = parts[1];
+            const newFile = parts[2];
+            console.log('[CommitTester.getCommitChanges] Renamed file:', oldFile, '->', newFile);
+            // Use the new file name as the primary file
+            parts[1] = newFile;
+          }
+
+          const finalFile = parts[1];
+
+          console.log('[CommitTester.getCommitChanges] Git Status:', gitStatus);
+          console.log('[CommitTester.getCommitChanges] File:', finalFile);
+
+          // Skip ignored folders
+          if (ignoredFolders.some(folder => finalFile.startsWith(folder))) {
+            console.log('[CommitTester.getCommitChanges] Skipping ignored file:', finalFile);
+            continue;
+          }
+
+          // Map git status to our status format (similar to git status --porcelain)
+          let status: string;
+          if (gitStatus.startsWith('A')) {
+            status = 'A'; // Added
+          } else if (gitStatus.startsWith('M')) {
+            status = 'M'; // Modified
+          } else if (gitStatus.startsWith('D')) {
+            status = 'D'; // Deleted
+          } else if (gitStatus.startsWith('R')) {
+            status = 'R'; // Renamed
+          } else if (gitStatus.startsWith('C')) {
+            status = 'C'; // Copied
+          } else {
+            status = gitStatus; // Keep original for other statuses
+          }
+
+          let diff = '';
+
+          if (status === 'A' || status === 'M' || status === 'R' || status === 'C') {
+            // Get diff for added, modified, renamed, or copied files
+            try {
+              // Compare against parent commit to see what changed
+              const parentCommand = `git show ${commitInfo.hash}^:${finalFile}`;
+              const currentCommand = `git show ${commitInfo.hash}:${finalFile}`;
+              
+              try {
+                // Try to get diff between parent and current commit
+                const diffCommand = `git show ${commitInfo.hash} -- "${finalFile}"`;
+                const [diffOutput] = await this.ide.subprocess(diffCommand, workspaceDirPath);
+                diff = diffOutput;
+              } catch (diffError) {
+                // If that fails, try getting the full file content for new files
+                try {
+                  const [fileContent] = await this.ide.subprocess(currentCommand, workspaceDirPath);
+                  diff = fileContent;
+                } catch (contentError) {
+                  console.error(`[CommitTester] Error getting content for file ${finalFile}: ${contentError}`);
+                }
+              }
+            } catch (error) {
+              console.error(`[CommitTester] Error getting diff for file ${finalFile}: ${error}`);
+            }
+          } else if (status === 'D') {
+            // For deleted files, we can get the content that was removed
+            try {
+              const parentCommand = `git show ${commitInfo.hash}^:${finalFile}`;
+              const [deletedContent] = await this.ide.subprocess(parentCommand, workspaceDirPath);
+              diff = `--- Deleted file content ---`;  // For now just mark it as deleted
+            } catch (error) {
+              console.error(`[CommitTester] Error getting deleted file content for ${finalFile}: ${error}`);
+            }
+          }
+
+          console.log('[CommitTester.getCommitChanges] Adding change:', { status, file: finalFile, diffLength: diff.length });
+          changes.push({ 
+            status, 
+            file: finalFile, 
+            diff: diff || undefined 
+          });
+
+          // For renamed files, also track the old file as deleted
+          if (status === 'R' && oldFile) {
             changes.push({
-              file,
-              status: changeStatus,
-              additions: 0, // We could get this from git diff --stat if needed
-              deletions: 0
+              status: 'D',
+              file: oldFile,
+              diff: `--- File renamed to ${finalFile} ---`
             });
           }
         }
+      }
 
-        resolve({ changes });
-      });
-    });
+      console.log(`[CommitTester.getCommitChanges] Found ${changes.length} changes for commit ${commitInfo.hash}`);
+
+      return { 
+        changes, 
+        branchInfo: { 
+          branch: '', 
+          commitHash: commitInfo.hash 
+        } 
+      };
+    } catch (error) {
+      console.error(`[CommitTester] Error getting commit changes: ${error}`);
+      return {
+        changes,
+        branchInfo: {
+          branch: '',
+          commitHash: commitInfo.hash
+        }
+      };
+    }
   }
 
 }
