@@ -7,7 +7,7 @@ import * as http from 'http';
 import * as vscode from 'vscode';
 
 import E2eRemoteTestHandler from "./e2eRemoteTestHandler";
-import { E2eObjectCallbacks, RepositoryInfo, Status, Step, TerminalTest, TestHandlerOptions, TestObject, TestState, handlePollUpdateFn } from "./types";
+import { E2eObjectCallbacks, RepositoryInfo, Status, TerminalTest, TestHandlerOptions, TestObject, TestState, handlePollUpdateFn } from "./types";
 
 // Type guard functions for safe casting
 function isE2eTest(obj: any): obj is E2eTest {
@@ -99,7 +99,7 @@ export class AiE2eAgent {
         // Check if the local service is active
         console.log(`🔍 Checking if service is active on port ${this.agentOptions.localServerPort}...`);
         this.serviceActive = await this.checkServiceActive(this.agentOptions.localServerPort);
-        
+
         if (!this.serviceActive) {
             const errorMessage = `❌ Service is not active on port ${this.agentOptions.localServerPort}. Please start your application server before running E2E tests.`;
             console.error(errorMessage);
@@ -107,7 +107,7 @@ export class AiE2eAgent {
         }
 
         console.log(`✅ Service is active on port ${this.agentOptions.localServerPort}`);
-        
+
         // Now set up the test handler since service is active
         this.testHandler = this.setupTestHandler();
         return true;
@@ -194,7 +194,7 @@ export class AiE2eAgent {
                 if (!result.uuid) {
                     throw new Error(`Failed to create ${testObjectType}: Missing UUID in response`);
                 }
-            
+
                 let status = "running";
                 switch (testObjectType) {
                     case "commit-suite":
@@ -206,6 +206,8 @@ export class AiE2eAgent {
                         }
                         break;
                     case "e2e-test":
+                        status = "running";
+                        break;
                     case "test-suite":
                         // For these types, default to "running" status on creation
                         status = "running";
@@ -214,7 +216,7 @@ export class AiE2eAgent {
                         status = "running";
                         break;
                 }
-                
+
                 return {
                     uuid: result.uuid,
                     description: result.description || (result as any).name || "",
@@ -255,7 +257,7 @@ export class AiE2eAgent {
                 if (!uuid) {
                     throw new Error(`UUID is required to poll ${testObjectType}`);
                 }
-                
+
                 const result = await func(uuid, params);
                 if (!result) {
                     throw new Error(`Failed to poll ${testObjectType} with UUID ${uuid}: No result returned from server`);
@@ -263,37 +265,37 @@ export class AiE2eAgent {
                 if (!result.uuid) {
                     throw new Error(`Failed to poll ${testObjectType}: Missing UUID in response`);
                 }
-                
+
                 let status = "running";
-            switch (testObjectType) {
-                case "e2e-test":
-                    if (isE2eTest(result)) {
-                        status = result.curRun?.status ?? "running";
-                    } else {
-                        console.warn("Expected E2eTest but received different type");
-                        status = "error";
-                    }
-                    break;
-                case "test-suite":
-                    if (isE2eTestSuite(result)) {
-                        status = result.completed ? "completed" : "running";
-                    } else {
-                        console.warn("Expected E2eTestSuite but received different type");
-                        status = "error";
-                    }
-                    break;
-                case "commit-suite":
-                    if (isE2eTestCommitSuite(result)) {
-                        status = result.runStatus;
-                    } else {
-                        console.warn("Expected E2eTestCommitSuite but received different type");
-                        status = "error";
-                    }
-                    break;
-                default:
-                    status = "running";
-                    break;
-            }
+                switch (testObjectType) {
+                    case "e2e-test":
+                        if (isE2eTest(result)) {
+                            status = result.curRun?.status ?? "running";
+                        } else {
+                            console.warn("Expected E2eTest but received different type");
+                            status = "error";
+                        }
+                        break;
+                    case "test-suite":
+                        if (isE2eTestSuite(result)) {
+                            status = result.completed ? "completed" : "running";
+                        } else {
+                            console.warn("Expected E2eTestSuite but received different type");
+                            status = "error";
+                        }
+                        break;
+                    case "commit-suite":
+                        if (isE2eTestCommitSuite(result)) {
+                            status = result.runStatus;
+                        } else {
+                            console.warn("Expected E2eTestCommitSuite but received different type");
+                            status = "error";
+                        }
+                        break;
+                    default:
+                        status = "running";
+                        break;
+                }
                 console.log(`📡 Polled E2E object status: ${status}`);
                 return {
                     uuid: result.uuid,
@@ -313,10 +315,6 @@ export class AiE2eAgent {
      */
     private async setupRepositoryInfo(): Promise<RepositoryInfo> {
         try {
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                throw new Error("No file open. Please open a file in the editor to run E2E tests.");
-            }
 
             if (!this.agentOptions.repositoryInfo) {
                 this.agentOptions.repositoryInfo = {
@@ -326,10 +324,22 @@ export class AiE2eAgent {
                     filePath: ""
                 };
             }
-            
-            const filePath = editor.document.uri.fsPath;
-            if (!filePath) {
-                throw new Error("Unable to determine file path from active editor.");
+            const workspaceDirs = await this.ide.getWorkspaceDirs();
+            if (workspaceDirs.length === 0) {
+                throw new Error("No workspace directories found. Please open a workspace in the editor to run E2E tests.");
+            }
+            const workspaceDir = workspaceDirs[0] ? workspaceDirs[0].replace("file://", "") : "";
+            let filePath = "";
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                console.info("No file open. Using workspace directory instead.");
+                filePath = workspaceDir;
+            } else {
+                filePath = editor.document.uri.fsPath;
+                if (!filePath) {
+                    console.info("No file path found for file. Using workspace directory instead.");
+                    filePath = workspaceDir;
+                }
             }
 
             const { repoName, repoPath, branchName } = await this.client.getRepoInfo(filePath);
@@ -341,7 +351,7 @@ export class AiE2eAgent {
             this.agentOptions.repositoryInfo.repoPath = repoPath;
             this.agentOptions.repositoryInfo.branchName = branchName;
             this.agentOptions.repositoryInfo.filePath = filePath;
-            
+
             console.log(`📁 Repository info: ${repoName} (${branchName}) at ${repoPath}`);
             return this.agentOptions.repositoryInfo;
         } catch (error) {
@@ -361,7 +371,7 @@ export class AiE2eAgent {
                         status: "error" as Status
                     };
                 }
-                
+
                 switch (testObjectType) {
                     case "e2e-test":
                         return this.parseUpdateForE2eTest(prevState, updatedObj);
@@ -390,7 +400,7 @@ export class AiE2eAgent {
     private parseUpdateForE2eTest(prevState: TestState, updatedObj: TestObject): TestState {
         // Handle both E2eTest and E2eRun objects
         let updatedRun: E2eRun | null = null;
-        
+
         if (isE2eRun(updatedObj.object)) {
             // Direct E2eRun object
             updatedRun = updatedObj.object;
@@ -413,70 +423,44 @@ export class AiE2eAgent {
 
         console.log(`📡 Polled E2E run status: ${updatedRun.status}`);
 
-        // Create a new step from the current run data
-        let currentStep: Step = {
-            label: "E2E Test",
-            status: "pending",
-            currentState: {
-                evaluationPreviousGoal: "",
-                memory: "",
-                nextGoal: ""
-            },
-            action: []
+        const test = updatedObj.object as E2eTest;
+        // Convert E2eTest objects to TerminalTest objects
+        const tests: TerminalTest = {
+            uuid: test.uuid,
+            description: test.description || test.name || "",
+            title: test.name || "",
+            status: test.curRun?.status || 'pending',
+            outcome: test.curRun?.outcome || 'pending',
+            object: test,
+            steps: test.curRun?.conversations?.[0]?.messages?.map(message => ({
+                label: message.jsonContent?.currentState?.memory ?? "",
+                status: message.jsonContent?.currentState?.evaluationPreviousGoal ?
+                    message.jsonContent.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() as Status :
+                    "pending",
+                details: message.jsonContent?.currentState?.memory,
+                currentState: message.jsonContent?.currentState || {
+                    evaluationPreviousGoal: "",
+                    memory: "",
+                    nextGoal: ""
+                },
+                action: message.jsonContent?.action || []
+            })) ?? [], // Initialize empty steps array for each test
+            handlePollUpdate: handlePollUpdateFn
         };
 
-        // Update with the latest step status
-        let prevStepMessage = "";
-        const lastStep = prevState.stepNumber;  // Haven't updated yet, so this is the last step
+        const status = updatedRun?.status || prevState.status;
+        const completed = status === 'completed';
 
-        if (lastStep > 0) {
-            // Need to check for the last step info to see if it was successful or not
-            const prevStep = updatedRun.conversations?.[0]?.messages?.[lastStep - 1];
-            if (prevStep) {
-                const prevStepMessageContent = prevStep.jsonContent;
-                if (prevStepMessageContent) {
-                    const prevActionFmt = prevStepMessageContent as Step;
-                    prevStepMessage = prevActionFmt.currentState.memory;
-                }
-            }
-        }
-        // Process the current step
-        const stepMessage = updatedRun.conversations?.[0]?.messages?.[lastStep];
-        if (stepMessage) {
-            const stepMessageContent = stepMessage.jsonContent;
-            if (stepMessageContent) {
-                const actionFmt = stepMessageContent as Step;
-                const stepMessage = actionFmt.currentState.memory;
-                const stepStatus = actionFmt.currentState.evaluationPreviousGoal ? actionFmt.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() : "pending";
-                if (stepStatus && prevStepMessage) {
-                    currentStep = {
-                        label: prevStepMessage,
-                        status: stepStatus as Status,
-                        details: stepMessage,
-                        currentState: actionFmt.currentState,
-                        action: actionFmt.action
-                    };
-                } else if (stepMessage) {
-                    currentStep = {
-                        label: stepMessage,
-                        status: 'pending',
-                        details: stepMessage,
-                        currentState: actionFmt.currentState,
-                        action: actionFmt.action
-                    };
-                }
-            }
-        }
-
-        // Update steps using the handlePollUpdate function
-        const updatedSteps = prevState.handlePollUpdate(prevState.steps, currentStep);
-
+        // Create a new TestState object with updated information
         return {
-            ...prevState,
             testObject: updatedObj,
-            status: updatedRun.status,
-            completed: updatedRun.status === 'completed',
-            steps: updatedSteps
+            testResults: null, // No results yet for commit suites
+            stepNumber: prevState.stepNumber,
+            completed: completed,
+            status: status as Status,
+            tests: [tests],
+            steps: prevState.steps, // Keep existing steps
+            handlePollUpdate: prevState.handlePollUpdate
         };
     }
 
@@ -490,30 +474,43 @@ export class AiE2eAgent {
 
         console.log(`📡 Polled E2E suite status: ${updatedSuite.completed}`);
         const status = updatedSuite.completed ? "completed" : "running";
-        
-        // Create a step for the suite status
-        const currentStep: Step = {
-            label: "E2E Test Suite",
-            status: status as Status,
-            details: `Suite ${updatedSuite.completed ? "completed" : "running"}`,
-            currentState: {
-                evaluationPreviousGoal: "",
-                memory: "",
-                nextGoal: ""
-            },
-            action: []
-        };
 
-        // Update steps using the handlePollUpdate function
-        const updatedSteps = prevState.handlePollUpdate(prevState.steps, currentStep);
+        // Convert E2eTest objects to TerminalTest objects
+        const tests: TerminalTest[] = (updatedSuite.tests || []).map(test => ({
+            uuid: test.uuid,
+            description: test.description || test.name || "",
+            title: test.name || "",
+            status: test.curRun?.status || 'pending',
+            outcome: test.curRun?.outcome || 'pending',
+            object: test,
+            steps: test.curRun?.conversations?.[0]?.messages?.map(message => ({
+                label: message.jsonContent?.currentState?.memory ?? "",
+                status: message.jsonContent?.currentState?.evaluationPreviousGoal ?
+                    message.jsonContent.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() as Status :
+                    "pending",
+                details: message.jsonContent?.currentState?.memory,
+                currentState: message.jsonContent?.currentState || {
+                    evaluationPreviousGoal: "",
+                    memory: "",
+                    nextGoal: ""
+                },
+                action: message.jsonContent?.action || []
+            })) ?? [], // Initialize empty steps array for each test
+            handlePollUpdate: handlePollUpdateFn
+        }));
 
+        // Create a new TestState object with updated information
         return {
-            ...prevState,
             testObject: updatedObj,
+            testResults: null, // No results yet for commit suites
+            stepNumber: prevState.stepNumber,
+            completed: updatedSuite.completed ?? false,
             status: status as Status,
-            completed: updatedSuite.completed || false,
-            steps: updatedSteps
+            tests: tests,
+            steps: prevState.steps, // Keep existing steps
+            handlePollUpdate: prevState.handlePollUpdate
         };
+
     }
 
     private parseUpdateForE2eCommitSuite(prevState: TestState, updatedObj: TestObject): TestState {
@@ -524,7 +521,7 @@ export class AiE2eAgent {
         }
         const updatedCommitSuite = updatedObj.object;
         console.log(`📡 Polled E2E commit suite: ${updatedCommitSuite.uuid}`);
-        
+
         console.log(`📡 Polled E2E commit suite status: ${updatedCommitSuite.runStatus}`);
 
         // Convert E2eTest objects to TerminalTest objects
@@ -537,8 +534,8 @@ export class AiE2eAgent {
             object: test,
             steps: test.curRun?.conversations?.[0]?.messages?.map(message => ({
                 label: message.jsonContent?.currentState?.memory ?? "",
-                status: message.jsonContent?.currentState?.evaluationPreviousGoal ? 
-                    message.jsonContent.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() as Status : 
+                status: message.jsonContent?.currentState?.evaluationPreviousGoal ?
+                    message.jsonContent.currentState.evaluationPreviousGoal.split(" - ")[0]?.trim().toLowerCase() as Status :
                     "pending",
                 details: message.jsonContent?.currentState?.memory,
                 currentState: message.jsonContent?.currentState || {

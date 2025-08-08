@@ -1325,12 +1325,12 @@ const getCommandsMap: (
           return;
         }
         
-        vscode.window.showInformationMessage(`🚀 Starting E2E test creation: ${testDescription}`);
+        vscode.window.setStatusBarMessage(`🚀 Starting E2E test creation: ${testDescription}`, 2000);
         try {
           // Configure AiE2eAgent with E2E test creation settings
           const agentOptions: AiE2eAgentOptions = {
             testObjectType: "e2e-test",
-            testRunType: "run",
+            testRunType: "generate",
             remote: true,
             localServerPort: localPortConfig,
             testParams: {
@@ -1379,7 +1379,7 @@ const getCommandsMap: (
           return;
         }
         
-        vscode.window.showInformationMessage(`🏃 Starting E2E test run: ${testDescription}`);
+        vscode.window.setStatusBarMessage(`🏃 Starting E2E test run: ${testDescription}`, 2000);
         try {
           // Configure AiE2eAgent with E2E test run settings
           const agentOptions: AiE2eAgentOptions = {
@@ -1618,7 +1618,7 @@ const getCommandsMap: (
 
         const newDir = await vscode.window.showInputBox({
           prompt: 'Enter the test output directory path',
-          value: commitTester?.getTestOutputDirectory() || 'tests/playwright'
+          value: commitTester?.getTestOutputDirectory() || 'tests/debugg-ai'
         });
 
         if (newDir && commitTester) {
@@ -1715,10 +1715,7 @@ const getCommandsMap: (
               return;
             }
             
-            vscode.window.showInformationMessage(`🤖 Generating tests for commit ${selectedCommit.hash.substring(0, 8)}...`).then(() => {
-              setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 2000);
-            });
-            await aiE2eAgent.run();
+            vscode.window.setStatusBarMessage(`🤖 Generating tests for commit ${selectedCommit.hash.substring(0, 8)}...`, 3000);
 
             while (aiE2eAgent.isTestRunning()) {
               await new Promise(resolve => setTimeout(resolve, 2000));
@@ -1745,25 +1742,6 @@ const getCommandsMap: (
               const workspaceDirs = await ide.getWorkspaceDirs();
               console.log("Workspace dirs - ", workspaceDirs);
 
-              if (tests && tests.length > 0) {
-                for (const test of tests) {
-                  const testScriptUrl = test.testScript;
-                  console.log("Test script url - ", testScriptUrl);
-
-                  try {
-                    const testScriptContent = await fetch(testScriptUrl).then(res => res.text());
-                    const testScriptName = testScriptUrl.split('/').pop() ?? `${testObject.uuid}`;
-                    if (aiE2eAgent.testHandler) {
-                      await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: testScriptName, content: testScriptContent, testName: test.name });
-                    }
-                  } catch (error) {
-                    console.error('[Commands.generateTestsForCommit] Error downloading test script:', error);
-                    vscode.window.showErrorMessage(
-                      `Error downloading test script: ${error instanceof Error ? error.message : String(error)}`
-                    );
-                  }
-                }
-              }
               if (testObject.runStatus === "completed") {
                 vscode.window.showInformationMessage(`✅ Tests generated successfully for commit ${selectedCommit.hash.substring(0, 8)}! ${tests?.length || 0} test(s) created.`);
               } else {
@@ -1820,9 +1798,13 @@ const getCommandsMap: (
             return;
           }
           
-          vscode.window.showInformationMessage("🤖 Generating tests for your working changes...").then(() => {
-            setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1000);
-          });
+          vscode.window.showInformationMessage("🤖 Generating tests for your working changes...")
+          
+          // Set a timer to close it after 2 seconds
+          setTimeout(() => {
+            vscode.commands.executeCommand('workbench.action.closeMessages');
+          }, 2000);
+
           // Actually run the handler to process the request
           await aiE2eAgent.run();
 
@@ -1853,26 +1835,6 @@ const getCommandsMap: (
             const workspaceDirs = await ide.getWorkspaceDirs();
             console.log("Workspace dirs - ", workspaceDirs);
 
-            if (tests && tests.length > 0) {
-              for (const test of tests) {
-                // We need to save the test script files locally
-                const testScriptUrl = test.testScript;
-                console.log("Test script url - ", testScriptUrl);
-
-                try {
-                  const testScriptContent = await fetch(testScriptUrl).then(res => res.text());
-                  const testScriptName = testScriptUrl.split('/').pop() ?? `${testObject.uuid}`;
-                  if (aiE2eAgent.testHandler) {
-                    await aiE2eAgent.testHandler.saveTestFile(workspaceDirs, { name: testScriptName, content: testScriptContent, testName: test.name });
-                  }
-                } catch (error) {
-                  console.error('[Commands.generateTestsForWorkingChanges] Error downloading test script:', error);
-                  vscode.window.showErrorMessage(
-                    `Error downloading test script: ${error instanceof Error ? error.message : String(error)}`
-                  );
-                }
-              }
-            }
             if (testObject.runStatus === "completed") {
               vscode.window.showInformationMessage(`✅ Tests generated successfully! ${tests?.length || 0} test(s) created.`);
             } else {

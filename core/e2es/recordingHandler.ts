@@ -40,10 +40,12 @@ async function downloadFileWithRedirects(url: string, filePath: string, maxRedir
                     if (statusCode === 200) {
                         response.pipe(file);
                         file.on("finish", () => {
+                            console.log(`file finished. Replacing urls with ${originalBaseUrl}`);
                             if (originalBaseUrl) {
                                 // Replace any https://<any digit, letter, hyphen>.ngrok.debugg.ai urls with localhost:localPort
                                 const fileContent = fs.readFileSync(filePath, 'utf8');
-                                const updatedContent = fileContent.replace(/https:\/\/[a-zA-Z0-9-]{1,}\.ngrok\.debugg\.ai/g, originalBaseUrl);
+                                const ngrokRegex = /https:\/\/[\w-]+\.ngrok\.debugg\.ai/g;
+                                const updatedContent = fileContent.replace(ngrokRegex, originalBaseUrl);
                                 fs.writeFileSync(filePath, updatedContent);
                             }
                             file.close();
@@ -135,43 +137,43 @@ export async function fetchAndOpenGif(ide: IDE, recordingUrl: string, testName: 
     await ide.openImageFile(fileUri);
 }
 
-export async function fetchAndOpenScript(ide: IDE, scriptUrl: string, testName: string, testId: string, originalBaseUrl?: string): Promise<void> {
-    let projectRoot = (await ide.getWorkspaceDirs())[0];
-    projectRoot = projectRoot.replace("file://", "");
-    let cacheDir = path.join(projectRoot, ".debugg-ai");
+export async function fetchAndOpenScript(ide: IDE, localSavePath: string, remoteScriptUrl: string, testName: string, testId: string, originalBaseUrl?: string): Promise<void> {
+    // let projectRoot = (await ide.getWorkspaceDirs())[0];
+    // projectRoot = projectRoot.replace("file://", "");
+    // let cacheDir = path.join(projectRoot, ".debugg-ai");
 
-    if (cacheDir.includes("file:")) {
-        cacheDir = cacheDir.replace("file:", "");
-    }
-    cacheDir = decodeURIComponent(cacheDir);
-    await fs.promises.mkdir(cacheDir, { recursive: true });
+    // if (cacheDir.includes("file:")) {
+    //     cacheDir = cacheDir.replace("file:", "");
+    // }
+    // cacheDir = decodeURIComponent(cacheDir);
+    // await fs.promises.mkdir(cacheDir, { recursive: true });
     
-    // Create a subdirectory for the scripts
-    let scriptDir = path.join(cacheDir, "e2e-runs");
-    await fs.promises.mkdir(scriptDir, { recursive: true });
+    // // Create a subdirectory for the scripts
+    // let scriptDir = path.join(cacheDir, "e2e-runs");
+    // await fs.promises.mkdir(scriptDir, { recursive: true });
 
     console.log('....downloading script....')
-    console.log('cacheDir', cacheDir);
-    console.log('scriptDir', scriptDir);
+    // console.log('cacheDir', cacheDir);
+    // console.log('scriptDir', scriptDir);
     console.log('testId', testId);
-    console.log('scriptUrl', scriptUrl);
-    let localUrl = scriptUrl.replace('localhost', 'localhost:8002');
+    console.log('remoteScriptUrl', remoteScriptUrl);
+    let localUrl = remoteScriptUrl.replace('localhost', 'localhost:8002');
     console.log('localUrl', localUrl);
 
     // Determine file extension based on content or default to .js
-    const urlObj = new URL(localUrl);
-    const urlPath = urlObj.pathname;
-    let fileExtension = '.js'; // default
-    if (urlPath.includes('.')) {
-        const lastDot = urlPath.lastIndexOf('.');
-        const ext = urlPath.substring(lastDot);
-        if (['.js', '.ts', '.py', '.java', '.cs', '.rb', '.go', '.php'].includes(ext)) {
-            fileExtension = ext;
-        }
-    }
+    // const urlObj = new URL(localUrl);
+    // const urlPath = urlObj.pathname;
+    // let fileExtension = '.js'; // default
+    // if (urlPath.includes('.')) {
+    //     const lastDot = urlPath.lastIndexOf('.');
+    //     const ext = urlPath.substring(lastDot);
+    //     if (['.js', '.ts', '.py', '.java', '.cs', '.rb', '.go', '.php'].includes(ext)) {
+    //         fileExtension = ext;
+    //     }
+    // }
 
-    const filePath = path.join(scriptDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}.spec${fileExtension}`);
-
+    // const filePath = path.join(scriptDir, `${testName.replace(/[^a-zA-Z0-9]/g, '-')}-${testId.slice(0, 4)}.spec${fileExtension}`);
+    const filePath = localSavePath;
     console.log('fetching script from', localUrl);
     await downloadFileWithRedirects(localUrl, filePath, 5, originalBaseUrl);
 

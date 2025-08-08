@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { DebuggAIServerClient } from 'core/debuggAIServer/stubs/client';
 import { IDE } from 'core/index';
@@ -17,7 +15,6 @@ export class E2esTestHandler extends RemoteTestHandler {
     public e2eObjectCallbacks: E2eObjectCallbacks;
     public repositoryInfoPromise: Promise<RepositoryInfo | null>;
     public repositoryInfo: RepositoryInfo | null;
-    public testOutputDir: string = 'tests/playwright';
 
     constructor(
         client: DebuggAIServerClient,
@@ -78,7 +75,14 @@ export class E2esTestHandler extends RemoteTestHandler {
         const tunnelKey = testObject.object.tunnelKey;
         if (tunnelKey) {
             this.remoteOptions.remoteTunnelKey = tunnelKey;
-            this.remoteOptions.remoteTunnelUrl = `${testObject.object.key}.ngrok.debugg.ai`;
+
+            if (testObject.object.key) {
+                this.remoteOptions.remoteTunnelUrl = `${testObject.object.key}.ngrok.debugg.ai`;
+            } else if (testObject.object.curRun?.key) {
+                this.remoteOptions.remoteTunnelUrl = `${testObject.object.curRun.key}.ngrok.debugg.ai`;
+            } else {
+                this.remoteOptions.remoteTunnelUrl = `${testObject.object.uuid}.ngrok.debugg.ai`;
+            }
         }
 
         return testObject;
@@ -179,63 +183,6 @@ export class E2esTestHandler extends RemoteTestHandler {
             vscode.window.showInformationMessage(`E2E test suite completed successfully!`);
         } else {
             vscode.window.showWarningMessage(`E2E test suite completed with issues.`);
-        }
-    }
-
-    /**
-     * Ensure the test output directory exists
-     */
-    private async ensureTestOutputDir(workspaceDirs: string[]): Promise<void> {
-        try {
-            // const workspaceDirs = await this.ide.getWorkspaceDirs();
-            if (workspaceDirs.length > 0) {
-                const workspaceDir = workspaceDirs[0] ? workspaceDirs[0].replace("file://", "") : "";
-                const fullPath = path.join(workspaceDir, this.testOutputDir);
-                await fs.promises.mkdir(fullPath, { recursive: true });
-            }
-        } catch (error) {
-            console.error('[E2eTestHandler] Error creating test output directory:', error);
-        }
-    }
-
-
-    /**
-     * Save a test file to the test output directory
-     */
-    public async saveTestFile(workspaceDirs: string[], testFile: { name: string, content: string, testName?: string }): Promise<string | null> {
-        try {
-            console.log("Saving test file - ", testFile.name);
-            console.log("Workspace dirs - ", workspaceDirs);
-            const wrkDir = workspaceDirs[0] ? workspaceDirs[0].replace("file://", "") : "";
-            console.log("UpdatedWorkspace dir - ", wrkDir);
-
-            // Decode the workspace directory
-            const decodedWrkDir = decodeURIComponent(wrkDir);
-            console.log("Decoded string url - ", decodedWrkDir);
-
-            await this.ensureTestOutputDir([decodedWrkDir]);
-
-            let filePath = "";
-            if (testFile.testName) {
-                filePath = path.join(decodedWrkDir, this.testOutputDir, testFile.testName, testFile.name);
-                await fs.promises.mkdir(path.join(decodedWrkDir, this.testOutputDir, testFile.testName), { recursive: true });
-            } else {
-                filePath = path.join(decodedWrkDir, this.testOutputDir, testFile.name);
-            }
-
-            // Ensure the file has a proper extension
-            if (!path.extname(testFile.name)) {
-                testFile.name += '.js'; // Default to JavaScript
-            }
-
-            await fs.promises.writeFile(filePath, testFile.content, 'utf8');
-
-            console.log(`[E2eTestHandler] Saved test file: ${testFile.name} to ${filePath}`);
-            return filePath;
-
-        } catch (error) {
-            console.error('[E2eTestHandler] Error saving test file:', error);
-            return null;
         }
     }
 

@@ -6,6 +6,8 @@ import * as vscode from 'vscode';
 
 import { TerminalFormatter } from '../terminal/terminalFormatter';
 
+import fs from 'fs';
+import path from 'path';
 import { handlePollUpdateFn, TestHandlerOptions, TestObject, TestState } from './types';
 
 
@@ -26,6 +28,7 @@ export abstract class TestHandler {
     public testState: TestState;
     protected options: TestHandlerOptions;
     protected ide: IDE;
+    public testOutputDir: string = 'tests/debugg-ai';
 
     constructor(client: DebuggAIServerClient, ide: IDE, options: TestHandlerOptions) {
         this.ide = ide;
@@ -182,9 +185,7 @@ export abstract class TestHandler {
      */
     protected async handleCompletion(state: TestState, originalBaseUrl?: string): Promise<void> {
         const completionMsg = `✅ E2e session completed successfully! Status: ${state.status}`;
-        vscode.window.showInformationMessage(completionMsg).then(() => {
-            setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1000);
-        });
+        vscode.window.setStatusBarMessage(completionMsg, 3000);
         this.formatter?.printSummary(state);
 
         let grade: 'pass' | 'fail' | 'error' = 'pass';
@@ -208,7 +209,12 @@ export abstract class TestHandler {
 
                 // Download script file if available
                 if (testRun?.runScript) {
-                    fetchAndOpenScript(this.ide, testRun.runScript, testName, testUuid, originalBaseUrl);
+                    const workspaceDirs = await this.ide.getWorkspaceDirs();
+                    const localSavePath = await this.createLocalTestFilePath(workspaceDirs, { name: testName, content: testRun.runScript, testName: testName });
+                    const remoteScriptUrl = testRun.runScript;
+                    if (localSavePath) {
+                        fetchAndOpenScript(this.ide, localSavePath, remoteScriptUrl, testName, testUuid, originalBaseUrl);
+                    }
                 }
 
                 // Download JSON details file if available
@@ -368,15 +374,11 @@ export abstract class TestHandler {
             }
 
             // Set up VS Code test run
-            vscode.window.showInformationMessage(`🔧 Setting up test environment...`).then(() => {
-                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1000);
-            });
+            vscode.window.setStatusBarMessage(`🔧 Setting up test environment...`, 1500);
             await this.setupVsCodeTester();
 
             // Set up polling interval
-            vscode.window.showInformationMessage(`⏱️ Monitoring test progress...`).then(() => {
-                setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1000);
-            });
+            vscode.window.setStatusBarMessage(`⏱️ Monitoring test progress...`, 2000);
             const pollingInterval = await this.setupPollingInterval();
 
             // Set up timeout
@@ -424,6 +426,61 @@ export abstract class TestHandler {
      */
     getTestItem(): vscode.TestItem | null {
         return this.vsCodeTestItem;
+    }
+
+    /**
+     * Ensure the test output directory exists
+     */
+    private async ensureTestOutputDir(workspaceDirs: string[]): Promise<void> {
+        try {
+            // const workspaceDirs = await this.ide.getWorkspaceDirs();
+            if (workspaceDirs.length > 0) {
+                const workspaceDir = workspaceDirs[0] ? workspaceDirs[0].replace("file://", "") : "";
+                const fullPath = path.join(workspaceDir, this.testOutputDir);
+                await fs.promises.mkdir(fullPath, { recursive: true });
+            }
+        } catch (error) {
+            console.error('[E2eTestHandler] Error creating test output directory:', error);
+        }
+    }
+
+    /**
+     * Create a local test file path
+     */
+    public async createLocalTestFilePath(workspaceDirs: string[], testFile: { name: string, content: string, testName?: string }): Promise<string | null> {
+        try {
+            console.log("Creating local test file path - ", testFile.name);
+            console.log("Workspace dirs - ", workspaceDirs);
+            const wrkDir = workspaceDirs[0] ? workspaceDirs[0].replace("file://", "") : "";
+            console.log("UpdatedWorkspace dir - ", wrkDir);
+
+            // Decode the workspace directory
+            const decodedWrkDir = decodeURIComponent(wrkDir);
+            console.log("Decoded string url - ", decodedWrkDir);
+            await this.ensureTestOutputDir([decodedWrkDir]);
+
+            // Ensure the file has a proper extension
+            if (!path.extname(testFile.name)) {
+                testFile.name += '.js'; // Default to JavaScript
+            }
+            console.log("Test file name - ", testFile.name);
+            if (!testFile.name.includes(".spec") && (testFile.name.includes(".ts") || testFile.name.includes(".js"))) {
+                testFile.name = testFile.name.split(".")[0] + '.spec.' + testFile.name.split(".")[1];
+            }
+
+            let filePath = "";
+            if (testFile.testName) {
+                filePath = path.join(decodedWrkDir, this.testOutputDir, testFile.testName, testFile.name);
+                await fs.promises.mkdir(path.join(decodedWrkDir, this.testOutputDir, testFile.testName), { recursive: true });
+            } else {
+                filePath = path.join(decodedWrkDir, this.testOutputDir, testFile.name);
+            }
+
+            return filePath;
+        } catch (error) {
+            console.error('[E2eTestHandler] Error creating local test file path:', error);
+            return null;
+        }
     }
 }
 
