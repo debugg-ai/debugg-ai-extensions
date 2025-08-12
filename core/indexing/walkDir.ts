@@ -4,9 +4,9 @@ import ignore, { Ignore } from "ignore";
 import { joinPathsToUri } from "../util/uri";
 
 import {
-  defaultIgnoreFileAndDir,
-  getGlobalContinueIgArray,
-  gitIgArrayFromFile,
+    defaultIgnoreFileAndDir,
+    getGlobalContinueIgArray,
+    gitIgArrayFromFile,
 } from "./ignore";
 
 import type { FileType, IDE } from "..";
@@ -307,10 +307,10 @@ export async function getIgnoreContext(
     .map(([name, _]) => name);
 
   // Find ignore files and get ignore arrays from their contexts
-  // These are done separately so that .continueignore can override .gitignore
+  // These are done separately so that .debuggignore can override .gitignore
   const gitIgnoreFile = dirFiles.find((name) => name === ".gitignore");
   const continueIgnoreFile = dirFiles.find(
-    (name) => name === ".continueignore",
+    (name) => name === ".debuggignore",
   );
 
   const getGitIgnorePatterns = async () => {
@@ -322,7 +322,7 @@ export async function getIgnoreContext(
   };
   const getContinueIgnorePatterns = async () => {
     if (continueIgnoreFile) {
-      const contents = await ide.readFile(`${currentDir}/.continueignore`);
+      const contents = await ide.readFile(`${currentDir}/.debuggignore`);
       return gitIgArrayFromFile(contents);
     }
     return [];
@@ -340,8 +340,8 @@ export async function getIgnoreContext(
   // Note precedence here!
   const ignoreContext = ignore()
     .add(ignoreArrays[0]) // gitignore
-    .add(defaultAndGlobalIgnores) // default file/folder ignores followed by global .continueignore - this is combined for speed
-    .add(ignoreArrays[1]); // local .continueignore
+    .add(defaultAndGlobalIgnores) // default file/folder ignores followed by global .debuggignore - this is combined for speed
+    .add(ignoreArrays[1]); // local .debuggignore
 
   return ignoreContext;
 }

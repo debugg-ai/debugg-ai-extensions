@@ -46,6 +46,7 @@ export interface TestHandlerOptions {
     showProgressBar?: boolean;
     stepLabelWidth?: number;
     pollingInterval?: number;
+    testOutputDir?: string;
 }
 
 export interface RemoteTestHandlerOptions {

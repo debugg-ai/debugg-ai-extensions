@@ -1108,6 +1108,8 @@ declare global {
     analytics?: AnalyticsConfig;
     docs?: SiteIndexingConfig[];
     debuggAiServerPort?: number;
+    debuggAiTestOutputDir?: string;
+    debuggAiRepoSettings?: DebuggAiRepoSettings;
   }
   
   export type ConfigMergeType = "merge" | "overwrite";
@@ -1161,6 +1163,8 @@ declare global {
     /** Analytics configuration */
     analytics?: AnalyticsConfig;
     debuggAiServerPort?: number;
+    debuggAiTestOutputDir?: string;
+    debuggAiRepoSettings?: DebuggAiRepoSettings;
   }
   
   // in the actual Continue source code
@@ -1185,6 +1189,8 @@ declare global {
     docs?: SiteIndexingConfig[];
     tools: Tool[];
     debuggAiServerPort?: number;
+    debuggAiTestOutputDir?: string;
+    debuggAiRepoSettings?: DebuggAiRepoSettings;
   }
   
   export interface BrowserSerializedDebuggAiConfig {
@@ -1206,6 +1212,8 @@ declare global {
     docs?: SiteIndexingConfig[];
     tools: Tool[];
     debuggAiServerPort?: number;
+    debuggAiTestOutputDir?: string;
+    debuggAiRepoSettings?: DebuggAiRepoSettings;
   }
   
   // DOCS SUGGESTIONS AND PACKAGE INFO

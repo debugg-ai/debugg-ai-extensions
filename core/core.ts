@@ -333,6 +333,14 @@ export class Core {
     on("config/updateSharedConfig", async (msg) => {
       const newSharedConfig = this.globalContext.updateSharedConfig(msg.data);
       await this.configHandler.reloadConfig();
+      this.debuggAIServerClientPromise.then((client) => {
+        client.projects?.setProjectSettings({
+          primaryLanguage: newSharedConfig.debuggAiRepoSettings?.primaryLanguage,
+          testingLanguage: newSharedConfig.debuggAiRepoSettings?.testingLanguage,
+          testingFramework: newSharedConfig.debuggAiRepoSettings?.testingFramework,
+          framework: newSharedConfig.debuggAiRepoSettings?.framework,
+        } as any);
+      });
       return newSharedConfig;
     });
 
@@ -912,7 +920,7 @@ export class Core {
           ) {
             await this.configHandler.reloadConfig();
           } else if (
-            uri.endsWith(".continueignore") ||
+            uri.endsWith(".debuggignore") ||
             uri.endsWith(".gitignore")
           ) {
             // Reindex the workspaces

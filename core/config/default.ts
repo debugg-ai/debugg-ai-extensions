@@ -1,6 +1,7 @@
 import {
   CollectionVectorMetric,
   ContextProviderWithParams,
+  DebuggAiRepoSettings,
   ModelDescription,
   SerializedDebuggAiConfig,
   SlashCommandDescription,
@@ -98,8 +99,19 @@ const defaultEmbeddingsProvider = {
   maxEmbeddingChunkSize: 512,
 };
 
+const defaultDebuggAiRepoSettings: DebuggAiRepoSettings = {
+  repoName: undefined,
+  repoPath: undefined,
+  primaryLanguage: undefined,
+  testingLanguage: undefined,
+  testingFramework: undefined,
+  framework: undefined,
+};
+
 export const defaultConfig: SerializedDebuggAiConfig = {
   debuggAiServerPort: 3000,
+  debuggAiTestOutputDir: "tests/debugg-ai",
+  debuggAiRepoSettings: defaultDebuggAiRepoSettings,
   models: [],
   contextProviders: defaultContextProvidersVsCode,
   slashCommands: defaultSlashCommandsVscode,
@@ -110,6 +122,8 @@ export const defaultConfig: SerializedDebuggAiConfig = {
 
 export const defaultConfigJetBrains: SerializedDebuggAiConfig = {
   debuggAiServerPort: 3000,
+  debuggAiTestOutputDir: "tests/debugg-ai",
+  debuggAiRepoSettings: defaultDebuggAiRepoSettings,
   models: [],
   contextProviders: defaultContextProvidersJetBrains,
   slashCommands: defaultSlashCommandsJetBrains,

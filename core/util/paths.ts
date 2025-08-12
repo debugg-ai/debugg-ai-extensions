@@ -38,7 +38,7 @@ export function getContinueUtilsPath(): string {
 export function getGlobalContinueIgnorePath(): string {
   const continueIgnorePath = path.join(
     getDebuggAIGlobalPath(),
-    ".continueignore",
+    ".debuggignore",
   );
   if (!fs.existsSync(continueIgnorePath)) {
     fs.writeFileSync(continueIgnorePath, "");

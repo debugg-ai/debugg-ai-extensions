@@ -5,8 +5,10 @@ import { CoverageService, createCoverageService } from "../services/coverage.js"
 import { createE2esService, E2esService } from "../services/e2es.js";
 import { createIndexesService, IndexesService } from "../services/indexes.js";
 import { createIssuesService, IssuesService } from "../services/issues.js";
+import { createProjectsService, ProjectsService } from "../services/projects.js";
 import { createReposService, ReposService } from "../services/repos.js";
 import { createUsersService, UsersService } from "../services/users.js";
+
 import { AxiosTransport } from "../utils/axiosTransport.js";
 
 import { AxiosRequestConfig } from "axios";
@@ -15,6 +17,7 @@ import type {
   EmbeddingsCacheResponse,
   IDebuggAIServerClient,
 } from "../interface.js";
+import { createProjectAnalyzer, ProjectAnalysis } from "../utils/projectAnalyzer.js";
 
 /**
  * Global singleton manager for DebuggTransport instances.
@@ -231,6 +234,12 @@ export class DebuggTransport extends AxiosTransport {
     return extraParams;
   }
 
+  public async getProjectLanguageConfig(): Promise<ProjectAnalysis> {
+    const analyzer = createProjectAnalyzer(this.ide);
+    const analysis = await analyzer.analyzeProject();
+    return analysis;
+  }
+
   async get<T = unknown>(url: string, params?: any, addProjectToCall?: boolean) {
     const extraParams = addProjectToCall ? await this.addProjectToCall() : {};
     const getResponse = await super.get<T>(url, { ...params, ...extraParams });
@@ -311,6 +320,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
   coverage: CoverageService | undefined;
   e2es: E2esService | undefined;
   users: UsersService | undefined;
+  projects: ProjectsService | undefined;
 
   private inFlightGetAccessToken: Promise<string> | null = null;
   private inFlightGetConfig: Promise<{ configJson: string }> | null = null;
@@ -372,6 +382,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
     this.coverage = createCoverageService(this.tx);
     this.e2es = createE2esService(this.tx);
     this.users = createUsersService(this.tx);
+    this.projects = createProjectsService(this.tx); 
     this.initialized = true;
     this.initStarted = false;
     console.log("DebuggAIServerClient init completed");
@@ -401,6 +412,7 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
       this.coverage = createCoverageService(this.tx);
       this.e2es = createE2esService(this.tx);
       this.users = createUsersService(this.tx);
+      this.projects = createProjectsService(this.tx); 
     }
 
     // Only re-init if we don't have a transport yet
@@ -704,6 +716,22 @@ export class DebuggAIServerClient implements IDebuggAIServerClient {
 
   public async getRepoName(filePath: string): Promise<string | undefined> {
     return await this.ide.getRepoName(filePath);
+  }
+
+  public async getProjectLanguageConfig(): Promise<ProjectAnalysis> {
+    const analyzer = createProjectAnalyzer(this.ide);
+    const analysis = await analyzer.analyzeProject();
+  
+    console.log({
+      primaryLanguage: analysis.primaryLanguage,    // "typescript", "javascript", "python", etc.
+      testingLanguage: analysis.testingLanguage,    // Language used for tests
+      testingFramework: analysis.testingFramework,  // "playwright", "selenium", "jest", etc.
+      repoName: analysis.repoName,
+      repoPath: analysis.repoPath,
+      branchName: analysis.branchName,
+      framework: analysis.framework,
+    });
+    return analysis;
   }
 
   public async getRepoInfo(filePath: string): Promise<{

@@ -11,7 +11,7 @@ extensions/vscode/bin
 extensions/vscode/build
 extensions/vscode/out
 gui/dist
-**/.continueignore
+**/.debuggignore
 CHANGELOG.md
 **/continue_tutorial.py
 **/node_modules

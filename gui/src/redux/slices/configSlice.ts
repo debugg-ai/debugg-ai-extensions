@@ -11,6 +11,15 @@ export type ConfigState = {
 
 const EMPTY_CONFIG: BrowserSerializedDebuggAiConfig = {
   debuggAiServerPort: 3000,
+  debuggAiTestOutputDir: "tests/debugg-ai",
+  debuggAiRepoSettings: {
+    repoName: undefined,
+    repoPath: undefined,
+    primaryLanguage: undefined,
+    testingLanguage: undefined,
+    testingFramework: undefined,
+    framework: undefined,
+  },
   slashCommands: [
     {
       name: "share",

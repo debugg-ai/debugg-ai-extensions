@@ -3,17 +3,17 @@ import fs from "fs";
 import path from "path";
 
 import {
-  walkDir,
-  walkDirAsync,
-  walkDirCache,
-  walkDirs,
+    walkDir,
+    walkDirAsync,
+    walkDirCache,
+    walkDirs,
 } from "../indexing/walkDir";
 import { testIde } from "../test/fixtures";
 import {
-  addToTestDir,
-  setUpTestDir,
-  tearDownTestDir,
-  TEST_DIR_PATH,
+    addToTestDir,
+    setUpTestDir,
+    tearDownTestDir,
+    TEST_DIR_PATH,
 } from "../test/testDir";
 
 describe("walkDir functions", () => {
@@ -279,7 +279,7 @@ describe("walkDir functions", () => {
     it("should handle both gitignore and continueignore", async () => {
       addToTestDir([
         [".gitignore", "*.py"],
-        [".continueignore", "*.ts"],
+        [".debuggignore", "*.ts"],
         ["a.txt", "content"],
         ["b.py", "content"],
         ["c.ts", "content"],

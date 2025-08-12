@@ -40,7 +40,7 @@ export class CommitTester {
   private e2eTestHandler: E2eTestHandler;
   private isMonitoring: boolean = false;
   private lastCommitHash: string | null = null;
-  private testOutputDir: string = 'tests/playwright';
+  private testOutputDir: string = '';
   private fileWatchers: Map<string, fs.StatWatcher> = new Map();
   private context: vscode.ExtensionContext;
   private e2eFileAnalyzer: E2eFileAnalyzer;
@@ -74,6 +74,9 @@ export class CommitTester {
       // Check if commit testing is enabled (default to true)
       const config = vscode.workspace.getConfiguration('debugg-ai');
       const commitTestingEnabled = config.get<boolean>('enableCommitTesting', true);
+      const localConfig = await this.configHandler.loadConfig();
+      this.testOutputDir = localConfig.config?.debuggAiTestOutputDir || 'tests/debugg-ai';
+      console.log(`[CommitTester] Test output directory: ${this.testOutputDir}`);
 
       if (!commitTestingEnabled) {
         console.log('[CommitTester] Commit testing is disabled in settings');

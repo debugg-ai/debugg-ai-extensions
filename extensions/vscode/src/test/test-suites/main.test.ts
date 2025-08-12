@@ -93,7 +93,8 @@ describe("Extension Test Suite", () => {
 
       // Request default model title with timeout
       const title = await Promise.race([
-        webviewProtocol.request("getDefaultModelTitle", undefined),
+        (webviewProtocol as any).request("getDefaultModelTitle", undefined),
+        // webviewProtocol.sendMessage("getDefaultModelTitle", undefined),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error("getDefaultModelTitle timeout")), 3000)
         )

@@ -158,7 +158,7 @@ export function E2eTestsTable() {
 function TestStatusIcon({ test }: { test: E2eTest }) {
   if (!test.curRun) return <div className="text-gray-300"><span title="Never">-</span></div>;
 
-  const lastRun = test.curRun?.timestamp ? formatDistanceToNow(parseISO(test.curRun.timestamp), { addSuffix: false }) : "Never";
+  let lastRun = test.curRun?.timestamp ? formatDistanceToNow(parseISO(test.curRun.timestamp), { addSuffix: false }) : "Never";
 
   if (test.curRun.status === "completed") {
     if (test.curRun.outcome === "pass") {

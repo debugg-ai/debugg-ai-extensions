@@ -1239,6 +1239,15 @@ export interface VectorDatabaseIndexOpts {
   metric?: CollectionVectorMetric;
 }
 
+export interface DebuggAiRepoSettings {
+  repoName: string | undefined;
+  repoPath: string | undefined;
+  primaryLanguage: string | undefined;
+  testingLanguage: string | undefined;
+  testingFramework: string | undefined;
+  framework: string | undefined;
+}
+
 // config.json
 export interface SerializedDebuggAiConfig {
   env?: string[];
@@ -1263,8 +1272,10 @@ export interface SerializedDebuggAiConfig {
   docs?: SiteIndexingConfig[];
   data?: DataDestination[];
   debuggAiServerPort?: number;
+  debuggAiTestOutputDir?: string;
+  debuggAiRepoSettings?: DebuggAiRepoSettings;
   vectorDatabaseOpts?: VectorDatabaseIndexOpts;
-  deploymentEnv?: string;
+  deploymentEnv?: string; // Set to test local api calls
 }
 
 export type ConfigMergeType = "merge" | "overwrite";
@@ -1319,6 +1330,8 @@ export interface Config {
   analytics?: AnalyticsConfig;
   data?: DataDestination[];
   debuggAiServerPort?: number;
+  debuggAiTestOutputDir?: string;
+  debuggAiRepoSettings?: DebuggAiRepoSettings;
   vectorDatabaseOpts?: VectorDatabaseIndexOpts;
   deploymentEnv?: string;
 }
@@ -1345,6 +1358,9 @@ export interface DebuggAiConfig {
   selectedModelByRole: Record<ModelRole, ILLM | null>;
   data?: DataDestination[];
   debuggAiServerPort?: number;
+  debuggAiTestOutputDir?: string;
+  debuggAiRepoSettings?: DebuggAiRepoSettings;
+  debuggAiRepoSettingsLs?: DebuggAiRepoSettings[];
   vectorDatabaseOpts?: VectorDatabaseIndexOpts;
   deploymentEnv?: string; // Set to test local api calls
 }
@@ -1370,6 +1386,8 @@ export interface BrowserSerializedDebuggAiConfig {
   modelsByRole: Record<ModelRole, ModelDescription[]>;
   selectedModelByRole: Record<ModelRole, ModelDescription | null>;
   debuggAiServerPort?: number;
+  debuggAiTestOutputDir?: string;
+  debuggAiRepoSettings?: DebuggAiRepoSettings;
   vectorDatabaseOpts?: VectorDatabaseIndexOpts;
   deploymentEnv?: string;
 }

@@ -65,7 +65,7 @@ Continue 索引你的代码库，以便它可以之后自动地拉取你的工�
 
 ## 在索引中忽略文件
 
-Continue 遵守 `.gitignore` 文件，为了确定哪些文件不需要索引。如果你想要忽略更多的文件，你可以添加它们到 `.continueignore` 文件，它遵守和 `.gitignore` 完全相同的规则。
+Continue 遵守 `.gitignore` 文件，为了确定哪些文件不需要索引。如果你想要忽略更多的文件，你可以添加它们到 `.debuggignore` 文件，它遵守和 `.gitignore` 完全相同的规则。
 
 如果你想要查看哪些文件被 Continue 索引，元数据存储在 `~/.continue/index/index.sqlite` 。你可以使用工具，比如 [DB Browser for SQLite](https://sqlitebrowser.org/) 查看这个文件是的 `tag_catalog` 表。
 

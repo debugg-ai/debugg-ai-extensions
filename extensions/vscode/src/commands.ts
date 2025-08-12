@@ -1306,6 +1306,7 @@ const getCommandsMap: (
         };
         const { config } = await configHandler.loadConfig();
         let localPortConfig = config?.debuggAiServerPort;
+        let localTestOutputDir = config?.debuggAiTestOutputDir;
         if (!localPortConfig) {
           const localPort = await vscode.window.showInputBox({
             prompt: 'Provide the port number for the local server',
@@ -1318,6 +1319,7 @@ const getCommandsMap: (
           localPortConfig = parseInt(localPort, 10);
         }
         console.log("Local port config - ", localPortConfig);
+        console.log("Local test output dir - ", localTestOutputDir);
         const client = await debuggAIServerClientPromise;
         const testDescription = await getTestDescription();
         if (!testDescription) {
@@ -1333,6 +1335,7 @@ const getCommandsMap: (
             testRunType: "generate",
             remote: true,
             localServerPort: localPortConfig,
+            testOutputDir: localTestOutputDir,
             testParams: {
               description: testDescription
             }
@@ -1365,6 +1368,7 @@ const getCommandsMap: (
         captureCommandTelemetry("debugg-ai.runE2eTest");
         const { config } = await configHandler.loadConfig();
         let localPortConfig = config?.debuggAiServerPort;
+        let localTestOutputDir = config?.debuggAiTestOutputDir;
         const getTestDescription = async () => {
           const testDescription = await vscode.window.showInputBox({
             prompt: 'What test do you want to run? (e.g. Test my login page...)'
@@ -1387,6 +1391,7 @@ const getCommandsMap: (
             testRunType: "run",
             remote: true,
             localServerPort: localPortConfig ?? 3000,
+            testOutputDir: localTestOutputDir,
             testParams: {
               description: testDescription
             }
@@ -1432,6 +1437,7 @@ const getCommandsMap: (
         };
         const { config } = await configHandler.loadConfig();
         let localPortConfig = config?.debuggAiServerPort;
+        let localTestOutputDir = config?.debuggAiTestOutputDir;
         if (!localPortConfig) {
           const localPort = await vscode.window.showInputBox({
             prompt: 'Provide the port number for the local server',
@@ -1459,6 +1465,7 @@ const getCommandsMap: (
             testRunType: "generate",
             remote: true,
             localServerPort: localPortConfig,
+            testOutputDir: localTestOutputDir,
             testParams: {
               description: testDescription
             }
@@ -1540,6 +1547,7 @@ const getCommandsMap: (
 
         const { config } = await configHandler.loadConfig();
         let localPortConfig = config?.debuggAiServerPort;
+        let localTestOutputDir = config?.debuggAiTestOutputDir;
         if (!localPortConfig) {
           const localPort = await vscode.window.showInputBox({
             prompt: 'Provide the port number for the local server',
@@ -1560,6 +1568,7 @@ const getCommandsMap: (
             testRunType: "run",
             remote: true,
             localServerPort: localPortConfig,
+            testOutputDir: localTestOutputDir,
             testParams: {
               existingSuite: selectedSuite
             }
@@ -1615,10 +1624,12 @@ const getCommandsMap: (
 
       "debugg-ai.setCommitTestOutputDirectory": async () => {
         captureCommandTelemetry("debugg-ai.setCommitTestOutputDirectory");
+        const { config } = await configHandler.loadConfig();
+        let localTestOutputDir = config?.debuggAiTestOutputDir;
 
         const newDir = await vscode.window.showInputBox({
           prompt: 'Enter the test output directory path',
-          value: commitTester?.getTestOutputDirectory() || 'tests/debugg-ai'
+          value: localTestOutputDir || 'tests/debugg-ai'
         });
 
         if (newDir && commitTester) {
@@ -1632,7 +1643,7 @@ const getCommandsMap: (
         const client = await debuggAIServerClientPromise;
         const { config } = await configHandler.loadConfig();
         let localPortConfig = config?.debuggAiServerPort;
-
+        let localTestOutputDir = config?.debuggAiTestOutputDir;
         if (!commitTester) {
           commitTester = new CommitTester(client, ide, configHandler, extensionContext);
         }
@@ -1707,6 +1718,7 @@ const getCommandsMap: (
             testRunType: "generate",
             remote: true,
             localServerPort: localPortConfig ?? 3000,
+            testOutputDir: localTestOutputDir,
           } as unknown as AiE2eAgentOptions);
 
           try {
@@ -1767,7 +1779,7 @@ const getCommandsMap: (
         const client = await debuggAIServerClientPromise;
         const { config } = await configHandler.loadConfig();
         let localPortConfig = config?.debuggAiServerPort;
-
+        let localTestOutputDir = config?.debuggAiTestOutputDir;
         if (!commitTester) {
           commitTester = new CommitTester(client, ide, configHandler, extensionContext);
         }
@@ -1790,6 +1802,7 @@ const getCommandsMap: (
           testRunType: "generate",
           remote: true,
           localServerPort: localPortConfig ?? 3000,
+          testOutputDir: localTestOutputDir,
         } as unknown as AiE2eAgentOptions);
 
         try {

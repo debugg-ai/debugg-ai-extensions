@@ -18,8 +18,7 @@ Click the `Open Assistant configuration` button to open your configuration file.
 
 Below that, the following settings which are not part of a configuration file are available:
 
-- `Wrap Codeblocks`: If on, enables text wrapping in code blocks. Off by default.
-- `Display Raw Markdown`: If on, shows raw markdown in responses. Off by default.
+<!-- - `Display Raw Markdown`: If on, shows raw markdown in responses. Off by default.
 - `Allow Anonymous Telemetry`: If on, allows Continue to send anonymous telemetry. **On** by default.
 - `Disable Indexing`: Prevents indexing of the codebase, useful primarily for debugging purposes. Off by default.
 - `Disable Session Titles`: Prevents generating summary titles for each chat session when turned on. Off by default
@@ -31,4 +30,4 @@ Below that, the following settings which are not part of a configuration file ar
 - `Multiline Autocompletions`: Controls multiline completions for autocomplete. Can be set to `always`, `never`, or `auto`. Defaults to `auto`
 - `Font Size`: Specifies base font size for UI elements
 - `Workspace prompts path`: Where to find Prompt Files in a workspace - replaces the default .continue/prompts
-- `Disable autocomplete in files`: List of comma-separated glob pattern to disable autocomplete in matching files. E.g., "\_/.md, \*/.txt"
+- `Disable autocomplete in files`: List of comma-separated glob pattern to disable autocomplete in matching files. E.g., "\_/.md, \*/.txt" -->

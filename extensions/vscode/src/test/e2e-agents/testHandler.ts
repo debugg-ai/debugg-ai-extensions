@@ -28,7 +28,7 @@ export abstract class TestHandler {
     public testState: TestState;
     protected options: TestHandlerOptions;
     protected ide: IDE;
-    public testOutputDir: string = 'tests/debugg-ai';
+    protected testOutputDir: string;
 
     constructor(client: DebuggAIServerClient, ide: IDE, options: TestHandlerOptions) {
         this.ide = ide;
@@ -36,6 +36,7 @@ export abstract class TestHandler {
         this.timeoutMinutes = options.timeoutMinutes || 30;
         this.pollingInterval = options.pollingInterval || 3500;
         this.options = options;
+        this.testOutputDir = options.testOutputDir || 'tests/debugg-ai';
 
         // Initialize state
         this.testState = {

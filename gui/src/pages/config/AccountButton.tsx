@@ -29,7 +29,7 @@ export function AccountButton() {
         leaveFrom="opacity-100 translate-y-0"
         leaveTo="opacity-0 translate-y-1"
       >
-        <Popover.Panel className="bg-vsc-input-background absolute right-0 z-10 mt-2 w-[250px] rounded-md border border-zinc-700 p-4 shadow-lg">
+        <Popover.Panel className="bg-vsc-background border-vsc-input-border absolute right-0 z-10 mt-2 w-[250px] rounded-md border border-solid p-4 shadow-lg">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col">
               <span className="font-medium">{session.account.label}</span>

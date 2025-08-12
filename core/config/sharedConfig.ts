@@ -10,6 +10,15 @@ import {
 export const sharedConfigSchema = z
   .object({
     debuggAiServerPort: z.number(),
+    debuggAiTestOutputDir: z.string(),
+    debuggAiRepoSettings: z.object({
+      repoName: z.string().optional(),
+      repoPath: z.string().optional(),
+      primaryLanguage: z.string().optional(),
+      testingLanguage: z.string().optional(),
+      testingFramework: z.string().optional(),
+      framework: z.string().optional(),
+    }),
     // boolean fields in config.json
     allowAnonymousTelemetry: z.boolean(),
     disableIndexing: z.boolean(),
@@ -44,6 +53,18 @@ export function salvageSharedConfig(sharedConfig: object): SharedConfigSchema {
     const val = z.number().safeParse(sharedConfig.debuggAiServerPort);
     if (val.success) {
       salvagedConfig.debuggAiServerPort = val.data;
+    }
+  }
+  if ("debuggAiTestOutputDir" in sharedConfig) {
+    const val = z.string().safeParse(sharedConfig.debuggAiTestOutputDir);
+    if (val.success) {
+      salvagedConfig.debuggAiTestOutputDir = val.data;
+    }
+  }
+  if ("debuggAiRepoSettings" in sharedConfig) {
+    const val = sharedConfigSchema.shape.debuggAiRepoSettings.safeParse(sharedConfig.debuggAiRepoSettings);
+    if (val.success) {
+      salvagedConfig.debuggAiRepoSettings = val.data;
     }
   }
   if ("allowAnonymousTelemetry" in sharedConfig) {
@@ -97,6 +118,19 @@ export function modifyAnyConfigWithSharedConfig<
   const configCopy = { ...debuggAiConfig };
   if (sharedConfig.debuggAiServerPort !== undefined) {
     configCopy.debuggAiServerPort = sharedConfig.debuggAiServerPort;
+  }
+  if (sharedConfig.debuggAiTestOutputDir !== undefined) {
+    configCopy.debuggAiTestOutputDir = sharedConfig.debuggAiTestOutputDir;
+  }
+  if (sharedConfig.debuggAiRepoSettings !== undefined) {
+    configCopy.debuggAiRepoSettings = {
+      repoName: sharedConfig.debuggAiRepoSettings.repoName,
+      repoPath: sharedConfig.debuggAiRepoSettings.repoPath,
+      primaryLanguage: sharedConfig.debuggAiRepoSettings.primaryLanguage,
+      testingLanguage: sharedConfig.debuggAiRepoSettings.testingLanguage,
+      testingFramework: sharedConfig.debuggAiRepoSettings.testingFramework,
+      framework: sharedConfig.debuggAiRepoSettings.framework,
+    };
   }
   configCopy.tabAutocompleteOptions = {
     ...configCopy.tabAutocompleteOptions,

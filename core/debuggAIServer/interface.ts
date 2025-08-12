@@ -1,4 +1,5 @@
 import { Chunk } from "../index.js";
+import { ProjectAnalysis } from "./utils/projectAnalyzer.js";
 
 import { IndexesService } from "./services/indexes.js";
 import { IssuesService } from "./services/issues.js";
@@ -33,6 +34,7 @@ export interface IDebuggAIServerClient {
   getConfig(): Promise<{ configJson: string }>;
   getRepoName(filePath: string): Promise<string | undefined>;
   getRepoInfo(filePath: string): Promise<{ repoName: string | undefined; repoPath: string | undefined; branchName: string | undefined }>;
+  getProjectLanguageConfig(): Promise<ProjectAnalysis>;
   getFromIndexCache<T extends ArtifactType>(
     keys: string[],
     artifactId: T,

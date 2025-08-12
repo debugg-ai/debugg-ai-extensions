@@ -2,8 +2,7 @@ import * as fs from "fs";
 
 import { EXTENSION_NAME } from "core/control-plane/env";
 import { DebuggAIServerClient } from "core/debuggAIServer/stubs/client";
-import { getConfigJsonPathForRemote } from "core/util/paths";
-import { getDebuggAIGlobalPath } from "core/util/paths";
+import { getConfigJsonPathForRemote, getDebuggAIGlobalPath } from "core/util/paths";
 import { canParseUrl } from "core/util/url";
 import * as vscode from "vscode";
 
@@ -101,7 +100,8 @@ export class RemoteConfigSync {
         if (!this.debuggAIServerClient?.connected || !this.remoteConfigServerUrl) {
           return;
         }
-        this.sync(this.userToken, this.remoteConfigServerUrl);
+        // this.sync(this.userToken, this.remoteConfigServerUrl);
+        console.log("Skipping remote config sync");
       },
       this.remoteConfigSyncPeriod * 1000 * 60 * 60 * 4,
     );
@@ -112,6 +112,14 @@ export class RemoteConfigSync {
       const config = await this.debuggAIServerClient.users?.getUserConfig();
       if (!config) {
         return;
+      }
+      if (config.debuggAiServerPort) {
+        console.log("Local config has debuggAiServerPort, attempting to override remote config");
+        delete config.debuggAiServerPort; // don't override local Server port config
+      }
+      if (config.debuggAiTestOutputDir) {
+        console.log("Local config has debuggAiTestOutputDir, attempting to override remote config");
+        delete config.debuggAiTestOutputDir; // don't override local Test output directory config
       }
       const configJson = JSON.stringify(config);
 

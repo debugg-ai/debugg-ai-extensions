@@ -4,37 +4,37 @@ import os from "os";
 import path from "path";
 
 import {
-    ConfigResult,
-    ConfigValidationError,
-    ModelRole,
+  ConfigResult,
+  ConfigValidationError,
+  ModelRole,
 } from "@continuedev/config-yaml";
 import { fetchwithRequestOptions } from "@continuedev/fetch";
 import * as tar from "tar";
 
 import {
-    BrowserSerializedDebuggAiConfig,
-    Config,
-    ContextProviderWithParams,
-    ContinueRcJson,
-    CustomContextProvider,
-    CustomLLM,
-    DebuggAiConfig,
-    EmbeddingsProviderDescription,
-    IContextProvider,
-    IDE,
-    IdeInfo,
-    IdeSettings,
-    IdeType,
-    ILLM,
-    LLMOptions,
-    ModelDescription,
-    RerankerDescription,
-    SerializedDebuggAiConfig,
-    SlashCommand,
+  BrowserSerializedDebuggAiConfig,
+  Config,
+  ContextProviderWithParams,
+  ContinueRcJson,
+  CustomContextProvider,
+  CustomLLM,
+  DebuggAiConfig,
+  EmbeddingsProviderDescription,
+  IContextProvider,
+  IDE,
+  IdeInfo,
+  IdeSettings,
+  IdeType,
+  ILLM,
+  LLMOptions,
+  ModelDescription,
+  RerankerDescription,
+  SerializedDebuggAiConfig,
+  SlashCommand,
 } from "..";
 import {
-    slashCommandFromDescription,
-    slashFromCustomCommand,
+  slashCommandFromDescription,
+  slashFromCustomCommand,
 } from "../commands/index";
 import { AllRerankers } from "../context/allRerankers";
 import { MCPManagerSingleton } from "../context/mcp";
@@ -60,23 +60,23 @@ import { copyOf } from "../util";
 import { GlobalContext } from "../util/GlobalContext";
 import mergeJson from "../util/merge";
 import {
-    DEFAULT_CONFIG_TS_CONTENTS,
-    getConfigJsonPath,
-    getConfigJsonPathForRemote,
-    getConfigJsPath,
-    getConfigTsPath,
-    getContinueDotEnv,
-    getEsbuildBinaryPath
+  DEFAULT_CONFIG_TS_CONTENTS,
+  getConfigJsonPath,
+  getConfigJsonPathForRemote,
+  getConfigJsPath,
+  getConfigTsPath,
+  getContinueDotEnv,
+  getEsbuildBinaryPath
 } from "../util/paths";
 import { localPathToUri } from "../util/pathToUri";
 
 import { ConfigHandler } from "./ConfigHandler";
 import {
-    defaultConfig,
-    defaultContextProvidersJetBrains,
-    defaultContextProvidersVsCode,
-    defaultSlashCommandsJetBrains,
-    defaultSlashCommandsVscode,
+  defaultConfig,
+  defaultContextProvidersJetBrains,
+  defaultContextProvidersVsCode,
+  defaultSlashCommandsJetBrains,
+  defaultSlashCommandsVscode,
 } from "./default";
 import { getSystemPromptDotFile } from "./getSystemPromptDotFile";
 import { modifyAnyConfigWithSharedConfig } from "./sharedConfig";
@@ -145,7 +145,7 @@ export async function resolveSerializedConfig(
   configHandler: ConfigHandler,
   debuggAIServerClientPromise: Promise<DebuggAIServerClient>,
 ): Promise<SerializedDebuggAiConfig> {
-  let config: SerializedDebuggAiConfig;
+  let config: SerializedDebuggAiConfig | undefined;
 
   try {
     const content = fs.readFileSync(filepath, "utf8");
@@ -155,8 +155,16 @@ export async function resolveSerializedConfig(
       console.log("Local config has no vectorDatabaseOpts.apiKey, attempting to use remote config");
       const remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise, false);
       if (remoteConfig) {
-        // config = mergeJson(config, remoteConfig, "merge", configMergeKeys);
-        config = remoteConfig;
+        if (config.debuggAiServerPort) {
+          console.log("Local config has debuggAiServerPort, attempting to override remote config");
+          remoteConfig.debuggAiServerPort = config.debuggAiServerPort;
+        }
+        if (config.debuggAiTestOutputDir) {
+          console.log("Local config has debuggAiTestOutputDir, attempting to override remote config");
+          remoteConfig.debuggAiTestOutputDir = config.debuggAiTestOutputDir;
+        }
+        config = mergeJson(config, remoteConfig, "merge", configMergeKeys);
+        // config = remoteConfig;
       }
     }
   } catch (e) {
@@ -165,12 +173,22 @@ export async function resolveSerializedConfig(
     try {
       // Force refresh when local config is broken to ensure we get fresh remote config
       remoteConfig = await getConfigFromServer(configHandler, ide, debuggAIServerClientPromise, true);
+      if (remoteConfig && config?.debuggAiServerPort) {
+        console.log("Local config has debuggAiServerPort, attempting to override remote config");
+        remoteConfig.debuggAiServerPort = config.debuggAiServerPort;
+      }
+      if (remoteConfig && config?.debuggAiTestOutputDir) {
+        console.log("Local config has debuggAiTestOutputDir, attempting to override remote config");
+        remoteConfig.debuggAiTestOutputDir = config.debuggAiTestOutputDir;
+      }
     } catch (e) {
       console.error("Error loading remote config", e);
     }
     
-    if (remoteConfig) {
-      // config = mergeJson(config, remoteConfig, "merge", configMergeKeys);
+    if (remoteConfig && config) {
+      config = mergeJson(config, remoteConfig, "merge", configMergeKeys);
+      // config = remoteConfig;
+    } else if (remoteConfig) {
       config = remoteConfig;
     } else {
       // read default config
@@ -187,7 +205,7 @@ export async function resolveSerializedConfig(
     );
   }
 
-  if (config.env && Array.isArray(config.env)) {
+  if (config?.env && Array.isArray(config.env)) {
     const env = {
       ...process.env,
       ...getContinueDotEnv(),
@@ -203,14 +221,14 @@ export async function resolveSerializedConfig(
     // });
   }
 
-  return config;
+  return config!;
 }
 
 const configMergeKeys = {
   models: (a: any, b: any) => a.title === b.title,
   contextProviders: (a: any, b: any) => a.name === b.name,
   slashCommands: (a: any, b: any) => a.name === b.name,
-  customCommands: (a: any, b: any) => a.name === b.name,
+  customCommands: (a: any, b: any) => a.name === b.name
 };
 
 async function loadSerializedConfig(
@@ -274,7 +292,9 @@ async function loadSerializedConfig(
         configHandler,
         debuggAIServerClientPromise,
       );
+      
       config = mergeJson(config, remoteConfigJson, "merge", configMergeKeys);
+
     } catch (e) {
       console.warn("Error loading remote config: ", e);
     }
@@ -821,6 +841,8 @@ async function finalToBrowserConfig(
       ]),
     ) as Record<ModelRole, ModelDescription | null>, // TODO better types here
     debuggAiServerPort: final.debuggAiServerPort,
+    debuggAiTestOutputDir: final.debuggAiTestOutputDir,
+    debuggAiRepoSettings: final.debuggAiRepoSettings,
     // data not included here because client doesn't need
   };
 }
@@ -1130,9 +1152,9 @@ async function loadDebuggAiConfigFromJson(
 }
 
 export {
-    finalToBrowserConfig,
-    intermediateToFinalConfig,
-    loadDebuggAiConfigFromJson,
-    type BrowserSerializedDebuggAiConfig
+  finalToBrowserConfig,
+  intermediateToFinalConfig,
+  loadDebuggAiConfigFromJson,
+  type BrowserSerializedDebuggAiConfig
 };
 

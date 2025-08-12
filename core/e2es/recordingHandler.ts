@@ -114,8 +114,10 @@ export async function fetchAndOpenGif(ide: IDE, recordingUrl: string, testName: 
     }
     cacheDir = decodeURIComponent(cacheDir);
     await fs.promises.mkdir(cacheDir, { recursive: true });
+    // Subdirectory using the current date
+    const currentDate = new Date().toISOString().split('T')[0];
     // Create a subdirectory for the gif
-    let gifDir = path.join(cacheDir, "e2e-runs");
+    let gifDir = path.join(cacheDir, "e2e-runs", currentDate);
     await fs.promises.mkdir(gifDir, { recursive: true });
 
     console.log('....downloading gif....')
@@ -193,8 +195,10 @@ export async function fetchAndOpenJson(ide: IDE, jsonUrl: string, testName: stri
     cacheDir = decodeURIComponent(cacheDir);
     await fs.promises.mkdir(cacheDir, { recursive: true });
     
+    // Subdirectory using the current date
+    const currentDate = new Date().toISOString().split('T')[0];
     // Create a subdirectory for the json files
-    let jsonDir = path.join(cacheDir, "e2e-runs");
+    let jsonDir = path.join(cacheDir, "e2e-runs", currentDate);
     await fs.promises.mkdir(jsonDir, { recursive: true });
 
     console.log('....downloading json....')
