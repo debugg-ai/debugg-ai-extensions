@@ -1276,7 +1276,7 @@ export class Core {
           console.log("Listing E2E test suites", params);
           try {
             // Use the actual service method if available
-            const suites = await e2es.listE2eTestSuites?.(params);
+            const suites = await e2es.listE2eTestSuites(params);
             if (suites) {
               return suites;
             }
@@ -1418,7 +1418,7 @@ export class Core {
           console.log("Listing E2E commit suites", params);
           try {
             // Use the actual service method
-            const commitSuites = await e2es.listE2eCommitSuites?.(params);
+            const commitSuites = await e2es.listE2eCommitSuites(params);
             if (commitSuites) {
               return commitSuites;
             }

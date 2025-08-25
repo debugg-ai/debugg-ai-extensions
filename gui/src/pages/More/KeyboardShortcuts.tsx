@@ -5,7 +5,7 @@ import {
   vscForeground,
 } from "../../components";
 import { ToolTip } from "../../components/gui/Tooltip";
-import { getPlatform, isJetBrains } from "../../util";
+import { getPlatform } from "../../util";
 
 const GridDiv = styled.div`
   display: grid;
@@ -241,7 +241,7 @@ function KeyboardShortcuts({ top }: { top?: boolean }) {
         </GridDiv>
 
       </div>
-      <div className={`${top ? "hidden" : ""}`}>
+      {/* <div className={`${top ? "hidden" : ""}`}>
         <GridDiv>
           {(isJetBrains() ? jetbrainsShortcuts : vscodeShortcuts).map(
             (shortcut, i) => {
@@ -257,7 +257,7 @@ function KeyboardShortcuts({ top }: { top?: boolean }) {
           )}
         </GridDiv>
 
-      </div>
+      </div> */}
     </>
   );
 }

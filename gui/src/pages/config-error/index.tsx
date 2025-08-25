@@ -26,7 +26,7 @@ export default function ConfigErrorPage() {
         }}
       >
         <ArrowLeftIcon className="ml-3 inline-block h-3 w-3 cursor-pointer" />
-        <span className="m-2 inline-block text-sm font-bold">Chat</span>
+        <span className="m-2 inline-block text-sm font-bold">E2e Tests</span>
       </div>
 
       <div className="gap-2 divide-x-0 divide-y-2 divide-solid divide-zinc-700 px-4">

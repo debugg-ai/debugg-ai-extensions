@@ -92,7 +92,7 @@
         "debugg-ai.telemetryEnabled": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "DebuggAI collects anonymous usage data, cleaned of PII, to help us improve the product for our users. Read more  at [debugg-ai.dev › Telemetry](https://docs.debugg-ai.dev/telemetry)."
+          "markdownDescription": "DebuggAI collects anonymous usage data, cleaned of PII, to help us improve the product for our users. Read more  at [debugg.ai › Telemetry](https://docs.debugg.ai/telemetry)."
         },
         "debugg-ai.showInlineTip": {
           "type": "boolean",

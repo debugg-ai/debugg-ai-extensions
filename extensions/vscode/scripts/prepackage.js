@@ -378,12 +378,40 @@ const isMacTarget = target?.startsWith("darwin");
     execCmdSync(`cd node_modules/@esbuild && unzip esbuild.zip`);
     fs.unlinkSync("node_modules/@esbuild/esbuild.zip");
   } else {
-    // Download esbuild from npm in tmp and copy over
+    // Install the platform-specific esbuild binary
     console.log("npm installing esbuild binary");
+    const esbuildPlatformPackage = `@esbuild/${target}@0.17.19`;
+    console.log(`Installing ${esbuildPlatformPackage}`);
+    
+    // Create @esbuild directory structure
+    rimrafSync("node_modules/@esbuild");
+    fs.mkdirSync("node_modules/@esbuild", { recursive: true });
+    
+    // Install the platform-specific package and copy it
     await installNodeModuleInTempDirAndCopyToCurrent(
-      "esbuild@0.17.19",
-      "@esbuild",
+      esbuildPlatformPackage,
+      `@esbuild/${target}`,
     );
+    
+    // Move the platform package to the correct structure
+    if (fs.existsSync(`node_modules/@esbuild/${target}`)) {
+      // The structure is already correct
+    } else {
+      // Need to create the directory structure manually
+      fs.mkdirSync(`node_modules/@esbuild/${target}`, { recursive: true });
+      // Copy from the installed location if it exists elsewhere
+      const potentialLocations = [
+        `node_modules/vite/node_modules/@esbuild/${target}`,
+        `node_modules/esbuild/node_modules/@esbuild/${target}`,
+      ];
+      
+      for (const location of potentialLocations) {
+        if (fs.existsSync(location)) {
+          fs.cpSync(location, `node_modules/@esbuild/${target}`, { recursive: true });
+          break;
+        }
+      }
+    }
   }
 
   console.log("[info] Copying sqlite node binding from core");
