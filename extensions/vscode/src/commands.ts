@@ -1345,6 +1345,7 @@ const getCommandsMap: (
           const aiE2eAgent = new AiE2eAgent(client, ide, agentOptions);
           await aiE2eAgent.run();
           vscode.window.showInformationMessage(`✅ E2E test created successfully: ${testDescription}`);
+          setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 1500);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           let helpfulMessage = `❌ Failed to create E2E test: ${errorMessage}`;

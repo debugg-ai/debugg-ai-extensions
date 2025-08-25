@@ -85,9 +85,8 @@ export class E2eTestRunner {
 
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-          vscode.window.showWarningMessage("No file open.").then(() => {
-            setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
-          });
+          vscode.window.showWarningMessage("No file open.")
+          setTimeout(() => vscode.commands.executeCommand('workbench.action.closeMessages'), 3000);
           return;
         }
         try {

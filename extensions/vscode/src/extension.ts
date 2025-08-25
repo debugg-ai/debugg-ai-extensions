@@ -5,8 +5,15 @@
 import { setupCa } from "core/util/ca";
 import { extractMinimalStackTraceInfo } from "core/util/extractMinimalStackTraceInfo";
 import { Telemetry } from "core/util/posthog";
-import { kill } from 'ngrok';
 import * as vscode from "vscode";
+// Try to import ngrok kill function, but handle gracefully if not available
+let ngrokKill: (() => Promise<void>) | null = null;
+try {
+  const ngrok = require('ngrok');
+  ngrokKill = ngrok.kill;
+} catch (error) {
+  console.warn('ngrok package not available:', error.message);
+}
 
 import { getExtensionVersion } from "./util/util";
 
@@ -57,5 +64,11 @@ export async function deactivate() {
   );
 
   Telemetry.shutdownPosthogClient();
-  await kill();
+  if (ngrokKill) {
+    try {
+      await ngrokKill();
+    } catch (error) {
+      console.warn('Failed to kill ngrok:', error.message);
+    }
+  }
 }
