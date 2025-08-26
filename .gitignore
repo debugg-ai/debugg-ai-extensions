@@ -177,3 +177,4 @@ extensions/.debugg-ai-debug/**/*
 extensions/.continue-debug/**/*
 manual-testing-sandbox/.local
 manual-testing-sandbox/app/page.tsx
+/manual-testing-sandbox/tests/debugg
