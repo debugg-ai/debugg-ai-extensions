@@ -11,7 +11,7 @@ let ngrokKill: (() => Promise<void>) | null = null;
 try {
   const ngrok = require('ngrok');
   ngrokKill = ngrok.kill;
-} catch (error) {
+} catch (error: any) {
   console.warn('ngrok package not available:', error.message);
 }
 
@@ -67,7 +67,7 @@ export async function deactivate() {
   if (ngrokKill) {
     try {
       await ngrokKill();
-    } catch (error) {
+    } catch (error: any) {
       console.warn('Failed to kill ngrok:', error.message);
     }
   }
